@@ -1,14 +1,14 @@
-﻿import React from 'react';
+import React from 'react';
 import { X, ShieldCheck, Lock, MapPin, Trash2, Mail, ExternalLink, Globe } from 'lucide-react';
 import { APP_CONFIG } from '../../config/appConfig';
 
 interface PrivacyPolicyModalProps {
   isOpen: boolean;
   onClose: () => void;
-  language: 'en' | 'bn';
+  language?: 'en' | 'bn';
 }
 
-export const PrivacyPolicyModal: React.FC<PrivacyPolicyModalProps> = ({ isOpen, onClose, language }) => {
+export const PrivacyPolicyModal: React.FC<PrivacyPolicyModalProps> = ({ isOpen, onClose, language = 'bn' }) => {
   if (!isOpen) return null;
 
   return (

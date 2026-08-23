@@ -94,7 +94,7 @@ export const LoginScreen: React.FC = () => {
     if (res.success) {
       setSuccessMessage(language === 'bn' ? 'সফলভাবে লগইন হয়েছে! লোড হচ্ছে...' : 'Login successful! Loading vehicles...');
     } else {
-      setErrorMessage(res.error || (language === 'bn' ? 'ভুল ইউজার আইডি বা পাসওয়ার্ড' : 'Invalid credentials'));
+      setErrorMessage(res.message || (language === 'bn' ? 'ভুল ইউজার আইডি বা পাসওয়ার্ড' : 'Invalid credentials'));
     }
   };
 

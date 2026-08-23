@@ -99,7 +99,7 @@ export const LoginModal: React.FC = () => {
         setIsLoginModalOpen(false);
       }, 800);
     } else {
-      setErrorMessage(res.error || (language === 'bn' ? 'ভুল ইউজার আইডি বা পাসওয়ার্ড' : 'Invalid User ID or Password'));
+      setErrorMessage(res.message || (language === 'bn' ? 'ভুল ইউজার আইডি বা পাসওয়ার্ড' : 'Invalid User ID or Password'));
     }
   };
 

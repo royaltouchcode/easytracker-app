@@ -1,4 +1,4 @@
-﻿export interface AppConfig {
+export interface AppConfig {
   appName: string;
   appDisplayName: string;
   version: string;
@@ -7,6 +7,8 @@
   publisherDomain: string;
   packageId: string;
   supportEmail: string;
+  supportPhone: string;
+  supportWhatsapp: string;
   website: string;
   privacyPolicyUrl: string;
   termsUrl: string;
@@ -18,12 +20,14 @@
 export const APP_CONFIG: AppConfig = {
   appName: 'easytracker',
   appDisplayName: 'EasyTracker',
-  version: '1.0.0',
-  buildNumber: '100',
+  version: '1.1.0',
+  buildNumber: '2',
   publisher: 'EasysoftSolution',
   publisherDomain: 'easysoftsolution.net',
   packageId: 'net.easysoftsolution.easytracker',
   supportEmail: 'support@easysoftsolution.net',
+  supportPhone: '+8801700000000',
+  supportWhatsapp: '+8801700000000',
   website: 'https://easysoftsolution.net',
   privacyPolicyUrl: 'https://easysoftsolution.net/privacy',
   termsUrl: 'https://easysoftsolution.net/terms',
