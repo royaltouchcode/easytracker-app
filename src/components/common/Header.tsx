@@ -51,12 +51,12 @@ export const Header: React.FC = () => {
   const isMoving = speedKmh > 3;
 
   return (
-    <header className="bg-slate-900/95 backdrop-blur-md border-b border-slate-800/80 px-3 py-1 flex items-center justify-between z-30 shrink-0 select-none">
+    <header className="bg-slate-900/95 backdrop-blur-md border-b border-slate-800/80 px-2 py-1 flex items-center justify-between z-30 shrink-0 select-none">
       {/* Left: Vehicle Selector */}
-      <div className="flex items-center space-x-2 relative">
+      <div className="flex items-center space-x-1.5 relative min-w-0">
         <button
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-          className="flex items-center space-x-2 bg-slate-800/90 hover:bg-slate-750 border border-slate-700/80 rounded-xl px-2 py-1 transition active:scale-95 shadow-sm text-left"
+          className="flex items-center space-x-1.5 bg-slate-800/90 hover:bg-slate-750 border border-slate-700/80 rounded-xl px-1.5 py-1 transition active:scale-95 shadow-sm text-left max-w-[140px] xs:max-w-[170px]"
         >
           <div 
             className="w-6 h-6 rounded-lg flex items-center justify-center text-white font-bold shadow-inner shrink-0"
@@ -65,16 +65,16 @@ export const Header: React.FC = () => {
             {getVehicleIconElement(selectedDevice?.category, "w-3.5 h-3.5")}
           </div>
 
-          <div className="flex flex-col">
-            <div className="flex items-center space-x-1">
-              <span className="font-extrabold text-xs text-slate-100 max-w-[120px] truncate leading-none">
+          <div className="flex flex-col min-w-0">
+            <div className="flex items-center space-x-1 min-w-0">
+              <span className="font-extrabold text-[11.5px] text-slate-100 truncate leading-none">
                 {selectedDevice?.name || 'My Vehicle'}
               </span>
               <ChevronDown className="w-3 h-3 text-slate-400 shrink-0" />
             </div>
-            <div className="flex items-center space-x-1 text-[9.5px] leading-none mt-0.5">
-              <span className={`inline-block w-1.5 h-1.5 rounded-full ${isMoving ? 'bg-emerald-400 animate-pulse' : selectedPosition?.attributes?.ignition ? 'bg-amber-400' : 'bg-rose-400'}`} />
-              <span className="text-slate-300 font-semibold">
+            <div className="flex items-center space-x-1 text-[9px] leading-none mt-0.5">
+              <span className={`inline-block w-1.5 h-1.5 rounded-full shrink-0 ${isMoving ? 'bg-emerald-400 animate-pulse' : selectedPosition?.attributes?.ignition ? 'bg-amber-400' : 'bg-rose-400'}`} />
+              <span className="text-slate-300 font-semibold truncate">
                 {isMoving ? `${speedKmh} km/h` : selectedPosition?.attributes?.ignition ? 'Idle' : 'Parked'}
               </span>
             </div>
@@ -122,8 +122,8 @@ export const Header: React.FC = () => {
         )}
       </div>
 
-      {/* Right Header Controls */}
-      <div className="flex items-center space-x-1">
+      {/* Right Header Controls (Compact responsive flex container) */}
+      <div className="flex items-center space-x-1 shrink-0">
         {/* Instant Home Return Button if in other menus */}
         {activeTab !== 'map' && (
           <button
@@ -150,10 +150,10 @@ export const Header: React.FC = () => {
 
         <button
           onClick={() => setLanguage(language === 'bn' ? 'en' : 'bn')}
-          className="px-1.5 py-1 rounded-lg bg-slate-800 border border-slate-700 text-[11px] font-bold text-slate-200 hover:bg-slate-700 transition flex items-center space-x-1"
+          className="px-1.5 py-1 rounded-lg bg-slate-800 border border-slate-700 text-[10.5px] font-bold text-slate-200 hover:bg-slate-700 transition flex items-center space-x-0.5"
         >
           <Globe className="w-3 h-3 text-blue-400" />
-          <span>{language === 'bn' ? 'EN' : 'বাংলা'}</span>
+          <span>{language === 'bn' ? 'EN' : 'বাং'}</span>
         </button>
 
         <button
@@ -169,21 +169,13 @@ export const Header: React.FC = () => {
           )}
         </button>
 
-        {/* Settings Button */}
+        {/* Settings & Controls Button */}
         <button
           onClick={() => setActiveTab('settings')}
           className="p-1.5 rounded-lg bg-indigo-600/25 hover:bg-indigo-600/40 border border-indigo-500/40 text-indigo-300 transition active:scale-95 shadow-sm"
           title="সেটিংস ও কন্ট্রোল (Settings)"
         >
           <Settings className="w-3.5 h-3.5 text-indigo-300" />
-        </button>
-
-        <button
-          onClick={() => setIsLoginModalOpen(true)}
-          className="p-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white transition shadow-sm active:scale-95"
-          title="User Account"
-        >
-          <User className="w-3.5 h-3.5" />
         </button>
       </div>
     </header>

@@ -261,7 +261,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   });
 
   const [selectedDeviceId, setSelectedDeviceId] = useState<number>(devices[0]?.id || 1);
-  const [positions, setPositions] = useState<Record<number, Position>>({});
+  const [positions, setPositions] = useState<Record<number, Position>>(() => {
+    try {
+      const stored = localStorage.getItem('gps_last_known_positions');
+      if (stored) return JSON.parse(stored);
+    } catch (e) {}
+    return {};
+  });
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
 
   const [mapLayer, setMapLayer] = useState<MapLayerType>('google_hybrid');
