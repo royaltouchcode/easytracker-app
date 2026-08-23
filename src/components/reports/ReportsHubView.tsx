@@ -23,7 +23,8 @@ import {
   Zap,
   Car,
   ArrowLeft,
-  BarChart3
+  BarChart3,
+  X
 } from 'lucide-react';
 import { FuelRefillLog } from '../../types/traccar';
 import { lookupVehicleMaintenanceSpec, VehicleMaintenanceSpec } from '../../utils/maintenanceAiService';
@@ -49,13 +50,26 @@ export const ReportsHubView: React.FC = () => {
     language,
     t,
     devices,
-    setActiveTab
+    setActiveTab,
+    updateDeviceProfile
   } = useApp();
 
   const [activeSubTab, setActiveSubTab] = useState<'fuel' | 'maintenance' | 'ai_manual' | 'running' | 'subscription'>('fuel');
 
+  // Initial Odometer Calibration (Zero Demo Data rule - 1st time user enters actual meter reading)
+  const [initialOdometerKm, setInitialOdometerKm] = useState<number | null>(() => {
+    const fromAttr = selectedDevice?.attributes?.initialOdometerKm;
+    if (typeof fromAttr === 'number') return fromAttr;
+    const saved = localStorage.getItem(`gps_initial_odometer_${selectedDevice?.id}`);
+    return saved ? parseFloat(saved) : null;
+  });
+  const [isInitialOdoModalOpen, setIsInitialOdoModalOpen] = useState(false);
+  const [inputInitialOdo, setInputInitialOdo] = useState('');
+
   // Initial Fuel Setup state (Zero Demo Data rule)
   const [initialFuelLiters, setInitialFuelLiters] = useState<number | null>(() => {
+    const fromAttr = selectedDevice?.attributes?.initialFuelLiters;
+    if (typeof fromAttr === 'number') return fromAttr;
     const saved = localStorage.getItem(`gps_initial_fuel_${selectedDevice?.id}`);
     return saved ? parseFloat(saved) : null;
   });
@@ -71,6 +85,8 @@ export const ReportsHubView: React.FC = () => {
   // Maintenance & Servicing Engine
   const [maintSpec, setMaintSpec] = useState<VehicleMaintenanceSpec | null>(null);
   const [lastOilChangeKm, setLastOilChangeKm] = useState<number>(() => {
+    const fromAttr = selectedDevice?.attributes?.lastOilChangeKm;
+    if (typeof fromAttr === 'number') return fromAttr;
     const saved = localStorage.getItem(`gps_last_oil_km_${selectedDevice?.id}`);
     return saved ? parseFloat(saved) : 0;
   });
@@ -90,21 +106,38 @@ export const ReportsHubView: React.FC = () => {
   const [aiReportText, setAiReportText] = useState<string | null>(null);
   const [isAiLoading, setIsAiLoading] = useState(false);
 
-  // Load specs when device changes
+  // Load specs and user cloud attributes when device changes
   useEffect(() => {
     if (selectedDevice) {
-      lookupVehicleMaintenanceSpec(selectedDevice.name, selectedDevice.category || 'motorcycle').then(setMaintSpec);
+      lookupVehicleMaintenanceSpec(
+        selectedDevice.name, 
+        selectedDevice.category || 'motorcycle', 
+        selectedDevice.attributes
+      ).then(setMaintSpec);
+      
+      const fromAttrFuel = selectedDevice.attributes?.initialFuelLiters;
       const savedInitial = localStorage.getItem(`gps_initial_fuel_${selectedDevice.id}`);
-      setInitialFuelLiters(savedInitial ? parseFloat(savedInitial) : null);
+      setInitialFuelLiters(typeof fromAttrFuel === 'number' ? fromAttrFuel : savedInitial ? parseFloat(savedInitial) : null);
+      
+      const fromAttrOdo = selectedDevice.attributes?.initialOdometerKm;
+      const savedOdo = localStorage.getItem(`gps_initial_odometer_${selectedDevice.id}`);
+      setInitialOdometerKm(typeof fromAttrOdo === 'number' ? fromAttrOdo : savedOdo ? parseFloat(savedOdo) : null);
+
+      const fromAttrOil = selectedDevice.attributes?.lastOilChangeKm;
       const savedOilKm = localStorage.getItem(`gps_last_oil_km_${selectedDevice.id}`);
-      setLastOilChangeKm(savedOilKm ? parseFloat(savedOilKm) : 0);
+      setLastOilChangeKm(typeof fromAttrOil === 'number' ? fromAttrOil : savedOilKm ? parseFloat(savedOilKm) : 0);
+
       const savedLogs = localStorage.getItem(`gps_servicing_logs_${selectedDevice.id}`);
       setServicingLogs(savedLogs ? JSON.parse(savedLogs) : []);
     }
   }, [selectedDevice]);
 
-  // Telemetry numbers
-  const currentOdometer = Math.round((selectedPosition?.attributes?.totalDistance || 12450000) / 1000); // in km
+  // Real Odometer Telemetry (Zero Demo: Initial Calibrated Meter + Live GPS Distance)
+  const currentGpsTotalDistance = selectedPosition?.attributes?.totalDistance || 0;
+  const baseGpsDistance = (selectedDevice?.attributes?.baseGpsDistanceM as number) || 0;
+  const gpsIncrementKm = Math.max(0, (currentGpsTotalDistance - baseGpsDistance) / 1000);
+  const currentOdometer = initialOdometerKm !== null ? Math.round(initialOdometerKm + gpsIncrementKm) : 0;
+
   const kmSinceOilChange = Math.max(0, currentOdometer - lastOilChangeKm);
   const targetOilKm = maintSpec?.oilChangeIntervalKm || (selectedDevice?.category === 'motorcycle' ? 1500 : 5000);
   const remainingOilKm = Math.max(0, targetOilKm - kmSinceOilChange);
@@ -124,12 +157,36 @@ export const ReportsHubView: React.FC = () => {
   const calculatedMileageKmL = selectedDevice?.category === 'motorcycle' ? 42.5 : selectedDevice?.category === 'cng' ? 32.0 : 12.8;
   const estimatedRangeKm = Math.round(Math.max(0, currentFuelLiters * calculatedMileageKmL));
 
-  // Save Initial Fuel Level
+  // Save Initial Odometer Calibration (Cloud Sync to Server)
+  const handleSaveInitialOdometer = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedDevice) return;
+    const odoVal = parseFloat(inputInitialOdo) || 0;
+    setInitialOdometerKm(odoVal);
+    localStorage.setItem(`gps_initial_odometer_${selectedDevice.id}`, odoVal.toString());
+    updateDeviceProfile(selectedDevice.id, {
+      attributes: {
+        ...selectedDevice.attributes,
+        initialOdometerKm: odoVal,
+        baseGpsDistanceM: selectedPosition?.attributes?.totalDistance || 0
+      }
+    });
+    setIsInitialOdoModalOpen(false);
+  };
+
+  // Save Initial Fuel Level (Cloud Sync to Server)
   const handleSaveInitialFuel = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!selectedDevice) return;
     const liters = parseFloat(inputInitialFuel) || 0;
     setInitialFuelLiters(liters);
-    localStorage.setItem(`gps_initial_fuel_${selectedDevice?.id}`, liters.toString());
+    localStorage.setItem(`gps_initial_fuel_${selectedDevice.id}`, liters.toString());
+    updateDeviceProfile(selectedDevice.id, {
+      attributes: {
+        ...selectedDevice.attributes,
+        initialFuelLiters: liters
+      }
+    });
     setIsInitialFuelModalOpen(false);
   };
 
@@ -227,11 +284,20 @@ export const ReportsHubView: React.FC = () => {
           </div>
         </div>
 
-        {/* Global Odometer Badge */}
-        <div className="bg-slate-800 border border-slate-700 px-2.5 py-1 rounded-xl text-right">
-          <div className="text-[9px] uppercase font-bold text-slate-400">{language === 'bn' ? 'মোট ওডোমিটার' : 'Odometer'}</div>
-          <div className="font-mono font-extrabold text-xs text-blue-300">{currentOdometer.toLocaleString()} km</div>
-        </div>
+        {/* Global Odometer Badge (Click to Calibrate) */}
+        <button
+          onClick={() => setIsInitialOdoModalOpen(true)}
+          className="bg-slate-800 hover:bg-slate-750 border border-slate-700 px-2.5 py-1 rounded-xl text-right transition active:scale-95 group"
+          title="মিটার রিডিং সেট বা পরিবর্তন করুন"
+        >
+          <div className="text-[9px] uppercase font-bold text-slate-400 group-hover:text-blue-300 transition flex items-center justify-end space-x-1">
+            <span>{language === 'bn' ? 'মোট ওডোমিটার' : 'Odometer'}</span>
+            <Gauge className="w-2.5 h-2.5 text-blue-400" />
+          </div>
+          <div className="font-mono font-extrabold text-xs text-blue-300">
+            {initialOdometerKm !== null ? `${currentOdometer.toLocaleString()} km` : (language === 'bn' ? '⚡ সেট করুন' : '⚡ Set km')}
+          </div>
+        </button>
       </div>
 
       {/* Sub-Tab Navigation Bar */}
@@ -912,6 +978,58 @@ export const ReportsHubView: React.FC = () => {
                   className="flex-1 py-2.5 rounded-2xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs shadow-lg shadow-amber-600/30"
                 >
                   {language === 'bn' ? 'রিসেট ও সেভ' : 'Reset & Save'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: INITIAL ODOMETER CALIBRATION */}
+      {isInitialOdoModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-in fade-in">
+          <div className="bg-slate-900 border border-indigo-500/60 rounded-3xl p-5 max-w-sm w-full shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="font-bold text-sm text-slate-100 flex items-center space-x-2">
+                <Gauge className="w-4 h-4 text-indigo-400" />
+                <span>{language === 'bn' ? 'ওডোমিটার (মিটার কিমি) সেট করুন' : 'Calibrate Odometer (km)'}</span>
+              </h3>
+              <button onClick={() => setIsInitialOdoModalOpen(false)} className="text-slate-400 hover:text-white">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <p className="text-xs text-slate-400">
+              {language === 'bn' 
+                ? 'বর্তমানে আপনার বাইক বা গাড়ির ফিজিক্যাল ড্যাশবোর্ড মিটারে কত কিমি উঠেছে তা লিখুন। এটি ক্লাউডে সেভ থাকবে।'
+                : 'Enter current physical meter reading on your vehicle dashboard. This syncs permanently to your cloud account.'}
+            </p>
+            <form onSubmit={handleSaveInitialOdometer} className="space-y-3">
+              <div>
+                <label className="text-[11px] font-bold text-slate-300 block mb-1">
+                  {language === 'bn' ? 'বর্তমান মিটার কিমি রিডিং:' : 'Current Odometer (km):'}
+                </label>
+                <input
+                  type="number"
+                  required
+                  value={inputInitialOdo}
+                  onChange={(e) => setInputInitialOdo(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-2xl px-3 py-2.5 text-white font-mono font-bold text-base focus:border-indigo-500 focus:outline-none"
+                  placeholder={initialOdometerKm ? initialOdometerKm.toString() : "e.g. 15200"}
+                />
+              </div>
+              <div className="flex space-x-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsInitialOdoModalOpen(false)}
+                  className="flex-1 py-2.5 rounded-2xl bg-slate-800 text-slate-300 font-bold text-xs"
+                >
+                  {language === 'bn' ? 'বাতিল' : 'Cancel'}
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/30"
+                >
+                  {language === 'bn' ? 'সংরক্ষণ ও সিঙ্ক' : 'Save & Sync'}
                 </button>
               </div>
             </form>

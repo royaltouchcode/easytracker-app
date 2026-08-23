@@ -28,12 +28,16 @@ import {
   Volume2,
   BellRing,
   PhoneForwarded,
-  Zap
+  Zap,
+  Bot,
+  Sparkles
 } from 'lucide-react';
 import { VehicleType, Geofence, AlertFeedbackMode } from '../../types/traccar';
 import { GeofenceModal } from '../geofence/GeofenceModal';
 import { PrivacyPolicyModal } from '../compliance/PrivacyPolicyModal';
 import { RefundPolicyModal } from '../compliance/RefundPolicyModal';
+import { DataDeletionModal } from '../compliance/DataDeletionModal';
+import { VehicleSpecSelectorModal } from './VehicleSpecSelectorModal';
 import { PinVerificationModal } from '../commands/PinVerificationModal';
 import { APP_CONFIG } from '../../config/appConfig';
 import { VehicleIcon } from '../../utils/vehicleIcons';
@@ -102,6 +106,11 @@ export const DeviceSettingsView: React.FC = () => {
   // Compliance & Policy Modal State
   const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
   const [isRefundModalOpen, setIsRefundModalOpen] = useState(false);
+  const [isDataDeletionModalOpen, setIsDataDeletionModalOpen] = useState(false);
+
+  // Vehicle AI Spec Selector Modal State
+  const [isSpecModalOpen, setIsSpecModalOpen] = useState(false);
+  const [vehicleSpec, setVehicleSpec] = useState<any>(selectedDevice?.attributes?.vehicleSpec || null);
 
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [sosSyncing, setSosSyncing] = useState(false);
@@ -185,7 +194,8 @@ export const DeviceSettingsView: React.FC = () => {
           sos1: sos1.trim(),
           sos2: sos2.trim(),
           sos3: sos3.trim(),
-          speedLimit
+          speedLimit,
+          vehicleSpec
         }
       });
 
@@ -275,6 +285,30 @@ export const DeviceSettingsView: React.FC = () => {
                 />
               ))}
             </div>
+          </div>
+
+          {/* Vehicle Model & AI Spec Selector Card */}
+          <div className="mt-3 pt-3 border-t border-slate-800 flex items-center justify-between">
+            <div>
+              <div className="text-xs font-bold text-slate-200 flex items-center space-x-1.5">
+                <Bot className="w-3.5 h-3.5 text-purple-400" />
+                <span>{language === 'bn' ? 'মডেল ও ইঞ্জিন স্পেসিফিকেশন:' : 'Vehicle Model & Engine Specs:'}</span>
+              </div>
+              <div className="text-[10.5px] text-slate-400 mt-0.5">
+                {vehicleSpec?.modelName 
+                  ? <span className="text-purple-300 font-bold">{vehicleSpec.manufacturer || ''} {vehicleSpec.modelName} <span className="text-amber-300 font-mono">({vehicleSpec.engineOilGrade})</span></span>
+                  : (language === 'bn' ? 'মডেল সিলেক্ট করা নেই (ক্লিক করুন)' : 'No model selected (Click to set)')}
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsSpecModalOpen(true)}
+              className="px-3 py-1.5 rounded-xl bg-purple-600/30 hover:bg-purple-600/50 border border-purple-500/50 text-purple-300 font-bold text-xs flex items-center space-x-1 transition active:scale-95 shadow-sm"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>{language === 'bn' ? 'মডেল AI সেট' : 'Select Model'}</span>
+            </button>
           </div>
         </div>
 
@@ -660,18 +694,14 @@ export const DeviceSettingsView: React.FC = () => {
             </button>
           </div>
 
-          {/* Account Deletion Request Button (Apple & Google Play Mandate) */}
+          {/* Account Deletion Request Button (Apple & Google Play Mandate with PIN Verification) */}
           <button
             type="button"
-            onClick={() => {
-              if (window.confirm(language === 'bn' ? 'আপনি কি আপনার অ্যাকাউন্ট ও সকল জিপিএস হিস্টোরি ডেটা মুছে ফেলার জন্য অনুরোধ পাঠাতে চান?' : 'Do you want to request complete account and telemetry data deletion?')) {
-                alert(language === 'bn' ? 'আপনার ডেটা ডিলিটেশনের অনুরোধ সফলভাবে গ্রহণ করা হয়েছে।' : 'Your data deletion request has been submitted.');
-              }
-            }}
-            className="w-full py-2 rounded-2xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-400 font-medium text-[11px] flex items-center justify-center space-x-1.5 transition"
+            onClick={() => setIsDataDeletionModalOpen(true)}
+            className="w-full py-2 rounded-2xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-400 font-bold text-[11px] flex items-center justify-center space-x-1.5 transition active:scale-95"
           >
             <Trash2 className="w-3.5 h-3.5" />
-            <span>{language === 'bn' ? 'অ্যাকাউন্ট ও ডেটা ডিলিটেশন অনুরোধ' : 'Request Account & Data Deletion'}</span>
+            <span>{language === 'bn' ? '⚠️ অ্যাকাউন্ট ও ডেটা ডিলিটেশন অনুরোধ (পিন আবশ্যক)' : '⚠️ Request Account & Data Deletion (PIN Required)'}</span>
           </button>
         </div>
 
@@ -722,6 +752,34 @@ export const DeviceSettingsView: React.FC = () => {
       <RefundPolicyModal
         isOpen={isRefundModalOpen}
         onClose={() => setIsRefundModalOpen(false)}
+        language={language}
+      />
+
+      {/* Account & Telemetry Data Deletion Modal (PIN Mandatory) */}
+      <DataDeletionModal
+        isOpen={isDataDeletionModalOpen}
+        onClose={() => setIsDataDeletionModalOpen(false)}
+        language={language}
+      />
+
+      {/* Vehicle AI Spec Selector Modal */}
+      <VehicleSpecSelectorModal
+        isOpen={isSpecModalOpen}
+        onClose={() => setIsSpecModalOpen(false)}
+        initialCategory={category}
+        initialSpec={vehicleSpec}
+        onSaveSpec={(newSpec) => {
+          setVehicleSpec(newSpec);
+          if (newSpec.category) setCategory(newSpec.category);
+          // Directly persist & sync
+          updateDeviceProfile(selectedDevice.id, {
+            category: newSpec.category || category,
+            attributes: {
+              ...selectedDevice.attributes,
+              vehicleSpec: newSpec
+            }
+          });
+        }}
         language={language}
       />
 
