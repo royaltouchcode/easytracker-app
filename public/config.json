@@ -1,0 +1,16 @@
+{
+  "appName": "easytracker",
+  "appDisplayName": "EasyTracker",
+  "version": "1.1.0",
+  "buildNumber": "110",
+  "publisher": "EasysoftSolution",
+  "publisherDomain": "easysoftsolution.net",
+  "packageId": "net.easysoftsolution.easytracker",
+  "supportEmail": "support@easysoftsolution.net",
+  "website": "https://easysoftsolution.net",
+  "privacyPolicyUrl": "https://easysoftsolution.net/privacy",
+  "termsUrl": "https://easysoftsolution.net/terms",
+  "logoUrl": "/logo.svg",
+  "defaultServerUrl": "https://demo3.traccar.org",
+  "defaultPort": "5023"
+}

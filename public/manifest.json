@@ -1,0 +1,29 @@
+﻿{
+  "name": "EasyTracker - GPS Tracking System",
+  "short_name": "EasyTracker",
+  "description": "Professional Real-Time GPS Tracking & Fleet Management App by EasysoftSolution",
+  "start_url": "/",
+  "id": "net.easysoftsolution.easytracker",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#020617",
+  "theme_color": "#0f172a",
+  "icons": [
+    {
+      "src": "/logo.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["navigation", "utilities", "productivity"],
+  "author": "EasysoftSolution",
+  "publisher": "EasysoftSolution",
+  "version": "1.0.0"
+}

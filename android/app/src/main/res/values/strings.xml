@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">EasyTracker</string>
+    <string name="title_activity_main">EasyTracker</string>
+    <string name="package_name">net.easysoftsolution.easytracker</string>
+    <string name="custom_url_scheme">net.easysoftsolution.easytracker</string>
+</resources>
