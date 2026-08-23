@@ -12,6 +12,7 @@ import {
   Shield
 } from 'lucide-react';
 import { MapLayerType, VehicleType } from '../../types/traccar';
+import { getVehicleMarkerSvg } from '../../utils/vehicleIcons';
 
 const MAP_LAYERS: Record<MapLayerType, { name: string; url: string; subdomains?: string[]; maxZoom: number }> = {
   google_hybrid: {
@@ -50,18 +51,7 @@ const MAP_LAYERS: Record<MapLayerType, { name: string; url: string; subdomains?:
 
 const TRAFFIC_LAYER_URL = 'https://mt1.google.com/vt/lyrs=h,traffic&x={x}&y={y}&z={z}';
 
-const getVehicleSvg = (type?: VehicleType, color: string = '#3b82f6') => {
-  if (type === 'motorcycle' || type === 'bicycle') {
-    return `<svg viewBox="0 0 24 24" width="24" height="24" fill="white"><path d="M5 20.5A3.5 3.5 0 0 1 1.5 17 3.5 3.5 0 0 1 5 13.5c1.61 0 2.97 1.1 3.37 2.58L11 15l2-5h-3V8h3.76l1.2-3H19v2h-2.76l-.8 2H18v2h-3.24l-1.6 4H15a3.5 3.5 0 0 1 3.5-3.5 3.5 3.5 0 0 1 3.5 3.5 3.5 3.5 0 0 1-3.5 3.5 3.5 3.5 0 0 1-3.37-2.58L12 17l-1.87 2.08A3.49 3.49 0 0 1 5 20.5M5 15.5a1.5 1.5 0 0 0-1.5 1.5 1.5 1.5 0 0 0 1.5 1.5 1.5 1.5 0 0 0 1.5-1.5 1.5 1.5 0 0 0-1.5-1.5m13.5 0a1.5 1.5 0 0 0-1.5 1.5 1.5 1.5 0 0 0 1.5 1.5 1.5 1.5 0 0 0 1.5-1.5 1.5 1.5 0 0 0-1.5-1.5Z"/></svg>`;
-  }
-  if (type === 'truck') {
-    return `<svg viewBox="0 0 24 24" width="22" height="22" fill="white"><path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9 1.96 2.5H17V9.5h2.5zm-1 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>`;
-  }
-  if (type === 'bus') {
-    return `<svg viewBox="0 0 24 24" width="22" height="22" fill="white"><path d="M4 16c0 .88.39 1.67 1 2.22V20c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h8v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1.78c.61-.55 1-1.34 1-2.22V6c0-3.5-3.58-4-8-4s-8 .5-8 4v10zm3.5 1c-.83 0-1.5-.67-1.5-1.5S6.67 14 7.5 14s1.5.67 1.5 1.5S8.33 17 7.5 17zm9 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm1.5-6H6V6h12v5z"/></svg>`;
-  }
-  return `<svg viewBox="0 0 24 24" width="22" height="22" fill="white"><path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/></svg>`;
-};
+
 
 export const LiveTrackingMap: React.FC = () => {
   const { 
@@ -290,7 +280,7 @@ export const LiveTrackingMap: React.FC = () => {
       const customHtml = `
         <div class="custom-vehicle-marker" style="transform: rotate(${heading}deg);">
           <div class="relative w-11 h-11 rounded-2xl flex items-center justify-center shadow-2xl border-2 ${statusClass}" style="background-color: ${color};">
-            ${getVehicleSvg(dev.category, color)}
+            ${getVehicleMarkerSvg(dev.category, color)}
             <div class="absolute -top-2 w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-b-[8px] border-b-white"></div>
             ${isLastKnown ? `<div class="absolute -bottom-2.5 bg-indigo-600 text-white font-extrabold text-[8px] px-1 py-0.2 rounded shadow">🅿️ পার্কিং</div>` : ''}
           </div>

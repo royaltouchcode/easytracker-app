@@ -4,6 +4,7 @@ import { Header } from './components/common/Header';
 import { BottomNav } from './components/common/BottomNav';
 import { LiveTrackingMap } from './components/map/LiveTrackingMap';
 import { DeviceSlidingSheet } from './components/dashboard/DeviceSlidingSheet';
+import { ReportsHubView } from './components/reports/ReportsHubView';
 import { PlaybackView } from './components/playback/PlaybackView';
 import { CommandCenterView } from './components/commands/CommandCenterView';
 import { SurveillanceView } from './components/surveillance/SurveillanceView';
@@ -44,6 +45,7 @@ const MainAppContent: React.FC = () => {
             <DeviceSlidingSheet />
           </>
         )}
+        {activeTab === 'reports' && <ReportsHubView />}
         {activeTab === 'playback' && <PlaybackView />}
         {activeTab === 'commands' && <CommandCenterView />}
         {activeTab === 'surveillance' && <SurveillanceView />}

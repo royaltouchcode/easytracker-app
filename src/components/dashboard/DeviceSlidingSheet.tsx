@@ -23,7 +23,8 @@ import {
   Fan,
   DoorClosed,
   Fuel,
-  Lock
+  Lock,
+  BarChart3
 } from 'lucide-react';
 import { PinVerificationModal } from '../commands/PinVerificationModal';
 import { CustomCommandModal } from '../commands/CustomCommandModal';
@@ -441,15 +442,15 @@ export const DeviceSlidingSheet: React.FC = () => {
             </div>
           )}
 
-          {/* Enhanced Action Buttons Grid (Fit to screen & comfortable) */}
-          <div className="grid grid-cols-4 gap-1.5">
+          {/* Enhanced Action Buttons Grid - Strict Single Row of 5 Cards */}
+          <div className="grid grid-cols-5 gap-1">
             {/* 1. Engine Cut / Resume Button */}
             {isRelayCut ? (
               <button
                 type="button"
                 onClick={handleOpenResumeModal}
                 disabled={commandPending !== 'idle'}
-                className={`py-1.5 px-1 rounded-xl font-bold text-[11px] flex flex-col items-center justify-center space-y-0.5 transition active:scale-95 shadow-md ${
+                className={`py-1.5 px-0.5 rounded-xl font-bold text-[10px] xs:text-[10.5px] flex flex-col items-center justify-center space-y-0.5 transition active:scale-95 shadow-md ${
                   commandPending !== 'idle'
                     ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed'
                     : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30'
@@ -463,7 +464,7 @@ export const DeviceSlidingSheet: React.FC = () => {
                 type="button"
                 onClick={handleOpenCutModal}
                 disabled={commandPending !== 'idle'}
-                className={`py-1.5 px-1 rounded-xl font-bold text-[11px] flex flex-col items-center justify-center space-y-0.5 transition active:scale-95 shadow-md ${
+                className={`py-1.5 px-0.5 rounded-xl font-bold text-[10px] xs:text-[10.5px] flex flex-col items-center justify-center space-y-0.5 transition active:scale-95 shadow-md ${
                   commandPending !== 'idle'
                     ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed'
                     : 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-600/30'
@@ -478,35 +479,46 @@ export const DeviceSlidingSheet: React.FC = () => {
             <button
               type="button"
               onClick={() => setIsCustomCmdModalOpen(true)}
-              className="py-1.5 px-1 rounded-xl bg-amber-600/20 hover:bg-amber-600/35 border border-amber-500/40 text-amber-300 font-bold text-[11px] flex flex-col items-center justify-center space-y-0.5 transition active:scale-95 shadow-sm"
+              className="py-1.5 px-0.5 rounded-xl bg-amber-600/20 hover:bg-amber-600/35 border border-amber-500/40 text-amber-300 font-bold text-[10px] xs:text-[10.5px] flex flex-col items-center justify-center space-y-0.5 transition active:scale-95 shadow-sm"
               title="Custom Commands & Presets"
             >
               <Terminal className="w-3.5 h-3.5 text-amber-400 shrink-0" />
               <span className="truncate leading-tight">{language === 'bn' ? 'কমান্ড' : 'Commands'}</span>
             </button>
 
-            {/* 3. Playback Route Button */}
+            {/* 3. Reports & Fleet Health Button */}
+            <button
+              type="button"
+              onClick={() => setActiveTab('reports')}
+              className="py-1.5 px-0.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/35 border border-emerald-500/40 text-emerald-300 font-bold text-[10px] xs:text-[10.5px] flex flex-col items-center justify-center space-y-0.5 transition active:scale-95 shadow-sm"
+              title="Reports, Fuel & Fleet Health Hub"
+            >
+              <BarChart3 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <span className="truncate leading-tight">{language === 'bn' ? 'রিপোর্ট' : 'Reports'}</span>
+            </button>
+
+            {/* 4. Playback Route Button */}
             <button
               type="button"
               onClick={() => setActiveTab('playback')}
-              className="py-1.5 px-1 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-200 font-bold text-[11px] flex flex-col items-center justify-center space-y-0.5 border border-slate-700/80 transition active:scale-95 shadow-sm"
+              className="py-1.5 px-0.5 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-200 font-bold text-[10px] xs:text-[10.5px] flex flex-col items-center justify-center space-y-0.5 border border-slate-700/80 transition active:scale-95 shadow-sm"
             >
               <History className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-              <span className="truncate leading-tight">{t('playback')}</span>
+              <span className="truncate leading-tight">{language === 'bn' ? 'প্লেব্যাক' : 'Playback'}</span>
             </button>
 
-            {/* 4. Surveillance Cam & Voice Button */}
+            {/* 5. Surveillance Cam & Voice Button */}
             <button
               type="button"
               onClick={() => setActiveTab('surveillance')}
-              className="py-1.5 px-1 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-200 font-bold text-[11px] flex flex-col items-center justify-center space-y-0.5 border border-slate-700/80 transition active:scale-95 shadow-sm"
+              className="py-1.5 px-0.5 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-200 font-bold text-[10px] xs:text-[10.5px] flex flex-col items-center justify-center space-y-0.5 border border-slate-700/80 transition active:scale-95 shadow-sm"
             >
-              <div className="flex items-center space-x-1">
+              <div className="flex items-center space-x-0.5">
                 <Video className="w-3.5 h-3.5 text-purple-400 shrink-0" />
-                <Mic className="w-3 h-3 text-pink-400 shrink-0" />
+                <Mic className="w-2.5 h-2.5 text-pink-400 shrink-0" />
               </div>
-              <span className="truncate leading-tight text-[10px]">
-                {language === 'bn' ? 'ক্যাম ও ভয়েস' : 'Cam & Mic'}
+              <span className="truncate leading-tight text-[9.5px] xs:text-[10px]">
+                {language === 'bn' ? 'ক্যাম/মাইক' : 'Cam/Mic'}
               </span>
             </button>
           </div>

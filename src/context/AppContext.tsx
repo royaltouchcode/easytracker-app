@@ -19,7 +19,7 @@ import { traccarApi } from '../services/traccarApi';
 import { traccarSocket } from '../services/traccarSocket';
 import { audioAlertService } from '../services/audioAlertService';
 
-export type TabType = 'map' | 'playback' | 'commands' | 'surveillance' | 'geofence' | 'alerts' | 'settings';
+export type TabType = 'map' | 'reports' | 'playback' | 'commands' | 'surveillance' | 'geofence' | 'alerts' | 'settings';
 export type Language = 'en' | 'bn';
 
 export interface UserLocation {
@@ -409,25 +409,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     triggerAlertFeedback('vibration', 'Sensor Alert');
   };
 
-  // Fuel Refill History Logs
+  // Fuel Refill History Logs (Zero demo data rule - only real user entries)
   const [fuelRefillLogs, setFuelRefillLogs] = useState<FuelRefillLog[]>(() => {
     const saved = localStorage.getItem('gps_fuel_refill_logs');
     if (saved) {
       try { return JSON.parse(saved); } catch (e) {}
     }
-    return [
-      {
-        id: 'refill-1',
-        deviceId: 1,
-        deviceName: 'mdaaziz',
-        litersAdded: 12.0,
-        totalLitersAfter: 14.5,
-        odometerKm: 1420,
-        costBdt: 1560,
-        stationName: 'Padma Fuel Station',
-        timestamp: new Date(Date.now() - 86400000 * 2).toISOString()
-      }
-    ];
+    return [];
   });
 
   const addFuelRefillLog = (log: Omit<FuelRefillLog, 'id' | 'timestamp'>) => {

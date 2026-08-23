@@ -33,17 +33,21 @@ import {
 import { VehicleType, Geofence, AlertFeedbackMode } from '../../types/traccar';
 import { GeofenceModal } from '../geofence/GeofenceModal';
 import { PrivacyPolicyModal } from '../compliance/PrivacyPolicyModal';
+import { RefundPolicyModal } from '../compliance/RefundPolicyModal';
 import { PinVerificationModal } from '../commands/PinVerificationModal';
 import { APP_CONFIG } from '../../config/appConfig';
+import { VehicleIcon } from '../../utils/vehicleIcons';
 
-const VEHICLE_ICONS: { type: VehicleType; label: string; icon: any }[] = [
-  { type: 'motorcycle', label: 'Bike (মোটরসাইকেল)', icon: Bike },
-  { type: 'car', label: 'Private Car (সেডান/কার)', icon: Car },
-  { type: 'cng', label: 'CNG / Auto (সিএনজি)', icon: Car },
-  { type: 'pickup', label: 'Pickup / SUV (পিকআপ)', icon: Truck },
-  { type: 'truck', label: 'Truck / Lorry (ট্রাক)', icon: Truck },
-  { type: 'bus', label: 'Bus (বাস)', icon: Bus },
-  { type: 'bicycle', label: 'Bicycle (বাইসাইকেল)', icon: Bike },
+const VEHICLE_ICONS: { type: VehicleType; label: string }[] = [
+  { type: 'motorcycle', label: 'Bike (মোটরসাইকেল)' },
+  { type: 'scooter', label: 'Scooter / Scooty (স্কুটার)' },
+  { type: 'car', label: 'Private Car (সেডান/কার)' },
+  { type: 'ambulance', label: 'Ambulance (অ্যাম্বুলেন্স)' },
+  { type: 'cng', label: 'CNG / Auto (সিএনজি)' },
+  { type: 'pickup', label: 'Pickup / SUV (পিকআপ)' },
+  { type: 'truck', label: 'Truck / Lorry (ট্রাক)' },
+  { type: 'bus', label: 'Bus (বাস)' },
+  { type: 'bicycle', label: 'Bicycle (বাইসাইকেল)' },
 ];
 
 const VEHICLE_COLORS = [
@@ -97,6 +101,7 @@ export const DeviceSettingsView: React.FC = () => {
 
   // Compliance & Policy Modal State
   const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
+  const [isRefundModalOpen, setIsRefundModalOpen] = useState(false);
 
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [sosSyncing, setSosSyncing] = useState(false);
@@ -226,7 +231,6 @@ export const DeviceSettingsView: React.FC = () => {
           <div className="grid grid-cols-2 gap-2">
             {VEHICLE_ICONS.map((item) => {
               const isSelected = category === item.type;
-              const IconComp = item.icon;
               return (
                 <button
                   key={item.type}
@@ -242,7 +246,7 @@ export const DeviceSettingsView: React.FC = () => {
                     className="w-8 h-8 rounded-xl flex items-center justify-center text-white shrink-0 shadow-sm"
                     style={{ backgroundColor: isSelected ? selectedColor : '#475569' }}
                   >
-                    <IconComp className="w-4 h-4" />
+                    <VehicleIcon type={item.type} className="w-4 h-4" />
                   </div>
                   <span className="text-xs font-semibold truncate">{item.label}</span>
                 </button>
@@ -635,15 +639,26 @@ export const DeviceSettingsView: React.FC = () => {
             </div>
           </div>
 
-          {/* Privacy Policy Button */}
-          <button
-            type="button"
-            onClick={() => setIsPrivacyModalOpen(true)}
-            className="w-full py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-750 border border-slate-700 text-blue-300 font-bold text-xs flex items-center justify-center space-x-2 transition active:scale-95 shadow-sm"
-          >
-            <ShieldCheck className="w-4 h-4 text-blue-400" />
-            <span>{language === 'bn' ? 'প্রাইভেসী পলিসি ও নিরাপত্তা শর্তাবলী' : 'Privacy Policy & Terms of Service'}</span>
-          </button>
+          {/* Legal Compliance Buttons: Privacy & Refund */}
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => setIsPrivacyModalOpen(true)}
+              className="py-2.5 px-2 rounded-2xl bg-slate-800 hover:bg-slate-750 border border-slate-700 text-blue-300 font-bold text-xs flex items-center justify-center space-x-1.5 transition active:scale-95 shadow-sm"
+            >
+              <ShieldCheck className="w-4 h-4 text-blue-400" />
+              <span>{language === 'bn' ? 'প্রাইভেসী পলিসি' : 'Privacy Policy'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsRefundModalOpen(true)}
+              className="py-2.5 px-2 rounded-2xl bg-slate-800 hover:bg-slate-750 border border-slate-700 text-emerald-300 font-bold text-xs flex items-center justify-center space-x-1.5 transition active:scale-95 shadow-sm"
+            >
+              <ShieldCheck className="w-4 h-4 text-emerald-400" />
+              <span>{language === 'bn' ? 'রিফান্ড পলিসি' : 'Refund Policy'}</span>
+            </button>
+          </div>
 
           {/* Account Deletion Request Button (Apple & Google Play Mandate) */}
           <button
@@ -700,6 +715,13 @@ export const DeviceSettingsView: React.FC = () => {
       <PrivacyPolicyModal
         isOpen={isPrivacyModalOpen}
         onClose={() => setIsPrivacyModalOpen(false)}
+        language={language}
+      />
+
+      {/* Refund & Money-Back Policy Modal */}
+      <RefundPolicyModal
+        isOpen={isRefundModalOpen}
+        onClose={() => setIsRefundModalOpen(false)}
         language={language}
       />
 

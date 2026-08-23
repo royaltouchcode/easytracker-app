@@ -31,6 +31,7 @@ const PRESET_SERVERS: ServerConfig[] = [
 
 import { APP_CONFIG } from '../../config/appConfig';
 import { PrivacyPolicyModal } from '../compliance/PrivacyPolicyModal';
+import { RefundPolicyModal } from '../compliance/RefundPolicyModal';
 
 export const LoginScreen: React.FC = () => {
   const { 
@@ -49,6 +50,10 @@ export const LoginScreen: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
+  const [isRefundModalOpen, setIsRefundModalOpen] = useState(false);
+  const [policyAccepted, setPolicyAccepted] = useState(() => {
+    return localStorage.getItem('gps_policy_accepted') === 'true';
+  });
 
   // Hidden Admin Config State (Tap Logo 5 times)
   const [showAdminConfig, setShowAdminConfig] = useState(false);
@@ -81,6 +86,12 @@ export const LoginScreen: React.FC = () => {
     e.preventDefault();
     if (!emailOrUser.trim() || !password.trim()) {
       setErrorMessage(language === 'bn' ? 'ইউজার আইডি ও পাসওয়ার্ড লিখুন' : 'Please enter User ID & Password');
+      return;
+    }
+
+    if (!policyAccepted) {
+      setErrorMessage(language === 'bn' ? 'লগইনের আগে প্রাইভেসী পলিসি পড়ে সম্মতি দেওয়া আবশ্যক' : 'Please read and accept Privacy & Refund Policy before login');
+      setIsPrivacyModalOpen(true);
       return;
     }
 
@@ -198,6 +209,33 @@ export const LoginScreen: React.FC = () => {
               </label>
             </div>
 
+            {/* Mandatory Policy Acceptance */}
+            <div className="pt-1">
+              <label className="flex items-start space-x-2 text-[11px] text-slate-300 cursor-pointer bg-slate-800/60 p-2.5 rounded-2xl border border-slate-700/80 hover:border-slate-600 transition">
+                <input
+                  type="checkbox"
+                  checked={policyAccepted}
+                  onChange={(e) => {
+                    setPolicyAccepted(e.target.checked);
+                    if (e.target.checked) localStorage.setItem('gps_policy_accepted', 'true');
+                    else localStorage.removeItem('gps_policy_accepted');
+                  }}
+                  className="rounded text-blue-600 bg-slate-900 border-slate-700 w-4 h-4 mt-0.5 shrink-0"
+                />
+                <span className="leading-tight">
+                  {language === 'bn' ? (
+                    <>
+                      আমি <button type="button" onClick={() => setIsPrivacyModalOpen(true)} className="text-blue-400 font-bold hover:underline">প্রাইভেসী পলিসি</button> ও <button type="button" onClick={() => setIsRefundModalOpen(true)} className="text-emerald-400 font-bold hover:underline">রিফান্ড শর্তাবলী</button> পড়েছি এবং সম্মতি দিচ্ছি।
+                    </>
+                  ) : (
+                    <>
+                      I agree to the <button type="button" onClick={() => setIsPrivacyModalOpen(true)} className="text-blue-400 font-bold hover:underline">Privacy Policy</button> & <button type="button" onClick={() => setIsRefundModalOpen(true)} className="text-emerald-400 font-bold hover:underline">Refund Policy</button>.
+                    </>
+                  )}
+                </span>
+              </label>
+            </div>
+
             {errorMessage && (
               <div className="p-3 rounded-2xl bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs font-semibold text-center animate-shake">
                 {errorMessage}
@@ -287,24 +325,48 @@ export const LoginScreen: React.FC = () => {
         )}
       </div>
 
-      {/* Footer */}
-      <div className="text-center text-[11px] text-slate-400 z-10 shrink-0 space-y-1">
-        <button
-          type="button"
-          onClick={() => setIsPrivacyModalOpen(true)}
-          className="text-blue-400 hover:underline font-medium text-xs block mx-auto"
-        >
-          {language === 'bn' ? 'প্রাইভেসী পলিসি ও নিরাপত্তা নীতি' : 'Privacy Policy & Terms'}
-        </button>
+      {/* Footer Legal Links */}
+      <div className="text-center text-[11px] text-slate-400 z-10 shrink-0 space-y-1.5">
+        <div className="flex items-center justify-center space-x-3 text-xs">
+          <button
+            type="button"
+            onClick={() => setIsPrivacyModalOpen(true)}
+            className="text-blue-400 hover:underline font-semibold"
+          >
+            {language === 'bn' ? 'প্রাইভেসী পলিসি' : 'Privacy Policy'}
+          </button>
+          <span className="text-slate-600">•</span>
+          <button
+            type="button"
+            onClick={() => setIsRefundModalOpen(true)}
+            className="text-emerald-400 hover:underline font-semibold"
+          >
+            {language === 'bn' ? 'রিফান্ড পলিসি' : 'Refund Policy'}
+          </button>
+        </div>
         <div>
           {APP_CONFIG.appDisplayName} v{APP_CONFIG.version} &copy; 2026 {APP_CONFIG.publisher}
         </div>
       </div>
 
-      {/* Privacy Policy Modal */}
+      {/* Legal Modals */}
       <PrivacyPolicyModal
         isOpen={isPrivacyModalOpen}
-        onClose={() => setIsPrivacyModalOpen(false)}
+        onClose={() => {
+          setIsPrivacyModalOpen(false);
+          setPolicyAccepted(true);
+          localStorage.setItem('gps_policy_accepted', 'true');
+        }}
+        language={language}
+      />
+
+      <RefundPolicyModal
+        isOpen={isRefundModalOpen}
+        onClose={() => {
+          setIsRefundModalOpen(false);
+          setPolicyAccepted(true);
+          localStorage.setItem('gps_policy_accepted', 'true');
+        }}
         language={language}
       />
     </div>

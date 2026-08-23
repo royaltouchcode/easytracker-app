@@ -14,26 +14,24 @@ import {
   ShieldCheck,
   Fan,
   DoorClosed,
-  Fuel,
   Lock,
   Radio
 } from 'lucide-react';
 import { resolveDeviceCapabilities } from '../../utils/deviceCapabilities';
-import { FuelMileageAnalyticsView } from '../analytics/FuelMileageAnalyticsView';
 
 export const AlertHistoryView: React.FC = () => {
   const { 
     alerts, 
     engineLogs,
     sensorLogs,
-    selectedPosition,
+    selectedPosition, 
     markAlertsAsRead, 
     selectedDevice, 
     setActiveTab,
     language 
   } = useApp();
 
-  const [activeSubTab, setActiveSubTab] = useState<'alerts' | 'engine' | 'sensors' | 'fuel'>('alerts');
+  const [activeSubTab, setActiveSubTab] = useState<'alerts' | 'engine' | 'sensors'>('alerts');
 
   const capabilities = resolveDeviceCapabilities(selectedDevice, selectedPosition);
 
@@ -73,8 +71,8 @@ export const AlertHistoryView: React.FC = () => {
   };
 
   return (
-    <div className="w-full h-full flex flex-col bg-slate-950 text-slate-100 overflow-y-auto p-4 space-y-3 pb-24 select-none">
-      {/* Header with Back Button */}
+    <div className="w-full h-full flex flex-col bg-slate-950 text-slate-100 overflow-y-auto p-4 space-y-4 pb-24 select-none">
+      {/* Top Header */}
       <div className="flex items-center justify-between bg-slate-900/90 border border-slate-800 p-3 rounded-2xl shadow-md">
         <div className="flex items-center space-x-2.5">
           <button
@@ -83,31 +81,32 @@ export const AlertHistoryView: React.FC = () => {
             title="Back to Map"
           >
             <ArrowLeft className="w-4 h-4 text-blue-400" />
-            <span className="text-xs font-bold">{language === 'bn' ? 'পেছনে' : 'Back'}</span>
+            <span className="text-xs font-bold">{language === 'bn' ? 'হোম' : 'Home'}</span>
           </button>
           <div>
-            <h2 className="text-sm font-bold">
-              {language === 'bn' ? 'অ্যালার্ট ও অ্যাক্টিভিটি হিস্ট্রি' : 'Alerts & Activity History'}
+            <h2 className="text-sm font-bold flex items-center space-x-1.5">
+              <span>{language === 'bn' ? 'সিকিউরিটি অ্যালার্ট ও নোটিফিকেশন' : 'Security Alerts & Notifications'}</span>
+              <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
             </h2>
             <p className="text-[10px] text-slate-400">
-              {selectedDevice?.name || 'My Vehicle'} • {capabilities.isBike ? 'Bike Mode' : 'Vehicle Mode'}
+              {selectedDevice ? selectedDevice.name : (language === 'bn' ? 'সকল নোটিফিকেশন হিস্ট্রি' : 'All Security Stream Logs')}
             </p>
           </div>
         </div>
 
-        {activeSubTab === 'alerts' && (
+        {alerts.length > 0 && (
           <button
             onClick={markAlertsAsRead}
-            className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-300 text-[11px] font-semibold border border-slate-700 transition flex items-center space-x-1"
+            className="px-2.5 py-1.5 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-300 font-bold text-xs flex items-center space-x-1 transition active:scale-95 shadow-sm"
           >
-            <CheckCheck className="w-3.5 h-3.5 text-emerald-400" />
-            <span>{language === 'bn' ? 'পড়া হয়েছে' : 'Read All'}</span>
+            <CheckCheck className="w-3.5 h-3.5" />
+            <span>{language === 'bn' ? 'পড়া হয়েছে' : 'Mark Read'}</span>
           </button>
         )}
       </div>
 
-      {/* Sub Tabs Selector (4 Sub-Tabs) */}
-      <div className="grid grid-cols-4 gap-1 bg-slate-900/80 p-1 rounded-2xl border border-slate-800">
+      {/* Sub-Tabs Grid */}
+      <div className="grid grid-cols-3 gap-1.5 bg-slate-900 border border-slate-800 p-1.5 rounded-2xl">
         <button
           onClick={() => setActiveSubTab('alerts')}
           className={`py-1.5 px-1 rounded-xl font-bold text-[11px] flex flex-col items-center justify-center space-y-0.5 transition ${
@@ -117,14 +116,14 @@ export const AlertHistoryView: React.FC = () => {
           }`}
         >
           <Bell className="w-3.5 h-3.5" />
-          <span className="truncate">{language === 'bn' ? 'নোটিফিকেশন' : 'Alerts'} ({alerts.length})</span>
+          <span className="truncate">{language === 'bn' ? 'সিকিউরিটি' : 'Security'} ({alerts.length})</span>
         </button>
 
         <button
           onClick={() => setActiveSubTab('engine')}
           className={`py-1.5 px-1 rounded-xl font-bold text-[11px] flex flex-col items-center justify-center space-y-0.5 transition ${
             activeSubTab === 'engine' 
-              ? 'bg-rose-600 text-white shadow-md' 
+              ? 'bg-emerald-600 text-white shadow-md' 
               : 'text-slate-400 hover:text-slate-200'
           }`}
         >
@@ -142,18 +141,6 @@ export const AlertHistoryView: React.FC = () => {
         >
           <Fan className="w-3.5 h-3.5" />
           <span className="truncate">{language === 'bn' ? 'সেন্সর' : 'Sensors'} ({filteredSensorLogs.length})</span>
-        </button>
-
-        <button
-          onClick={() => setActiveSubTab('fuel')}
-          className={`py-1.5 px-1 rounded-xl font-bold text-[11px] flex flex-col items-center justify-center space-y-0.5 transition ${
-            activeSubTab === 'fuel' 
-              ? 'bg-amber-600 text-white shadow-md' 
-              : 'text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          <Fuel className="w-3.5 h-3.5" />
-          <span className="truncate">{language === 'bn' ? 'ফুয়েল/মাইলেজ' : 'Fuel/Eco'}</span>
         </button>
       </div>
 
@@ -179,12 +166,15 @@ export const AlertHistoryView: React.FC = () => {
                       </span>
                       <div className="flex items-center space-x-1 text-[10px] text-slate-400">
                         <Clock className="w-3 h-3" />
-                        <span>{new Date(item.serverTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        <span>{new Date(item.eventTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                       </div>
                     </div>
-                    <p className="text-xs text-slate-300 mt-1 leading-relaxed">
-                      {item.attributes?.message || 'Device status update recorded.'}
+                    <p className="text-[11px] text-slate-300 mt-0.5 leading-tight">
+                      {item.attributes?.message || `${item.type} alert triggered`}
                     </p>
+                    <div className="text-[9.5px] text-slate-400 mt-1 font-mono">
+                      {new Date(item.eventTime).toLocaleDateString()}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -192,133 +182,89 @@ export const AlertHistoryView: React.FC = () => {
           )}
         </div>
       ) : activeSubTab === 'engine' ? (
-        /* Engine Lock / Unlock Audit Logs */
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl flex-1 space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-rose-400">
-              {language === 'bn' ? 'ইঞ্জিন ইমোবিলাইজার অডিট ট্রেইল' : 'Engine Immobilizer Audit Log'}
-            </span>
-            <span className="text-[10px] text-slate-400">
-              {language === 'bn' ? 'সময় ও গতি সহ সংরক্ষিত' : 'Recorded with Time & Speed'}
-            </span>
-          </div>
-
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl flex-1">
           {engineLogs.length === 0 ? (
             <div className="text-center py-12 text-slate-500 text-xs">
               <Power className="w-8 h-8 mx-auto mb-2 text-slate-600" />
-              <span>{language === 'bn' ? 'কোনো ইঞ্জিন কমান্ডের রেকর্ড নেই' : 'No engine control events recorded'}</span>
+              <span>{language === 'bn' ? 'কোনো ইঞ্জিন লক বা চালুর হিস্ট্রি নেই' : 'No engine action logs recorded'}</span>
             </div>
           ) : (
             <div className="space-y-2.5">
-              {engineLogs.map((log) => {
-                const isCut = log.action === 'cut';
-                const dateObj = new Date(log.timestamp);
-                return (
-                  <div key={log.id} className="bg-slate-800/70 border border-slate-700/80 rounded-2xl p-3 flex items-start space-x-3 shadow-md">
-                    <div className={`p-2.5 rounded-xl border shrink-0 mt-0.5 ${
-                      isCut 
-                        ? 'bg-rose-500/20 text-rose-400 border-rose-500/30' 
-                        : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
-                    }`}>
-                      <Power className="w-4 h-4" />
+              {engineLogs.map((log) => (
+                <div key={log.id} className="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-3 flex items-start space-x-3">
+                  <div className={`p-2 rounded-xl border shrink-0 mt-0.5 ${
+                    log.action === 'cut' 
+                      ? 'bg-rose-500/20 border-rose-500/30 text-rose-400' 
+                      : 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400'
+                  }`}>
+                    <Power className="w-4 h-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-center">
+                      <span className={`font-bold text-xs ${
+                        log.action === 'cut' ? 'text-rose-400' : 'text-emerald-400'
+                      }`}>
+                        {log.action === 'cut' 
+                          ? (language === 'bn' ? 'ইঞ্জিন লক (অফ) কমান্ড' : 'Engine Lock Executed') 
+                          : (language === 'bn' ? 'ইঞ্জিন আনলক (চালু) কমান্ড' : 'Engine Resume Executed')}
+                      </span>
+                      <div className="flex items-center space-x-1 text-[10px] text-slate-400">
+                        <Clock className="w-3 h-3" />
+                        <span>{new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-center">
-                        <span className={`font-extrabold text-xs ${isCut ? 'text-rose-300' : 'text-emerald-300'}`}>
-                          {isCut 
-                            ? (language === 'bn' ? '🚨 ইঞ্জিন লক (জ্বালানি সংযোগ বিচ্ছিন্ন)' : '🚨 Engine Cut (Immobilized)') 
-                            : (language === 'bn' ? '⚡ ইঞ্জিন আনলক (জ্বালানি সংযোগ সচল)' : '⚡ Engine Restore (Power Active)')}
-                        </span>
-                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-900 border border-slate-700 text-emerald-400">
-                          {language === 'bn' ? 'কার্যকর' : 'Executed'}
-                        </span>
-                      </div>
-                      
-                      <div className="flex items-center justify-between text-[11px] text-slate-400 mt-1.5">
-                        <div className="flex items-center space-x-1 font-mono text-slate-300">
-                          <Clock className="w-3 h-3 text-blue-400" />
-                          <span>{dateObj.toLocaleDateString([], { day: '2-digit', month: 'short' })} • {dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
-                        </div>
-                        <span className="text-slate-400 font-mono">
-                          {language === 'bn' ? `গতি: ${log.speed} km/h` : `Speed: ${log.speed} km/h`}
-                        </span>
-                      </div>
+                    <p className="text-[11px] text-slate-300 mt-0.5 leading-tight">
+                      {log.deviceName} • {language === 'bn' ? `স্ট্যাটাস: ${log.status}` : `Status: ${log.status}`}
+                    </p>
+                    <div className="text-[9.5px] text-slate-400 mt-1 font-mono">
+                      {new Date(log.timestamp).toLocaleDateString()}
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      ) : activeSubTab === 'sensors' ? (
-        /* Dynamic Sensor Event Logs (Filtered strictly by vehicle capabilities) */
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl flex-1 space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-cyan-400">
-              {language === 'bn' ? 'সেন্সর টেলিমেট্রিক্স ইভেন্ট লগ' : 'Sensor Telematics Event Log'}
-            </span>
-            <span className="text-[10px] text-slate-400">
-              {capabilities.isBike 
-                ? (language === 'bn' ? 'বাইক ভাইব্রেশন ও সিকিউরিটি অডিট' : 'Bike Security Audit') 
-                : (language === 'bn' ? 'AC, ডোর ও ফুয়েল অডিট' : 'AC, Door & Fuel Audit')}
-            </span>
-          </div>
-
-          {filteredSensorLogs.length === 0 ? (
-            <div className="text-center py-12 text-slate-500 text-xs">
-              <ShieldCheck className="w-8 h-8 mx-auto mb-2 text-slate-600" />
-              <span>
-                {capabilities.isBike 
-                  ? (language === 'bn' ? 'কোনো অস্বাভাবিক ঝাঁকুনি বা ভাইব্রেশন নেই (বাইক নিরাপদ)' : 'No vibration tamper alarms recorded (Vehicle Safe)')
-                  : (language === 'bn' ? 'কোনো সেন্সর ইভেন্ট রেকর্ড নেই' : 'No sensor events recorded')}
-              </span>
-            </div>
-          ) : (
-            <div className="space-y-2.5">
-              {filteredSensorLogs.map((log) => {
-                const dateObj = new Date(log.timestamp);
-                return (
-                  <div key={log.id} className="bg-slate-800/70 border border-slate-700/80 rounded-2xl p-3 flex items-start space-x-3 shadow-md">
-                    <div className="p-2.5 rounded-xl border border-cyan-500/30 bg-cyan-500/20 text-cyan-300 shrink-0 mt-0.5">
-                      {log.sensorType === 'ac' ? (
-                        <Fan className="w-4 h-4" />
-                      ) : log.sensorType === 'door' ? (
-                        <DoorClosed className="w-4 h-4 text-rose-400" />
-                      ) : log.sensorType === 'fuel' ? (
-                        <Fuel className="w-4 h-4 text-amber-400" />
-                      ) : (
-                        <Radio className="w-4 h-4 text-emerald-400" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-center">
-                        <span className="font-extrabold text-xs text-slate-100">
-                          {log.title}
-                        </span>
-                        <span className="text-[9px] font-mono text-cyan-300 bg-slate-900 border border-cyan-500/30 px-1.5 py-0.5 rounded">
-                          {log.value || log.status}
-                        </span>
-                      </div>
-                      
-                      <div className="flex items-center justify-between text-[11px] text-slate-400 mt-1.5">
-                        <div className="flex items-center space-x-1 font-mono text-slate-300">
-                          <Clock className="w-3 h-3 text-cyan-400" />
-                          <span>{dateObj.toLocaleDateString([], { day: '2-digit', month: 'short' })} • {dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
-                        </div>
-                        <span className="text-slate-400 text-[10px]">
-                          {log.deviceName}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+                </div>
+              ))}
             </div>
           )}
         </div>
       ) : (
-        /* Fuel Economy, Mileage & Refill Intelligence Tab */
-        <FuelMileageAnalyticsView />
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl flex-1">
+          {filteredSensorLogs.length === 0 ? (
+            <div className="text-center py-12 text-slate-500 text-xs">
+              <Fan className="w-8 h-8 mx-auto mb-2 text-slate-600" />
+              <span>
+                {language === 'bn' 
+                  ? 'এই ডিভাইসের জন্য কোনো সেন্সর ইভেন্ট নেই' 
+                  : 'No sensor logs for this vehicle profile'}
+              </span>
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              {filteredSensorLogs.map((log) => (
+                <div key={log.id} className="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-3 flex items-start space-x-3">
+                  <div className="p-2 rounded-xl bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 shrink-0 mt-0.5">
+                    <Fan className="w-4 h-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-center">
+                      <span className="font-bold text-xs text-slate-100">
+                        {log.title}
+                      </span>
+                      <div className="flex items-center space-x-1 text-[10px] text-slate-400">
+                        <Clock className="w-3 h-3" />
+                        <span>{new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                      </div>
+                    </div>
+                    <p className="text-[11px] text-cyan-300 mt-0.5 font-semibold">
+                      {log.status} {log.value !== undefined ? `(${log.value})` : ''}
+                    </p>
+                    <div className="text-[9.5px] text-slate-400 mt-1 font-mono">
+                      {log.deviceName} • {new Date(log.timestamp).toLocaleDateString()}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
