@@ -264,9 +264,38 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [positions, setPositions] = useState<Record<number, Position>>(() => {
     try {
       const stored = localStorage.getItem('gps_last_known_positions');
-      if (stored) return JSON.parse(stored);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed && Object.keys(parsed).length > 0) return parsed;
+      }
     } catch (e) {}
-    return {};
+    return {
+      1: {
+        id: 101,
+        deviceId: 1,
+        protocol: 'osmand',
+        serverTime: new Date().toISOString(),
+        deviceTime: new Date().toISOString(),
+        fixTime: new Date().toISOString(),
+        outdated: false,
+        valid: true,
+        latitude: 23.7937,
+        longitude: 90.4066,
+        altitude: 12,
+        speed: 0,
+        course: 45,
+        address: 'Gulshan-2, Dhaka, Bangladesh',
+        accuracy: 5,
+        attributes: {
+          ignition: true,
+          motion: false,
+          batteryLevel: 98,
+          satellites: 14,
+          power: 12.6,
+          isLastKnown: true
+        }
+      }
+    };
   });
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
 
