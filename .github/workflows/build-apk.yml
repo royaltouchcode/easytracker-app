@@ -25,27 +25,24 @@ jobs:
           node-version: 20
 
       - name: Install NPM Packages
-        run: npm install --legacy-peer-deps
+        run: npm install --legacy-peer-deps --no-audit
 
-      - name: Build Web Dist
+      - name: Build Web Application
         run: npx vite build
 
       - name: Sync Capacitor Android
         run: npx cap sync android
 
-      - name: Setup Gradle Environment
-        uses: gradle/actions/setup-gradle@v4
+      - name: Make Gradle Executable
+        run: chmod +x android/gradlew
 
       - name: Build Android Debug APK
-        run: |
-          cd android
-          chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+        working-directory: android
+        run: ./gradlew assembleDebug --no-daemon
 
-      - name: Build Android Play Store Bundle
-        run: |
-          cd android
-          ./gradlew bundleRelease --no-daemon || true
+      - name: Build Android Play Store AAB
+        working-directory: android
+        run: ./gradlew bundleRelease --no-daemon || true
 
       - name: Upload Installable APK
         uses: actions/upload-artifact@v4
