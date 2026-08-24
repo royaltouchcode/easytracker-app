@@ -8,7 +8,8 @@ import {
   Scan, 
   Camera, 
   X, 
-  Sparkles
+  Sparkles,
+  Car
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { VehicleType } from '../../types/traccar';
