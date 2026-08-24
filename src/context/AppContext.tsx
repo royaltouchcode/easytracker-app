@@ -243,8 +243,21 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [activeTab, setActiveTab] = useState<TabType>('map');
 
   // SaaS Multi-Role State (Customer, Super Admin, Sales, Technician, Support, Rescue)
+  // BUG #1 FIX: Validate stored role against user's approvedRoles to prevent localStorage injection
   const [currentRole, setCurrentRole] = useState<SaasRole>(() => {
-    return (localStorage.getItem('gps_saas_current_role') as SaasRole) || 'customer';
+    const storedRole = localStorage.getItem('gps_saas_current_role') as SaasRole;
+    const storedSession = localStorage.getItem('gps_user_session');
+    if (storedRole && storedSession) {
+      try {
+        const parsedUser = JSON.parse(storedSession);
+        const approvedRoles: SaasRole[] = parsedUser?.approvedRoles || ['customer'];
+        const isAdmin = parsedUser?.administrator || parsedUser?.role === 'super_admin';
+        if (isAdmin || approvedRoles.includes(storedRole)) {
+          return storedRole;
+        }
+      } catch (e) {}
+    }
+    return 'customer';
   });
   const [isRoleSwitcherOpen, setIsRoleSwitcherOpen] = useState(false);
   const [isDemoPurged, setIsDemoPurged] = useState(() => localStorage.getItem('gps_demo_purged') === 'true');
@@ -774,7 +787,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         }));
 
         setDevices(merged);
-        setSelectedDeviceId(merged[0].id);
+        // BUG #4 FIX: Only reset selectedDeviceId if current selection no longer exists in merged list
+        setSelectedDeviceId(prev => {
+          const stillExists = merged.some(d => d.id === prev);
+          return stillExists ? prev : merged[0].id;
+        });
 
         const realPositions = await traccarApi.getPositions();
         if (realPositions && realPositions.length > 0) {
@@ -1103,6 +1120,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const handleSetCurrentRole = (role: SaasRole) => {
+    // BUG #2 FIX: Validate role switch is within user's approvedRoles before allowing
+    const isAdmin = user?.administrator || user?.role === 'super_admin';
+    const userApprovedRoles: SaasRole[] = user?.approvedRoles || ['customer'];
+    if (!isAdmin && !userApprovedRoles.includes(role)) {
+      console.warn(`[RBAC] Blocked unauthorized role switch attempt to: ${role}`);
+      return; // Silently block unauthorized role injection
+    }
     setCurrentRole(role);
     localStorage.setItem('gps_saas_current_role', role);
   };
