@@ -24,7 +24,8 @@ import {
   DoorClosed,
   Fuel,
   Lock,
-  BarChart3
+  BarChart3,
+  AlertTriangle
 } from 'lucide-react';
 import { PinVerificationModal } from '../commands/PinVerificationModal';
 import { CustomCommandModal } from '../commands/CustomCommandModal';
@@ -55,6 +56,7 @@ export const DeviceSlidingSheet: React.FC = () => {
   // Command Pending / Interlock State (Prevents duplicate/opposite commands until acknowledged)
   const [commandPending, setCommandPending] = useState<'idle' | 'pending_cut' | 'pending_resume'>('idle');
   const [pendingTimer, setPendingTimer] = useState<number>(0);
+  const [commandStatus, setCommandStatus] = useState<'idle' | 'in_flight' | 'executed_cut' | 'executed_resume' | 'not_executed'>('idle');
 
   // On-Demand Wakeup / Ping State for Sleeping Trackers
   const [isWakingUp, setIsWakingUp] = useState<boolean>(false);
@@ -175,62 +177,76 @@ export const DeviceSlidingSheet: React.FC = () => {
   const capabilities = resolveDeviceCapabilities(selectedDevice, selectedPosition);
 
   const handleOpenCutModal = () => {
-    if (commandPending !== 'idle') return;
+    if (commandPending !== 'idle' || commandStatus === 'not_executed') return;
     setPinAction('cut');
     setIsPinModalOpen(true);
   };
 
   const handleOpenResumeModal = () => {
-    if (commandPending !== 'idle') return;
+    if (commandPending !== 'idle' || commandStatus === 'not_executed') return;
     setPinAction('resume');
     setIsPinModalOpen(true);
   };
 
-  const handleExecutePinAction = () => {
+  const handleExecutePinAction = async () => {
     if (pinAction === 'cut') {
       setCommandPending('pending_cut');
-      setPendingTimer(90);
-      sendCommand('engineStop');
-      
-      // Persist locked status permanently in localStorage
-      if (selectedDevice) {
-        localStorage.setItem(`gps_relay_cut_${selectedDevice.id}`, 'true');
-        addEngineLog({
-          deviceId: selectedDevice.id,
-          deviceName: selectedDevice.name,
-          action: 'cut',
-          status: 'executed',
-          speed: speedKmh
-        });
-      }
-      setIsRelayCutState(true);
+      setCommandStatus('in_flight');
+      setPendingTimer(30);
 
-      setTimeout(() => {
+      try {
+        await sendCommand('engineStop');
+        
+        // Command executed successfully on device & server
+        if (selectedDevice) {
+          localStorage.setItem(`gps_relay_cut_${selectedDevice.id}`, 'true');
+          addEngineLog({
+            deviceId: selectedDevice.id,
+            deviceName: selectedDevice.name,
+            action: 'cut',
+            status: 'executed',
+            speed: speedKmh
+          });
+        }
+        setIsRelayCutState(true);
+        setCommandStatus('executed_cut');
         setCommandPending('idle');
         setPendingTimer(0);
-      }, 3000);
+      } catch (err) {
+        // Command execution failed on hardware
+        setCommandStatus('not_executed');
+        setCommandPending('idle');
+        setPendingTimer(0);
+      }
     } else {
       setCommandPending('pending_resume');
-      setPendingTimer(90);
-      sendCommand('engineResume');
+      setCommandStatus('in_flight');
+      setPendingTimer(30);
 
-      // Persist unlocked status in localStorage
-      if (selectedDevice) {
-        localStorage.setItem(`gps_relay_cut_${selectedDevice.id}`, 'false');
-        addEngineLog({
-          deviceId: selectedDevice.id,
-          deviceName: selectedDevice.name,
-          action: 'resume',
-          status: 'executed',
-          speed: speedKmh
-        });
-      }
-      setIsRelayCutState(false);
+      try {
+        await sendCommand('engineResume');
 
-      setTimeout(() => {
+        // Command executed successfully on device & server
+        if (selectedDevice) {
+          localStorage.setItem(`gps_relay_cut_${selectedDevice.id}`, 'false');
+          addEngineLog({
+            deviceId: selectedDevice.id,
+            deviceName: selectedDevice.name,
+            action: 'resume',
+            status: 'executed',
+            speed: speedKmh
+          });
+        }
+        setIsRelayCutState(false);
+        setCommandStatus('executed_resume');
         setCommandPending('idle');
         setPendingTimer(0);
-      }, 3000);
+      } catch (err) {
+        // Command execution failed on hardware
+        setCommandStatus('not_executed');
+        setCommandPending('idle');
+        setPendingTimer(0);
+      }
     }
   };
 
@@ -431,9 +447,49 @@ export const DeviceSlidingSheet: React.FC = () => {
             </div>
           )}
 
-          {/* Persistent Glowing Fuel Cut / Immobilized Security Alert Banner */}
-          {isRelayCut && (
-            <div className="flex items-center justify-between bg-rose-950/80 border border-rose-500/60 rounded-xl px-2 py-0.5 mb-1 shadow-lg shadow-rose-950/50 animate-pulse">
+          {/* ===================================================================== */}
+          {/* ENGINE SECURITY & IMMOBILIZER STATUS BANNERS                           */}
+          {/* ===================================================================== */}
+
+          {/* 1. In-Flight Command Interlock Notice */}
+          {commandPending !== 'idle' && (
+            <div className="flex items-center justify-between bg-blue-950/90 border border-blue-500/60 rounded-xl px-2.5 py-1 mb-1 shadow-lg shadow-blue-950/50 animate-pulse">
+              <div className="flex items-center space-x-1.5 min-w-0">
+                <div className="w-3.5 h-3.5 rounded-full border-2 border-blue-400 border-t-transparent animate-spin shrink-0" />
+                <span className="text-[10.5px] font-bold text-blue-200 truncate">
+                  {commandPending === 'pending_cut'
+                    ? (language === 'bn' ? `⏳ ইঞ্জিন বন্ধ কমান্ড পাঠানো হচ্ছে (${pendingTimer}s)` : `⏳ Sending engine cutoff (${pendingTimer}s)`)
+                    : (language === 'bn' ? `⏳ ইঞ্জিন চালু কমান্ড পাঠানো হচ্ছে (${pendingTimer}s)` : `⏳ Sending engine restore (${pendingTimer}s)`)}
+                </span>
+              </div>
+              <span className="text-[8px] font-mono text-blue-300 bg-slate-900 px-1.5 py-0.5 rounded border border-blue-500/40 shrink-0 ml-1">
+                TRANSMITTING
+              </span>
+            </div>
+          )}
+
+          {/* 2. Command Sent But Not Executed Alert */}
+          {commandStatus === 'not_executed' && (
+            <div className="flex items-center justify-between bg-amber-950/90 border border-amber-500/70 rounded-xl px-2.5 py-1 mb-1 shadow-lg shadow-amber-950/60 animate-pulse">
+              <div className="flex items-center space-x-1.5 min-w-0">
+                <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+                <span className="text-[10px] font-bold text-amber-200 truncate">
+                  {language === 'bn' ? '⚠️ কমান্ড পাঠানো হয়েছে কিন্তু ডিভাইসে এক্সিকিউট হয়নি' : '⚠️ Command Sent But Not Executed on Device'}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCommandStatus('idle')}
+                className="text-[8.5px] font-bold text-slate-200 hover:text-white bg-slate-900 px-2 py-0.5 rounded border border-amber-500/40 shrink-0 ml-1 transition active:scale-95"
+              >
+                রিসেট
+              </button>
+            </div>
+          )}
+
+          {/* 3. Persistent Glowing Red Fuel Cut / Immobilized Security Alert Banner */}
+          {isRelayCut ? (
+            <div className="flex items-center justify-between bg-rose-950/90 border border-rose-500/70 rounded-xl px-2.5 py-1 mb-1 shadow-lg shadow-rose-950/60 animate-pulse">
               <div className="flex items-center space-x-1.5 min-w-0">
                 <div className="w-4 h-4 rounded-lg bg-rose-500/30 border border-rose-500/50 flex items-center justify-center text-rose-300 shrink-0">
                   <Power className="w-2.5 h-2.5 text-rose-400" />
@@ -443,41 +499,31 @@ export const DeviceSlidingSheet: React.FC = () => {
                     {language === 'bn' ? '🚨 ইঞ্জিন লকড (জ্বালানি সরবরাহ বন্ধ) • গাড়ি স্টার্ট হবে না' : '🚨 Engine Immobilized (Fuel Cut Active)'}
                   </span>
                   {latestEngineLog && (
-                    <span className="text-[8.5px] text-rose-300/80 font-mono block leading-none">
+                    <span className="text-[8.5px] text-rose-300/80 font-mono block leading-none mt-0.5">
                       {language === 'bn' ? 'লকের সময়' : 'Locked at'}: {new Date(latestEngineLog.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   )}
                 </div>
               </div>
-              <span className="text-[8px] font-extrabold bg-rose-500 text-white px-1.5 py-0.5 rounded uppercase tracking-wider shrink-0 ml-1">
+              <span className="text-[8px] font-extrabold bg-rose-500 text-white px-2 py-0.5 rounded uppercase tracking-wider shrink-0 ml-1">
                 LOCKED
               </span>
             </div>
-          )}
-
-          {/* Command In-Flight / Hardware Pending Interlock Notice (90s Safety Window) */}
-          {commandPending !== 'idle' && (
-            <div className="flex items-center justify-between bg-amber-950/80 border border-amber-500/60 rounded-xl px-2 py-0.5 mb-1 shadow-lg shadow-amber-950/50 animate-pulse">
-              <div className="flex items-center space-x-1.5 min-w-0">
-                <div className="w-3.5 h-3.5 rounded-full border-2 border-amber-400 border-t-transparent animate-spin shrink-0" />
-                <span className="text-[10px] font-bold text-amber-200 truncate">
-                  {commandPending === 'pending_cut'
-                    ? (language === 'bn' ? `⏳ ইঞ্জিন বন্ধ পাঠানো হয়েছে (${pendingTimer}s)` : `⏳ Engine cutoff sent (${pendingTimer}s)`)
-                    : (language === 'bn' ? `⏳ ইঞ্জিন সচল পাঠানো হয়েছে (${pendingTimer}s)` : `⏳ Engine restore sent (${pendingTimer}s)`)}
+          ) : (
+            /* 4. Normal Unlocked Fuel Line Active Status Banner */
+            commandPending === 'idle' && commandStatus !== 'not_executed' && (
+              <div className="flex items-center justify-between bg-emerald-950/50 border border-emerald-500/40 rounded-xl px-2.5 py-0.5 mb-1 shadow-sm">
+                <div className="flex items-center space-x-1.5 min-w-0">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                  <span className="text-[10px] font-bold text-emerald-200 truncate">
+                    {language === 'bn' ? '🛡️ জ্বালানি সংযোগ সচল • ইঞ্জিন স্বাভাবিক ও সিকিউরড' : '🛡️ Fuel Line Active • Engine Normal & Secured'}
+                  </span>
+                </div>
+                <span className="text-[8px] font-extrabold bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 px-1.5 py-0.5 rounded uppercase tracking-wider shrink-0 ml-1">
+                  ACTIVE
                 </span>
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setCommandPending('idle');
-                  setPendingTimer(0);
-                }}
-                className="text-[8.5px] font-bold text-slate-300 hover:text-amber-300 bg-slate-900 px-1 py-0.5 rounded border border-amber-500/40 shrink-0 ml-1 transition active:scale-95"
-                title="লক রিলিজ করুন"
-              >
-                রিসেট
-              </button>
-            </div>
+            )
           )}
 
           {/* Enhanced Action Buttons Grid - Strict Single Row of 5 Cards */}
@@ -487,10 +533,10 @@ export const DeviceSlidingSheet: React.FC = () => {
               <button
                 type="button"
                 onClick={handleOpenResumeModal}
-                disabled={commandPending !== 'idle'}
+                disabled={commandPending !== 'idle' || commandStatus === 'not_executed'}
                 className={`py-1.5 px-0.5 rounded-xl font-bold text-[10px] xs:text-[10.5px] flex flex-col items-center justify-center space-y-0.5 transition active:scale-95 shadow-md ${
-                  commandPending !== 'idle'
-                    ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed'
+                  commandPending !== 'idle' || commandStatus === 'not_executed'
+                    ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed opacity-60'
                     : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30'
                 }`}
               >
@@ -501,10 +547,10 @@ export const DeviceSlidingSheet: React.FC = () => {
               <button
                 type="button"
                 onClick={handleOpenCutModal}
-                disabled={commandPending !== 'idle'}
+                disabled={commandPending !== 'idle' || commandStatus === 'not_executed'}
                 className={`py-1.5 px-0.5 rounded-xl font-bold text-[10px] xs:text-[10.5px] flex flex-col items-center justify-center space-y-0.5 transition active:scale-95 shadow-md ${
-                  commandPending !== 'idle'
-                    ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed'
+                  commandPending !== 'idle' || commandStatus === 'not_executed'
+                    ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed opacity-60'
                     : 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-600/30'
                 }`}
               >
