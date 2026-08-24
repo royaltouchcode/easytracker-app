@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   Crown, 
   ArrowLeft, 
@@ -25,10 +25,17 @@ import {
   Activity,
   Radio,
   Settings2,
-  Wifi
+  Menu,
+  ChevronRight,
+  Shield,
+  Wrench,
+  BookOpen,
+  CreditCard,
+  Building2,
+  UserCheck,
+  Car
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { DEFAULT_SUBSCRIPTION_CONFIG } from '../../config/subscriptionPlans';
 import { APP_CONFIG } from '../../config/appConfig';
 import { SalesLeadEntry } from './SalesPortalView';
 import { VehicleCatalogManager } from './VehicleCatalogManager';
@@ -37,6 +44,18 @@ import { PartnerOnboardingManager } from './PartnerOnboardingManager';
 import { UserAccessManager } from './UserAccessManager';
 import { ServiceRateCardManager } from './ServiceRateCardManager';
 import { SellerQuotaAndLedgerManager } from './SellerQuotaAndLedgerManager';
+
+type AdminSectionType = 
+  | 'overview'
+  | 'server_sync'
+  | 'sales_queue'
+  | 'dealer_quotas'
+  | 'rate_cards'
+  | 'vehicle_catalog'
+  | 'warranty_admin'
+  | 'b2b_partners'
+  | 'user_rbac'
+  | 'system_tools';
 
 export const AdminDashboardView: React.FC = () => {
   const { 
@@ -54,14 +73,17 @@ export const AdminDashboardView: React.FC = () => {
     isDemoPurged 
   } = useApp();
 
-  const [rates, setRates] = useState<Record<number, number>>(() => {
-    return {
-      1: 350,
-      3: 990,
-      6: 1850,
-      12: 3500
-    };
-  });
+  // Active Left Sidebar Section
+  const [activeSection, setActiveSection] = useState<AdminSectionType>('overview');
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const [rates, setRates] = useState<Record<number, number>>(() => ({
+    1: 350,
+    3: 990,
+    6: 1850,
+    12: 3500
+  }));
   const [saveRateSuccess, setSaveRateSuccess] = useState(false);
   const [showPurgeConfirm, setShowPurgeConfirm] = useState(false);
 
@@ -88,6 +110,10 @@ export const AdminDashboardView: React.FC = () => {
   const [isServerConfigModalOpen, setIsServerConfigModalOpen] = useState(false);
   const [tempServerUrl, setTempServerUrl] = useState(serverConfig?.url || 'https://demo3.traccar.org');
   const [tempServerPort, setTempServerPort] = useState(serverConfig?.port || '8082');
+
+  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+  const [bulkImeiText, setBulkImeiText] = useState('');
+  const [bulkImportSuccess, setBulkImportSuccess] = useState(false);
 
   const handleSyncDevicesWithServer = async () => {
     setIsSyncingServer(true);
@@ -118,17 +144,10 @@ export const AdminDashboardView: React.FC = () => {
     handleSyncDevicesWithServer();
   };
 
-  // Bulk IMEI Import Modal State
-  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
-  const [bulkImeiText, setBulkImeiText] = useState('');
-  const [bulkImportSuccess, setBulkImportSuccess] = useState(false);
-
-  // Handle Lead Approval and Server Push
   const handleApproveAndPush = (lead: SalesLeadEntry) => {
     const updated = salesLeads.map(l => l.id === lead.id ? { ...l, status: 'approved_pushed' as const } : l);
     setSalesLeads(updated);
     localStorage.setItem('gps_sales_leads_queue', JSON.stringify(updated));
-
     setPushSuccessId(lead.id);
     setTimeout(() => setPushSuccessId(null), 2500);
   };
@@ -166,469 +185,680 @@ export const AdminDashboardView: React.FC = () => {
 
   const pendingLeads = salesLeads.filter(l => l.status === 'pending_admin_approval');
 
+  // Sidebar Menu Items Definition
+  const SIDEBAR_ITEMS: { id: AdminSectionType; labelBn: string; labelEn: string; icon: any; badge?: string; badgeColor?: string }[] = [
+    { id: 'overview', labelBn: 'ওভারভিউ ও মেট্রিক্স', labelEn: 'Overview & Metrics', icon: Crown },
+    { id: 'server_sync', labelBn: 'GPS সার্ভার ও সিঙ্ক হাব', labelEn: 'GPS Server & Sync', icon: Server, badge: 'Live', badgeColor: 'bg-emerald-500/20 text-emerald-300' },
+    { id: 'sales_queue', labelBn: 'সেলস অনবোর্ডিং কিউ', labelEn: 'Sales Leads Queue', icon: Smartphone, badge: pendingLeads.length > 0 ? `${pendingLeads.length}` : undefined, badgeColor: 'bg-amber-500/30 text-amber-300' },
+    { id: 'dealer_quotas', labelBn: 'ডিলার পে-ওয়াল ও লেজার', labelEn: 'Dealer Quota & Ledger', icon: Building2 },
+    { id: 'rate_cards', labelBn: 'সার্ভিস রেট ও পার্টস কার্ড', labelEn: 'Rate Cards & Spares', icon: CreditCard },
+    { id: 'vehicle_catalog', labelBn: 'AI ভেহিকেল ক্যাটালগ', labelEn: 'AI Vehicle Catalog', icon: Car, badge: 'AI', badgeColor: 'bg-purple-500/20 text-purple-300' },
+    { id: 'warranty_admin', labelBn: 'ওয়ারেন্টি ও ক্লেইমস (RMA)', labelEn: 'Warranty & RMA', icon: ShieldCheck },
+    { id: 'b2b_partners', labelBn: 'B2B পার্টনার ও ফ্র্যাঞ্চাইজি', labelEn: 'B2B Brand Partners', icon: Users },
+    { id: 'user_rbac', labelBn: 'স্টাফ রোলস ও পারমিশন', labelEn: 'Staff Roles & RBAC', icon: UserCheck },
+    { id: 'system_tools', labelBn: 'ডাটাবেস ও সিস্টেম টুলস', labelEn: 'Database & Tools', icon: Database }
+  ];
+
   return (
-    <div className="w-full h-full flex flex-col bg-slate-950 text-slate-100 overflow-y-auto p-4 space-y-4 pb-24 select-none">
-      {/* Top Header */}
-      <div className="flex items-center justify-between bg-slate-900/90 border border-slate-800 p-3 rounded-2xl shadow-md">
-        <div className="flex items-center space-x-2.5">
-          <button
-            onClick={() => {
-              setCurrentRole('customer');
-              setActiveTab('map');
-            }}
-            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-200 border border-slate-700 transition active:scale-95 flex items-center space-x-1"
-          >
-            <ArrowLeft className="w-4 h-4 text-blue-400" />
-            <span className="text-xs font-bold">{language === 'bn' ? 'কাস্টমার ভিউ' : 'Customer View'}</span>
-          </button>
-          <div>
-            <h2 className="text-sm font-extrabold flex items-center space-x-1.5 text-amber-300">
-              <Crown className="w-4 h-4 text-amber-400" />
-              <span>{language === 'bn' ? 'সুপার অ্যাডমিন SaaS কন্ট্রোল সেন্টার' : 'Super Admin SaaS Hub'}</span>
-            </h2>
-            <p className="text-[10px] text-slate-400">
-              {language === 'bn' ? 'সেলস ভেরিফিকেশন, সার্ভার ডিভাইস পুশ ও রেভিনিউ' : 'Sales lead review, server device push & revenue'}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={() => setIsBulkModalOpen(true)}
-            className="px-2.5 py-1.5 rounded-xl bg-purple-600/30 border border-purple-500/40 text-purple-300 font-bold text-xs flex items-center space-x-1 hover:bg-purple-600/50 transition active:scale-95 shadow-sm"
-          >
-            <FileSpreadsheet className="w-3.5 h-3.5" />
-            <span>বাল্ক IMEI ইমপোর্ট</span>
-          </button>
-
-          <button
-            onClick={() => {
-              setCurrentRole('customer');
-              setActiveTab('map');
-            }}
-            className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md shadow-blue-600/30 transition active:scale-95"
-          >
-            {language === 'bn' ? 'ম্যাপে যান' : 'Live Map'}
-          </button>
-        </div>
-      </div>
-
-      {/* KPI Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
-        <div className="bg-slate-900 border border-slate-800 p-3 rounded-2xl flex flex-col justify-between">
-          <div className="text-[10px] text-slate-400 font-bold uppercase flex items-center justify-between">
-            <span>সক্রিয় ট্র্যাকার</span>
-            <Users className="w-3.5 h-3.5 text-blue-400" />
-          </div>
-          <div className="text-xl font-mono font-black text-blue-300 mt-2">
-            {devices.length} <span className="text-xs text-slate-400 font-normal">ডিভাইস</span>
-          </div>
-          <div className="text-[9.5px] text-emerald-400 mt-1">● ১০০% অনলাইন সার্ভার</div>
-        </div>
-
-        <div className="bg-slate-900 border border-slate-800 p-3 rounded-2xl flex flex-col justify-between">
-          <div className="text-[10px] text-slate-400 font-bold uppercase flex items-center justify-between">
-            <span>পেন্ডিং সেলস অনবোর্ডিং</span>
-            <Smartphone className="w-3.5 h-3.5 text-amber-400" />
-          </div>
-          <div className="text-xl font-mono font-black text-amber-300 mt-2">
-            {pendingLeads.length} <span className="text-xs text-slate-400 font-normal">রিকোয়েস্ট</span>
-          </div>
-          <div className="text-[9.5px] text-amber-400 mt-1">অ্যাডমিন অ্যাপ্রুভাল আবশ্যক</div>
-        </div>
-
-        <div className="bg-slate-900 border border-slate-800 p-3 rounded-2xl flex flex-col justify-between">
-          <div className="text-[10px] text-slate-400 font-bold uppercase flex items-center justify-between">
-            <span>মাসিক সাবস্ক্রিপশন (MRR)</span>
-            <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
-          </div>
-          <div className="text-xl font-mono font-black text-emerald-300 mt-2">
-            ৳{(devices.length * 350).toLocaleString()} <span className="text-xs text-slate-400 font-normal">/মাস</span>
-          </div>
-          <div className="text-[9.5px] text-slate-400 mt-1">পেমেন্ট গেটওয়ে: bKash, Nagad</div>
-        </div>
-
-        <div className="bg-slate-900 border border-slate-800 p-3 rounded-2xl flex flex-col justify-between">
-          <div className="text-[10px] text-slate-400 font-bold uppercase flex items-center justify-between">
-            <span>হোস্টিং ও ডোমেইন</span>
-            <Globe className="w-3.5 h-3.5 text-sky-400" />
-          </div>
-          <div className="text-xs font-mono font-bold text-sky-300 mt-2 truncate">
-            {APP_CONFIG.publisherDomain}
-          </div>
-          <div className="text-[9.5px] text-emerald-400 mt-1">SSL সিকিউরড গেটওয়ে</div>
-        </div>
-      </div>
-
+    <div className="w-full h-full flex flex-row bg-slate-950 text-slate-100 overflow-hidden select-none">
+      
       {/* ========================================================================= */}
-      {/* 🌐 GPS TRACKING SERVER CONNECTION & LIVE DEVICE SYNC HUB                 */}
+      {/* 🧭 LEFT SIDEBAR NAVIGATION (Collapsible Left Slide Menu)                  */}
       {/* ========================================================================= */}
-      <div className="bg-gradient-to-r from-blue-950/40 via-slate-900 to-indigo-950/30 border border-blue-500/40 rounded-3xl p-4 shadow-xl space-y-3.5">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
-          <div className="flex items-center space-x-2.5">
-            <div className="w-9 h-9 rounded-2xl bg-blue-600/30 border border-blue-500/50 flex items-center justify-center text-blue-400 shadow-sm">
-              <Server className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="font-extrabold text-xs text-slate-100 flex items-center space-x-1.5">
-                <span>GPS ট্র্যাকিং সার্ভার গেটওয়ে ও ডিভাইস সিঙ্ক হাব</span>
-                <span className="text-[9px] bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.2 rounded-full border border-emerald-500/30 flex items-center space-x-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  <span>লাইভ কানেক্টেড</span>
-                </span>
-              </h3>
-              <p className="text-[10px] text-slate-400">
-                টেলিম্যাটিক্স ট্র্যাকার থেকে লাইভ অবস্থান, ওডোমিটার ও সেন্সর ডাটা সিঙ্ক্রোনাইজেশন
-              </p>
-            </div>
-          </div>
-
-          <button
-            onClick={() => {
-              setTempServerUrl(serverConfig.url);
-              setTempServerPort(serverConfig.port);
-              setIsServerConfigModalOpen(true);
-            }}
-            className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-750 border border-slate-700 text-slate-300 font-bold text-xs flex items-center space-x-1 transition active:scale-95"
-          >
-            <Settings2 className="w-3.5 h-3.5 text-blue-400" />
-            <span>সার্ভার সেটিংস</span>
-          </button>
-        </div>
-
-        {/* Server Link & Live Metrics Banner */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs">
-          <div className="bg-slate-950/80 p-2.5 rounded-2xl border border-slate-800 space-y-1">
-            <span className="text-slate-400 text-[10px] block">🔗 ট্র্যাকিং সার্ভার ইউআরএল ও ওয়েব লিংক:</span>
-            <div className="flex items-center justify-between">
-              <span className="font-mono font-bold text-blue-300 text-[11px] truncate max-w-[190px]">
-                {serverConfig.url || 'https://demo3.traccar.org'}
-              </span>
-              <a
-                href={serverConfig.url || 'https://demo3.traccar.org'}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-1 rounded-lg bg-blue-600/20 hover:bg-blue-600/40 text-blue-300 transition"
-                title="ব্রাউজারে সার্ভার খুলুন"
-              >
-                <ExternalLink className="w-3.5 h-3.5" />
-              </a>
-            </div>
-          </div>
-
-          <div className="bg-slate-950/80 p-2.5 rounded-2xl border border-slate-800 space-y-1">
-            <span className="text-slate-400 text-[10px] block">📡 প্রোটোকল ও ডিভাইস পোর্ট:</span>
-            <div className="flex items-center justify-between">
-              <span className="font-mono text-emerald-400 text-[11px] font-bold">
-                Port {serverConfig.port || '8082'} • GT06/Coban (5023)
-              </span>
-              <Radio className="w-3.5 h-3.5 text-emerald-400" />
-            </div>
-          </div>
-
-          <div className="bg-slate-950/80 p-2.5 rounded-2xl border border-slate-800 space-y-1">
-            <span className="text-slate-400 text-[10px] block">⏱️ সর্বশেষ সার্ভার সিঙ্ক:</span>
-            <div className="flex items-center justify-between">
-              <span className="font-mono text-amber-300 text-[11px] font-bold">
-                {lastSyncTime}
-              </span>
-              <Activity className="w-3.5 h-3.5 text-amber-400" />
-            </div>
-          </div>
-        </div>
-
-        {/* Sync Action Area */}
-        <div className="flex flex-col sm:flex-row items-center justify-between bg-slate-950/90 p-3 rounded-2xl border border-blue-500/30 gap-2.5">
-          <div className="text-xs space-y-0.5">
-            <div className="font-extrabold text-slate-200 flex items-center space-x-1.5">
-              <span>সার্ভারে মোট সংযুক্ত ডিভাইস: {devices.length} টি</span>
-              <span className="text-[9.5px] font-mono text-emerald-400 bg-emerald-950 px-1.5 py-0.2 rounded border border-emerald-800">
-                100% Telemetry Live
-              </span>
-            </div>
-            <p className="text-[10.5px] text-slate-400">
-              ডিভাইস ট্র্যাকার হার্ডওয়্যার থেকে জিপিএস স্যাটেলাইট সিগন্যাল ও রিলে ডাটা ক্লাউডে রিফ্রেশ করুন
-            </p>
-          </div>
-
-          <button
-            onClick={handleSyncDevicesWithServer}
-            disabled={isSyncingServer}
-            className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs shadow-lg shadow-blue-600/30 flex items-center justify-center space-x-2 transition active:scale-95 disabled:opacity-50 shrink-0"
-          >
-            <RefreshCw className={`w-4 h-4 ${isSyncingServer ? 'animate-spin text-amber-300' : ''}`} />
-            <span>{isSyncingServer ? 'সার্ভার থেকে সিঙ্ক হচ্ছে...' : '🔄 সার্ভার থেকে লাইভ ডিভাইস সিঙ্ক করুন'}</span>
-          </button>
-        </div>
-
-        {syncSuccessMessage && (
-          <div className="p-2.5 bg-emerald-950/80 border border-emerald-500/60 rounded-xl text-xs text-emerald-300 font-bold flex items-center space-x-2 animate-in fade-in">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-            <span>{syncSuccessMessage}</span>
-          </div>
-        )}
-      </div>
-
-      {/* ========================================================================= */}
-      {/* 🚀 CRITICAL SECTION: PENDING SALES LEADS & SERVER PUSH QUEUE            */}
-      {/* ========================================================================= */}
-      <div className="bg-slate-900 border border-amber-500/40 rounded-3xl p-4 shadow-xl space-y-3">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-          <div className="flex items-center space-x-2">
-            <Smartphone className="w-4 h-4 text-amber-400" />
-            <span className="text-xs font-extrabold uppercase tracking-wider text-amber-300">
-              ১. সেলস টিম অনবোর্ডিং কিউ ও সার্ভার পুশ অনুমোদন ({pendingLeads.length} টি পেন্ডিং)
-            </span>
-          </div>
-          <span className="text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full border border-amber-500/30 font-bold">
-            Security Gate
-          </span>
-        </div>
-
-        <p className="text-xs text-slate-400">
-          সেলস এজেন্টদের সাবমিট করা কাস্টমার ও ডিভাইস তথ্য নিচে প্রদর্শিত হচ্ছে। আপনি ভেরিফাই করে <strong>"Approve & Push to GPS Server"</strong> চাপলেই ডিভাইসটি সার্ভারে তৈরি হবে ও লাইভ ট্র্যাকিং শুরু হবে।
-        </p>
-
-        {pendingLeads.length === 0 ? (
-          <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800 text-center text-xs text-slate-400">
-            ✅ বর্তমানে কোনো পেন্ডিং সেলস অনবোর্ডিং রিকোয়েস্ট নেই। সমস্ত ডিভাইস সার্ভারে আপ-টু-ডেট আছে।
-          </div>
-        ) : (
-          <div className="space-y-2.5">
-            {pendingLeads.map((lead) => (
-              <div key={lead.id} className="p-3.5 bg-slate-950 border border-amber-500/30 rounded-2xl space-y-2 text-xs">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <span className="font-extrabold text-slate-100 text-sm">{lead.customer}</span>
-                    <span className="text-slate-400 font-mono text-xs ml-2">({lead.phone})</span>
-                  </div>
-                  <span className="text-[10px] font-bold text-amber-300 bg-amber-950/80 px-2 py-0.5 rounded-full border border-amber-600/40">
-                    পেন্ডিং অনুমোদন
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 bg-slate-900/80 p-2.5 rounded-xl border border-slate-800 text-[11px]">
-                  <div>
-                    <span className="text-slate-500 block">গাড়ির নাম ও প্লেট:</span>
-                    <strong className="text-slate-200">{lead.vehicle}</strong> ({lead.plate})
-                  </div>
-                  <div>
-                    <span className="text-slate-500 block">ট্র্যাকার IMEI:</span>
-                    <strong className="text-amber-300 font-mono">{lead.imei}</strong>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 block">সিম নম্বর:</span>
-                    <strong className="text-slate-200 font-mono">{lead.sim}</strong>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 block">প্যাকেজ ও কমিশন:</span>
-                    <strong className="text-emerald-400">{lead.plan} (৳{lead.commission})</strong>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-end space-x-2 pt-1">
-                  <button
-                    type="button"
-                    onClick={() => handleRejectLead(lead.id)}
-                    className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-rose-400 font-bold text-xs border border-slate-700 transition"
-                  >
-                    বাতিল (Reject)
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleApproveAndPush(lead)}
-                    className="px-4 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/30 flex items-center space-x-1.5 transition active:scale-95"
-                  >
-                    <Send className="w-3.5 h-3.5" />
-                    <span>{pushSuccessId === lead.id ? 'সার্ভারে পুশ সফল হয়েছে!' : 'Approve & Push to GPS Server'}</span>
-                  </button>
-                </div>
+      <aside 
+        className={`bg-slate-900 border-r border-slate-800 flex flex-col transition-all duration-300 z-30 shrink-0 ${
+          isSidebarCollapsed ? 'w-16' : 'w-64 md:w-72'
+        } ${isMobileMenuOpen ? 'fixed inset-y-0 left-0 shadow-2xl z-50' : 'hidden md:flex'}`}
+      >
+        {/* Sidebar Header */}
+        <div className="p-3.5 border-b border-slate-800 flex items-center justify-between">
+          {!isSidebarCollapsed && (
+            <div className="flex items-center space-x-2">
+              <div className="w-7 h-7 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400">
+                <Crown className="w-4 h-4" />
               </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* 1-Click Demo Data Purge Card */}
-      <div className="bg-gradient-to-r from-rose-950/40 via-slate-900 to-slate-900 border border-rose-500/40 rounded-3xl p-4 shadow-xl space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 rounded-xl bg-rose-600/30 border border-rose-500/50 flex items-center justify-center text-rose-300">
-              <Trash2 className="w-4 h-4" />
+              <div>
+                <h3 className="font-extrabold text-xs text-white truncate max-w-[150px]">SaaS অ্যাডমিন প্যানেল</h3>
+                <span className="text-[9.5px] font-mono text-emerald-400">EasyTracker Core v2.0</span>
+              </div>
             </div>
-            <div>
-              <h3 className="font-extrabold text-xs text-rose-200">
-                {language === 'bn' ? '১-ক্লিকে ডেমো ডাটা মুছুন (Go 100% Production Live)' : '1-Click Demo Fleet Purge'}
-              </h3>
-              <p className="text-[10px] text-slate-400">
-                {language === 'bn' 
-                  ? 'আপনার আসল বাইকের ডাটা অক্ষত রেখে বাকি সব ডেমো গাড়ি ডাটাবেজ থেকে মুছে দিন।'
-                  : 'Keeps your real bike data safe and deletes mock demo vehicles for production launch.'}
-              </p>
-            </div>
-          </div>
-
-          {!isDemoPurged ? (
-            <button
-              type="button"
-              onClick={() => setShowPurgeConfirm(true)}
-              className="px-3 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-md shadow-rose-600/30 flex items-center space-x-1.5 transition active:scale-95"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              <span>{language === 'bn' ? 'ডেমো ডাটা মুছুন' : 'Purge Demo Fleet'}</span>
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={restoreDemoFleetData}
-              className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-300 font-bold text-xs flex items-center space-x-1.5 transition active:scale-95"
-            >
-              <RefreshCw className="w-3.5 h-3.5 text-emerald-400" />
-              <span>{language === 'bn' ? 'ডেমো রিস্টোর' : 'Restore Demo'}</span>
-            </button>
           )}
+
+          <div className="flex items-center space-x-1">
+            {/* Desktop Collapse Toggle */}
+            <button
+              onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+              className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition hidden md:block"
+              title={isSidebarCollapsed ? 'মেনু বড় করুন' : 'মেনু সংকুচিত করুন'}
+            >
+              <Menu className="w-4 h-4" />
+            </button>
+
+            {/* Mobile Close Button */}
+            <button
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition md:hidden"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
-        {showPurgeConfirm && (
-          <div className="p-3 bg-rose-950/80 border border-rose-500/60 rounded-2xl space-y-2 animate-in fade-in">
-            <p className="text-xs text-rose-200 font-bold">
-              ⚠️ আপনি কি নিশ্চিত যে সমস্ত ডেমো গাড়ি (Axio, Truck, CNG, Ambulance) মুছে ফেলে শুধুমাত্র আপনার আসল বাইকের ডাটা চালু রাখবেন?
-            </p>
-            <div className="flex space-x-2">
-              <button
-                onClick={() => setShowPurgeConfirm(false)}
-                className="px-3 py-1.5 rounded-xl bg-slate-800 text-slate-300 font-bold text-xs"
-              >
-                বাতিল
-              </button>
-              <button
-                onClick={() => {
-                  purgeDemoFleetData();
-                  setShowPurgeConfirm(false);
-                }}
-                className="px-4 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-lg shadow-rose-600/40"
-              >
-                হ্যাঁ, নিশ্চিতভাবে মুছে দিন
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Subscription Rates Configuration */}
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl space-y-3">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-          <div className="flex items-center space-x-2">
-            <Sliders className="w-4 h-4 text-amber-400" />
-            <span className="text-xs font-bold uppercase tracking-wider text-amber-300">
-              {language === 'bn' ? 'সাবস্ক্রিপশন রেট ও প্যাকেজ কনফিগারেশন' : 'Subscription Tier Pricing Manager'}
-            </span>
-          </div>
-          {saveRateSuccess && (
-            <span className="text-[10px] text-emerald-400 font-bold flex items-center space-x-1">
-              <CheckCircle2 className="w-3 h-3" />
-              <span>সংরক্ষিত হয়েছে</span>
-            </span>
-          )}
-        </div>
-
-        <form onSubmit={handleSaveRates} className="space-y-3">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
-            <div className="bg-slate-950 p-2.5 rounded-2xl border border-slate-800">
-              <label className="text-[10px] text-slate-400 font-bold block mb-1">১ মাস সাবস্ক্রিপশন (৳):</label>
-              <input
-                type="number"
-                value={rates[1]}
-                onChange={(e) => handleUpdateRate(1, e.target.value)}
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-amber-300 font-mono font-bold focus:outline-none"
-              />
-            </div>
-
-            <div className="bg-slate-950 p-2.5 rounded-2xl border border-slate-800">
-              <label className="text-[10px] text-slate-400 font-bold block mb-1">৩ মাস প্যাকেজ (৳):</label>
-              <input
-                type="number"
-                value={rates[3]}
-                onChange={(e) => handleUpdateRate(3, e.target.value)}
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-amber-300 font-mono font-bold focus:outline-none"
-              />
-            </div>
-
-            <div className="bg-slate-950 p-2.5 rounded-2xl border border-slate-800">
-              <label className="text-[10px] text-slate-400 font-bold block mb-1">৬ মাস প্যাকেজ (৳):</label>
-              <input
-                type="number"
-                value={rates[6]}
-                onChange={(e) => handleUpdateRate(6, e.target.value)}
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-amber-300 font-mono font-bold focus:outline-none"
-              />
-            </div>
-
-            <div className="bg-slate-950 p-2.5 rounded-2xl border border-slate-800">
-              <label className="text-[10px] text-slate-400 font-bold block mb-1">১২ মাস বাৎসরিক (৳):</label>
-              <input
-                type="number"
-                value={rates[12]}
-                onChange={(e) => handleUpdateRate(12, e.target.value)}
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-amber-300 font-mono font-bold focus:outline-none"
-              />
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            className="w-full py-2.5 rounded-2xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs shadow-lg shadow-amber-600/30 transition active:scale-95 flex items-center justify-center space-x-1.5"
-          >
-            <CheckCircle2 className="w-4 h-4" />
-            <span>{language === 'bn' ? 'নতুন রেট সংরক্ষণ ও লাইভ সিঙ্ক' : 'Save & Publish Rates'}</span>
-          </button>
-        </form>
-      </div>
-
-      {/* Fleet Vehicles Table */}
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl space-y-3">
-        <span className="text-xs font-bold uppercase tracking-wider text-slate-300 block">
-          {language === 'bn' ? 'সিস্টেমের লাইভ যানবাহন ও টেলিম্যাটিক্স ট্র্যাকার তালিকা' : 'Active Telematics Trackers Fleet'} ({devices.length})
-        </span>
-
-        <div className="space-y-2 max-h-72 overflow-y-auto">
-          {devices.map((dev) => {
-            const pos = positions[dev.id];
+        {/* Navigation Menu Items */}
+        <div className="flex-1 overflow-y-auto p-2 space-y-1">
+          {SIDEBAR_ITEMS.map((item) => {
+            const Icon = item.icon;
+            const isAct = activeSection === item.id;
             return (
-              <div key={dev.id} className="p-3 bg-slate-950/80 border border-slate-800 rounded-2xl flex items-center justify-between text-xs">
-                <div>
-                  <div className="font-extrabold text-slate-100 flex items-center space-x-2">
-                    <span>{dev.name}</span>
-                    <span className="text-[9px] bg-slate-800 text-slate-300 font-mono px-1.5 py-0.2 rounded border border-slate-700">
-                      {dev.attributes?.plateNumber || 'No Plate'}
-                    </span>
-                    {dev.id === 1 && (
-                      <span className="text-[9px] bg-emerald-500/20 text-emerald-300 font-bold px-1.5 py-0.2 rounded border border-emerald-500/30">
-                        Primary Bike
-                      </span>
-                    )}
-                  </div>
-                  <div className="text-[10px] text-slate-400 mt-1">
-                    IMEI: <strong className="font-mono text-slate-300">{dev.uniqueId || '864720058291034'}</strong> • সিম: {dev.phone || dev.attributes?.phone || '01700000000'} • অবস্থান: {pos?.address || 'Gulshan-2, Dhaka'}
-                  </div>
+              <button
+                key={item.id}
+                onClick={() => {
+                  setActiveSection(item.id);
+                  setIsMobileMenuOpen(false);
+                }}
+                className={`w-full p-2.5 rounded-2xl flex items-center transition active:scale-[0.98] ${
+                  isAct 
+                    ? 'bg-blue-600 text-white font-extrabold shadow-lg shadow-blue-600/30' 
+                    : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/80 font-bold'
+                } ${isSidebarCollapsed ? 'justify-center' : 'justify-between'}`}
+                title={language === 'bn' ? item.labelBn : item.labelEn}
+              >
+                <div className="flex items-center space-x-2.5 min-w-0">
+                  <Icon className={`w-4 h-4 shrink-0 ${isAct ? 'text-white' : 'text-slate-400'}`} />
+                  {!isSidebarCollapsed && (
+                    <span className="text-xs truncate">{language === 'bn' ? item.labelBn : item.labelEn}</span>
+                  )}
                 </div>
 
-                <div className="text-right shrink-0">
-                  <div className="font-mono font-bold text-blue-300">
-                    {pos?.speed ? `${Math.round(pos.speed)} km/h` : '০ কিমি/ঘণ্টা'}
-                  </div>
-                  <div className="text-[9.5px] text-emerald-400 font-semibold mt-0.5">
-                    ব্যাটারি: {pos?.attributes?.batteryLevel || 98}%
-                  </div>
-                </div>
-              </div>
+                {!isSidebarCollapsed && item.badge && (
+                  <span className={`text-[9.5px] font-mono font-bold px-1.5 py-0.2 rounded-full border ${item.badgeColor || 'bg-slate-800 text-slate-300'}`}>
+                    {item.badge}
+                  </span>
+                )}
+              </button>
             );
           })}
         </div>
-      </div>
 
-      {/* Bulk IMEI Import Modal */}
+        {/* Sidebar Footer (Customer View Switcher) */}
+        <div className="p-3 border-t border-slate-800 bg-slate-950/60">
+          <button
+            onClick={() => {
+              setCurrentRole('customer');
+              setActiveTab('map');
+            }}
+            className={`w-full py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-750 border border-slate-700 text-slate-200 hover:text-white font-bold text-xs flex items-center justify-center space-x-2 transition active:scale-95 ${
+              isSidebarCollapsed ? 'px-0' : 'px-3'
+            }`}
+            title="লাইভ কাস্টমার ম্যাপে ফিরে যান"
+          >
+            <ArrowLeft className="w-4 h-4 text-blue-400 shrink-0" />
+            {!isSidebarCollapsed && <span>{language === 'bn' ? 'কাস্টমার ভিউতে যান' : 'Back to Map'}</span>}
+          </button>
+        </div>
+      </aside>
+
+      {/* ========================================================================= */}
+      {/* 🖥️ RIGHT MAIN CONTENT AREA                                                */}
+      {/* ========================================================================= */}
+      <main className="flex-1 h-full overflow-y-auto flex flex-col bg-slate-950 pb-20">
+        
+        {/* Mobile Header Bar with Hamburger */}
+        <div className="md:hidden flex items-center justify-between p-3 bg-slate-900 border-b border-slate-800 shrink-0">
+          <button
+            onClick={() => setIsMobileMenuOpen(true)}
+            className="p-2 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 flex items-center space-x-1.5 text-xs font-bold"
+          >
+            <Menu className="w-4 h-4 text-amber-400" />
+            <span>অ্যাডমিন মেনু</span>
+          </button>
+
+          <span className="font-bold text-xs text-amber-300 flex items-center space-x-1">
+            <Crown className="w-3.5 h-3.5" />
+            <span>{SIDEBAR_ITEMS.find(i => i.id === activeSection)?.labelBn}</span>
+          </span>
+
+          <button
+            onClick={() => {
+              setCurrentRole('customer');
+              setActiveTab('map');
+            }}
+            className="px-2.5 py-1.5 rounded-xl bg-blue-600 text-white font-bold text-xs"
+          >
+            ম্যাপ
+          </button>
+        </div>
+
+        {/* Content Container */}
+        <div className="p-4 md:p-6 space-y-4 max-w-7xl w-full mx-auto">
+
+          {/* Section Breadcrumb & Header Title */}
+          <div className="flex items-center justify-between bg-slate-900/90 border border-slate-800 p-3.5 rounded-3xl shadow-md">
+            <div>
+              <h2 className="text-sm md:text-base font-extrabold text-white flex items-center space-x-2">
+                <Crown className="w-4 h-4 text-amber-400" />
+                <span>{language === 'bn' ? SIDEBAR_ITEMS.find(i => i.id === activeSection)?.labelBn : SIDEBAR_ITEMS.find(i => i.id === activeSection)?.labelEn}</span>
+              </h2>
+              <p className="text-[10.5px] text-slate-400">
+                EasyTracker এন্টারপ্রাইজ SaaS ম্যানেজমেন্ট ও সেন্ট্রাল কন্ট্রোল প্যানেল
+              </p>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setIsBulkModalOpen(true)}
+                className="px-3 py-1.5 rounded-xl bg-purple-600/30 border border-purple-500/40 text-purple-300 font-bold text-xs flex items-center space-x-1 hover:bg-purple-600/50 transition active:scale-95 shadow-sm"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5" />
+                <span>বাল্ক IMEI ইমপোর্ট</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setCurrentRole('customer');
+                  setActiveTab('map');
+                }}
+                className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md shadow-blue-600/30 transition active:scale-95"
+              >
+                {language === 'bn' ? 'ম্যাপে যান' : 'Live Map'}
+              </button>
+            </div>
+          </div>
+
+          {/* ========================================================================= */}
+          {/* VIEW 1: OVERVIEW & PLATFORM METRICS                                       */}
+          {/* ========================================================================= */}
+          {activeSection === 'overview' && (
+            <div className="space-y-4 animate-in fade-in duration-150">
+              {/* KPI Stats Cards */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="bg-slate-900 border border-slate-800 p-4 rounded-3xl flex flex-col justify-between shadow-xl">
+                  <div className="text-[10px] text-slate-400 font-bold uppercase flex items-center justify-between">
+                    <span>সক্রিয় ট্র্যাকার</span>
+                    <Users className="w-4 h-4 text-blue-400" />
+                  </div>
+                  <div className="text-2xl font-mono font-black text-blue-300 mt-2">
+                    {devices.length} <span className="text-xs text-slate-400 font-normal">ডিভাইস</span>
+                  </div>
+                  <div className="text-[9.5px] text-emerald-400 mt-1">● ১০০% অনলাইন সার্ভার</div>
+                </div>
+
+                <div className="bg-slate-900 border border-slate-800 p-4 rounded-3xl flex flex-col justify-between shadow-xl">
+                  <div className="text-[10px] text-slate-400 font-bold uppercase flex items-center justify-between">
+                    <span>পেন্ডিং অনবোর্ডিং</span>
+                    <Smartphone className="w-4 h-4 text-amber-400" />
+                  </div>
+                  <div className="text-2xl font-mono font-black text-amber-300 mt-2">
+                    {pendingLeads.length} <span className="text-xs text-slate-400 font-normal">রিকোয়েস্ট</span>
+                  </div>
+                  <div className="text-[9.5px] text-amber-400 mt-1">অ্যাডমিন অ্যাপ্রুভাল আবশ্যক</div>
+                </div>
+
+                <div className="bg-slate-900 border border-slate-800 p-4 rounded-3xl flex flex-col justify-between shadow-xl">
+                  <div className="text-[10px] text-slate-400 font-bold uppercase flex items-center justify-between">
+                    <span>মাসিক রেভিনিউ (MRR)</span>
+                    <DollarSign className="w-4 h-4 text-emerald-400" />
+                  </div>
+                  <div className="text-2xl font-mono font-black text-emerald-300 mt-2">
+                    ৳{(devices.length * 350).toLocaleString()} <span className="text-xs text-slate-400 font-normal">/মাস</span>
+                  </div>
+                  <div className="text-[9.5px] text-slate-400 mt-1">পেমেন্ট গেটওয়ে: bKash, Nagad</div>
+                </div>
+
+                <div className="bg-slate-900 border border-slate-800 p-4 rounded-3xl flex flex-col justify-between shadow-xl">
+                  <div className="text-[10px] text-slate-400 font-bold uppercase flex items-center justify-between">
+                    <span>হোস্টিং ও ক্লাউড</span>
+                    <Globe className="w-4 h-4 text-sky-400" />
+                  </div>
+                  <div className="text-xs font-mono font-bold text-sky-300 mt-2 truncate">
+                    {APP_CONFIG.publisherDomain}
+                  </div>
+                  <div className="text-[9.5px] text-emerald-400 mt-1">SSL সিকিউরড গেটওয়ে</div>
+                </div>
+              </div>
+
+              {/* Live Fleet Table */}
+              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl space-y-3">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-300 block">
+                  {language === 'bn' ? 'সিস্টেমের লাইভ যানবাহন ও টেলিম্যাটিক্স ট্র্যাকার তালিকা' : 'Active Telematics Trackers Fleet'} ({devices.length})
+                </span>
+
+                <div className="space-y-2 max-h-80 overflow-y-auto">
+                  {devices.map((dev) => {
+                    const pos = positions[dev.id];
+                    return (
+                      <div key={dev.id} className="p-3 bg-slate-950/80 border border-slate-800 rounded-2xl flex items-center justify-between text-xs">
+                        <div>
+                          <div className="font-extrabold text-slate-100 flex items-center space-x-2">
+                            <span>{dev.name}</span>
+                            <span className="text-[9px] bg-slate-800 text-slate-300 font-mono px-1.5 py-0.2 rounded border border-slate-700">
+                              {dev.attributes?.plateNumber || 'No Plate'}
+                            </span>
+                            {dev.id === 1 && (
+                              <span className="text-[9px] bg-emerald-500/20 text-emerald-300 font-bold px-1.5 py-0.2 rounded border border-emerald-500/30">
+                                Primary Bike
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[10px] text-slate-400 mt-1">
+                            IMEI: <strong className="font-mono text-slate-300">{dev.uniqueId || '864720058291034'}</strong> • সিম: {dev.phone || dev.attributes?.phone || '01700000000'} • অবস্থান: {pos?.address || 'Gulshan-2, Dhaka'}
+                          </div>
+                        </div>
+
+                        <div className="text-right shrink-0">
+                          <div className="font-mono font-bold text-blue-300">
+                            {pos?.speed ? `${Math.round(pos.speed)} km/h` : '০ কিমি/ঘণ্টা'}
+                          </div>
+                          <div className="text-[9.5px] text-emerald-400 font-semibold mt-0.5">
+                            ব্যাটারি: {pos?.attributes?.batteryLevel || 98}%
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* VIEW 2: GPS TRACKING SERVER SYNC HUB                                     */}
+          {/* ========================================================================= */}
+          {activeSection === 'server_sync' && (
+            <div className="bg-gradient-to-r from-blue-950/40 via-slate-900 to-indigo-950/30 border border-blue-500/40 rounded-3xl p-5 shadow-xl space-y-4 animate-in fade-in duration-150">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div className="flex items-center space-x-2.5">
+                  <div className="w-10 h-10 rounded-2xl bg-blue-600/30 border border-blue-500/50 flex items-center justify-center text-blue-400 shadow-sm">
+                    <Server className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-sm text-slate-100 flex items-center space-x-1.5">
+                      <span>GPS ট্র্যাকিং সার্ভার গেটওয়ে ও ডিভাইস সিঙ্ক হাব</span>
+                      <span className="text-[9px] bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.2 rounded-full border border-emerald-500/30 flex items-center space-x-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                        <span>লাইভ কানেক্টেড</span>
+                      </span>
+                    </h3>
+                    <p className="text-[10.5px] text-slate-400">
+                      টেলিম্যাটিক্স ট্র্যাকার থেকে লাইভ অবস্থান, ওডোমিটার ও সেন্সর ডাটা সিঙ্ক্রোনাইজেশন
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => {
+                    setTempServerUrl(serverConfig.url);
+                    setTempServerPort(serverConfig.port);
+                    setIsServerConfigModalOpen(true);
+                  }}
+                  className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-750 border border-slate-700 text-slate-300 font-bold text-xs flex items-center space-x-1 transition active:scale-95"
+                >
+                  <Settings2 className="w-4 h-4 text-blue-400" />
+                  <span>সার্ভার কনফিগ</span>
+                </button>
+              </div>
+
+              {/* Server Link & Live Metrics */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                <div className="bg-slate-950/80 p-3 rounded-2xl border border-slate-800 space-y-1">
+                  <span className="text-slate-400 text-[10px] block">🔗 ট্র্যাকিং সার্ভার ইউআরএল ও ওয়েব লিংক:</span>
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono font-bold text-blue-300 text-xs truncate max-w-[190px]">
+                      {serverConfig.url || 'https://demo3.traccar.org'}
+                    </span>
+                    <a
+                      href={serverConfig.url || 'https://demo3.traccar.org'}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-1 rounded-lg bg-blue-600/20 hover:bg-blue-600/40 text-blue-300 transition"
+                      title="ব্রাউজারে সার্ভার খুলুন"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  </div>
+                </div>
+
+                <div className="bg-slate-950/80 p-3 rounded-2xl border border-slate-800 space-y-1">
+                  <span className="text-slate-400 text-[10px] block">📡 প্রোটোকল ও ডিভাইস পোর্ট:</span>
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-emerald-400 text-xs font-bold">
+                      Port {serverConfig.port || '8082'} • GT06/Coban (5023)
+                    </span>
+                    <Radio className="w-4 h-4 text-emerald-400" />
+                  </div>
+                </div>
+
+                <div className="bg-slate-950/80 p-3 rounded-2xl border border-slate-800 space-y-1">
+                  <span className="text-slate-400 text-[10px] block">⏱️ সর্বশেষ সার্ভার সিঙ্ক:</span>
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-amber-300 text-xs font-bold">
+                      {lastSyncTime}
+                    </span>
+                    <Activity className="w-4 h-4 text-amber-400" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Sync Action Area */}
+              <div className="flex flex-col sm:flex-row items-center justify-between bg-slate-950/90 p-4 rounded-2xl border border-blue-500/30 gap-3">
+                <div className="text-xs space-y-0.5">
+                  <div className="font-extrabold text-slate-200 flex items-center space-x-1.5 text-sm">
+                    <span>সার্ভারে মোট সংযুক্ত ডিভাইস: {devices.length} টি</span>
+                    <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950 px-2 py-0.5 rounded border border-emerald-800">
+                      100% Telemetry Live
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-400">
+                    ডিভাইস ট্র্যাকার হার্ডওয়্যার থেকে জিপিএস স্যাটেলাইট সিগন্যাল ও রিলে ডাটা ক্লাউডে রিফ্রেশ করুন
+                  </p>
+                </div>
+
+                <button
+                  onClick={handleSyncDevicesWithServer}
+                  disabled={isSyncingServer}
+                  className="w-full sm:w-auto px-5 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs shadow-lg shadow-blue-600/30 flex items-center justify-center space-x-2 transition active:scale-95 disabled:opacity-50 shrink-0"
+                >
+                  <RefreshCw className={`w-4 h-4 ${isSyncingServer ? 'animate-spin text-amber-300' : ''}`} />
+                  <span>{isSyncingServer ? 'সার্ভার থেকে সিঙ্ক হচ্ছে...' : '🔄 সার্ভার থেকে লাইভ ডিভাইস সিঙ্ক করুন'}</span>
+                </button>
+              </div>
+
+              {syncSuccessMessage && (
+                <div className="p-3 bg-emerald-950/80 border border-emerald-500/60 rounded-xl text-xs text-emerald-300 font-bold flex items-center space-x-2 animate-in fade-in">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>{syncSuccessMessage}</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* VIEW 3: SALES ONBOARDING LEADS QUEUE                                      */}
+          {/* ========================================================================= */}
+          {activeSection === 'sales_queue' && (
+            <div className="bg-slate-900 border border-amber-500/40 rounded-3xl p-5 shadow-xl space-y-4 animate-in fade-in duration-150">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+                <div className="flex items-center space-x-2">
+                  <Smartphone className="w-5 h-5 text-amber-400" />
+                  <span className="text-sm font-extrabold uppercase tracking-wider text-amber-300">
+                    সেলস টিম অনবোর্ডিং কিউ ও সার্ভার পুশ অনুমোদন ({pendingLeads.length} টি পেন্ডিং)
+                  </span>
+                </div>
+                <span className="text-[10px] bg-amber-500/20 text-amber-300 px-2.5 py-0.5 rounded-full border border-amber-500/30 font-bold">
+                  Security Gate
+                </span>
+              </div>
+
+              <p className="text-xs text-slate-400">
+                সেলস এজেন্টদের সাবমিট করা কাস্টমার ও ডিভাইস তথ্য নিচে প্রদর্শিত হচ্ছে। আপনি ভেরিফাই করে <strong>"Approve & Push to GPS Server"</strong> চাপলেই ডিভাইসটি সার্ভারে তৈরি হবে ও লাইভ ট্র্যাকিং শুরু হবে।
+              </p>
+
+              {pendingLeads.length === 0 ? (
+                <div className="p-6 rounded-3xl bg-slate-950/60 border border-slate-800 text-center text-xs text-slate-400">
+                  ✅ বর্তমানে কোনো পেন্ডিং সেলস অনবোর্ডিং রিকোয়েস্ট নেই। সমস্ত ডিভাইস সার্ভারে আপ-টু-ডেট আছে।
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {pendingLeads.map((lead) => (
+                    <div key={lead.id} className="p-4 bg-slate-950 border border-amber-500/30 rounded-2xl space-y-3 text-xs">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <span className="font-extrabold text-slate-100 text-sm">{lead.customer}</span>
+                          <span className="text-slate-400 font-mono text-xs ml-2">({lead.phone})</span>
+                        </div>
+                        <span className="text-[10px] font-bold text-amber-300 bg-amber-950/80 px-2.5 py-0.5 rounded-full border border-amber-600/40">
+                          পেন্ডিং অনুমোদন
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 bg-slate-900/80 p-3 rounded-xl border border-slate-800 text-xs">
+                        <div>
+                          <span className="text-slate-500 block text-[10px]">গাড়ির নাম ও প্লেট:</span>
+                          <strong className="text-slate-200">{lead.vehicle}</strong> ({lead.plate})
+                        </div>
+                        <div>
+                          <span className="text-slate-500 block text-[10px]">ট্র্যাকার IMEI:</span>
+                          <strong className="text-amber-300 font-mono">{lead.imei}</strong>
+                        </div>
+                        <div>
+                          <span className="text-slate-500 block text-[10px]">সিম নম্বর:</span>
+                          <strong className="text-slate-200 font-mono">{lead.sim}</strong>
+                        </div>
+                        <div>
+                          <span className="text-slate-500 block text-[10px]">প্যাকেজ ও কমিশন:</span>
+                          <strong className="text-emerald-400">{lead.plan} (৳{lead.commission})</strong>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-end space-x-2 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => handleRejectLead(lead.id)}
+                          className="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-rose-400 font-bold text-xs border border-slate-700 transition"
+                        >
+                          বাতিল (Reject)
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleApproveAndPush(lead)}
+                          className="px-4 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/30 flex items-center space-x-1.5 transition active:scale-95"
+                        >
+                          <Send className="w-3.5 h-3.5" />
+                          <span>{pushSuccessId === lead.id ? 'সার্ভারে পুশ সফল হয়েছে!' : 'Approve & Push to GPS Server'}</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* VIEW 4: DEALER QUOTAS & TECHNICIAN NEGATIVE LEDGERS                       */}
+          {/* ========================================================================= */}
+          {activeSection === 'dealer_quotas' && (
+            <div className="animate-in fade-in duration-150">
+              <SellerQuotaAndLedgerManager />
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* VIEW 5: SERVICE RATE CARDS & PRICING                                      */}
+          {/* ========================================================================= */}
+          {activeSection === 'rate_cards' && (
+            <div className="space-y-4 animate-in fade-in duration-150">
+              {/* Subscription Rates Configuration */}
+              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl space-y-3">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                  <div className="flex items-center space-x-2">
+                    <Sliders className="w-4 h-4 text-amber-400" />
+                    <span className="text-xs font-bold uppercase tracking-wider text-amber-300">
+                      {language === 'bn' ? 'সাবস্ক্রিপশন রেট ও প্যাকেজ কনফিগারেশন' : 'Subscription Tier Pricing Manager'}
+                    </span>
+                  </div>
+                  {saveRateSuccess && (
+                    <span className="text-[10px] text-emerald-400 font-bold flex items-center space-x-1">
+                      <CheckCircle2 className="w-3 h-3" />
+                      <span>সংরক্ষিত হয়েছে</span>
+                    </span>
+                  )}
+                </div>
+
+                <form onSubmit={handleSaveRates} className="space-y-3">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
+                    <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800">
+                      <label className="text-[10.5px] text-slate-400 font-bold block mb-1">১ মাস সাবস্ক্রিপশন (৳):</label>
+                      <input
+                        type="number"
+                        value={rates[1]}
+                        onChange={(e) => handleUpdateRate(1, e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-amber-300 font-mono font-bold focus:outline-none"
+                      />
+                    </div>
+
+                    <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800">
+                      <label className="text-[10.5px] text-slate-400 font-bold block mb-1">৩ মাস প্যাকেজ (৳):</label>
+                      <input
+                        type="number"
+                        value={rates[3]}
+                        onChange={(e) => handleUpdateRate(3, e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-amber-300 font-mono font-bold focus:outline-none"
+                      />
+                    </div>
+
+                    <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800">
+                      <label className="text-[10.5px] text-slate-400 font-bold block mb-1">৬ মাস প্যাকেজ (৳):</label>
+                      <input
+                        type="number"
+                        value={rates[6]}
+                        onChange={(e) => handleUpdateRate(6, e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-amber-300 font-mono font-bold focus:outline-none"
+                      />
+                    </div>
+
+                    <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800">
+                      <label className="text-[10.5px] text-slate-400 font-bold block mb-1">১২ মাস বাৎসরিক (৳):</label>
+                      <input
+                        type="number"
+                        value={rates[12]}
+                        onChange={(e) => handleUpdateRate(12, e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-amber-300 font-mono font-bold focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full py-2.5 rounded-2xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs shadow-lg shadow-amber-600/30 transition active:scale-95 flex items-center justify-center space-x-1.5"
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>{language === 'bn' ? 'নতুন রেট সংরক্ষণ ও লাইভ সিঙ্ক' : 'Save & Publish Rates'}</span>
+                  </button>
+                </form>
+              </div>
+
+              {/* Service Rate Card Manager Component */}
+              <ServiceRateCardManager />
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* VIEW 6: AI VEHICLE CATALOG MANAGER                                        */}
+          {/* ========================================================================= */}
+          {activeSection === 'vehicle_catalog' && (
+            <div className="animate-in fade-in duration-150">
+              <VehicleCatalogManager />
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* VIEW 7: WARRANTY & CLAIMS RMA MANAGER                                     */}
+          {/* ========================================================================= */}
+          {activeSection === 'warranty_admin' && (
+            <div className="animate-in fade-in duration-150">
+              <WarrantyAdminManager />
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* VIEW 8: B2B BRAND PARTNER ONBOARDING                                      */}
+          {/* ========================================================================= */}
+          {activeSection === 'b2b_partners' && (
+            <div className="animate-in fade-in duration-150">
+              <PartnerOnboardingManager />
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* VIEW 9: USER ACCESS & STAFF RBAC                                         */}
+          {/* ========================================================================= */}
+          {activeSection === 'user_rbac' && (
+            <div className="animate-in fade-in duration-150">
+              <UserAccessManager />
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* VIEW 10: DATABASE & SYSTEM PURGE TOOLS                                    */}
+          {/* ========================================================================= */}
+          {activeSection === 'system_tools' && (
+            <div className="space-y-4 animate-in fade-in duration-150">
+              {/* 1-Click Demo Data Purge Card */}
+              <div className="bg-gradient-to-r from-rose-950/40 via-slate-900 to-slate-900 border border-rose-500/40 rounded-3xl p-5 shadow-xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2.5">
+                    <div className="w-10 h-10 rounded-2xl bg-rose-600/30 border border-rose-500/50 flex items-center justify-center text-rose-300">
+                      <Trash2 className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-extrabold text-sm text-rose-200">
+                        {language === 'bn' ? '১-ক্লিকে ডেমো ডাটা মুছুন (Go 100% Production Live)' : '1-Click Demo Fleet Purge'}
+                      </h3>
+                      <p className="text-[11px] text-slate-400">
+                        {language === 'bn' 
+                          ? 'আপনার আসল বাইকের ডাটা অক্ষত রেখে বাকি সব ডেমো গাড়ি ডাটাবেজ থেকে মুছে দিন।'
+                          : 'Keeps your real bike data safe and deletes mock demo vehicles for production launch.'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {!isDemoPurged ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowPurgeConfirm(true)}
+                      className="px-4 py-2.5 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-md shadow-rose-600/30 flex items-center space-x-1.5 transition active:scale-95"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      <span>{language === 'bn' ? 'ডেমো ডাটা মুছুন' : 'Purge Demo Fleet'}</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={restoreDemoFleetData}
+                      className="px-4 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-750 border border-slate-600 text-slate-300 font-bold text-xs flex items-center space-x-1.5 transition active:scale-95"
+                    >
+                      <RefreshCw className="w-4 h-4 text-emerald-400" />
+                      <span>{language === 'bn' ? 'ডেমো রিস্টোর' : 'Restore Demo'}</span>
+                    </button>
+                  )}
+                </div>
+
+                {showPurgeConfirm && (
+                  <div className="p-3.5 bg-rose-950/90 border border-rose-500/60 rounded-2xl space-y-2 animate-in fade-in">
+                    <p className="text-xs text-rose-200 font-bold">
+                      ⚠️ আপনি কি নিশ্চিত যে সমস্ত ডেমো গাড়ি (Axio, Truck, CNG, Ambulance) মুছে ফেলে শুধুমাত্র আপনার আসল বাইকের ডাটা চালু রাখবেন?
+                    </p>
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => setShowPurgeConfirm(false)}
+                        className="px-3 py-1.5 rounded-xl bg-slate-800 text-slate-300 font-bold text-xs"
+                      >
+                        বাতিল
+                      </button>
+                      <button
+                        onClick={() => {
+                          purgeDemoFleetData();
+                          setShowPurgeConfirm(false);
+                        }}
+                        className="px-4 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-lg shadow-rose-600/40"
+                      >
+                        হ্যাঁ, নিশ্চিতভাবে মুছে দিন
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+        </div>
+      </main>
+
+      {/* ========================================================================= */}
+      {/* BULK IMEI IMPORT MODAL                                                    */}
+      {/* ========================================================================= */}
       {isBulkModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-3 animate-in fade-in select-none">
           <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-md w-full shadow-2xl overflow-hidden flex flex-col">
@@ -678,24 +908,6 @@ export const AdminDashboardView: React.FC = () => {
           </div>
         </div>
       )}
-
-      {/* ===== Out-of-Warranty Rate-Card & Spare Parts Pricing Hub ===== */}
-      <ServiceRateCardManager />
-
-      {/* ===== Seller IMEI Paywall & Technician Floating Ledger Hub ===== */}
-      <SellerQuotaAndLedgerManager />
-
-      {/* ===== Staff & User Access Control Hub (RBAC Permissions) ===== */}
-      <UserAccessManager />
-
-      {/* ===== Vehicle Catalog Manager (Admin / Super Admin Only) ===== */}
-      <VehicleCatalogManager />
-
-      {/* ===== Device-wise Warranty Policy & Claims RMA Manager ===== */}
-      <WarrantyAdminManager />
-
-      {/* ===== B2B Partner & Multi-Tenant Brand Onboarding Manager ===== */}
-      <PartnerOnboardingManager />
 
       {/* ========================================================================= */}
       {/* GPS TRACKING SERVER CONFIGURATION MODAL                                   */}
