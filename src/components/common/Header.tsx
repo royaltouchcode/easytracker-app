@@ -14,7 +14,8 @@ import {
   Wrench,
   Headphones,
   Flame,
-  Sparkles
+  Sparkles,
+  Home
 } from 'lucide-react';
 import { VehicleIcon } from '../../utils/vehicleIcons';
 import { UserProfileModal } from '../auth/UserProfileModal';
@@ -48,75 +49,90 @@ export const Header: React.FC = () => {
 
   return (
     <>
-      <header className="bg-slate-900/95 backdrop-blur-md border-b border-slate-800/80 px-2 py-1.5 flex items-center justify-between z-30 shrink-0 select-none">
-        {/* Left: Vehicle Selector */}
-        <div className="flex items-center space-x-1.5 relative min-w-0">
-          <button
-            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className="flex items-center space-x-1.5 bg-slate-800/90 hover:bg-slate-750 border border-slate-700/80 rounded-xl px-2 py-1 transition active:scale-95 shadow-sm text-left max-w-[140px] xs:max-w-[170px]"
-          >
-            <div 
-              className="w-6 h-6 rounded-lg flex items-center justify-center text-white font-bold shadow-inner shrink-0"
-              style={{ backgroundColor: selectedDevice?.attributes?.color || '#3b82f6' }}
+      <header className="bg-slate-900/95 backdrop-blur-md border-b border-slate-800/80 px-2 py-1.5 flex items-center justify-between z-30 shrink-0 select-none gap-1.5">
+        {/* Left: Home Return + Vehicle Selector */}
+        <div className="flex items-center space-x-1.5 min-w-0 flex-1">
+          {/* Prominent Home Button when on sub-pages */}
+          {activeTab !== 'map' && (
+            <button
+              onClick={() => setActiveTab('map')}
+              className="px-2 py-1 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs shadow-md shadow-blue-600/30 flex items-center space-x-1 shrink-0 transition active:scale-95 animate-in fade-in"
+              title="হোম লাইভ ম্যাপে ফিরে যান"
             >
-              <VehicleIcon type={selectedDevice?.category} className="w-3.5 h-3.5" />
-            </div>
-
-            <div className="flex flex-col min-w-0">
-              <div className="flex items-center space-x-1 min-w-0">
-                <span className="font-extrabold text-[11px] text-slate-100 truncate leading-none">
-                  {selectedDevice?.name || 'My Vehicle'}
-                </span>
-                <ChevronDown className="w-3 h-3 text-slate-400 shrink-0" />
-              </div>
-              <div className="flex items-center space-x-1 text-[9px] leading-none mt-0.5">
-                <span className={`inline-block w-1.5 h-1.5 rounded-full shrink-0 ${isMoving ? 'bg-emerald-400 animate-pulse' : selectedPosition?.attributes?.ignition ? 'bg-amber-400' : 'bg-rose-400'}`} />
-                <span className="text-slate-300 font-semibold truncate">
-                  {isMoving ? `${speedKmh} km/h` : selectedPosition?.attributes?.ignition ? 'Idle' : 'Parked'}
-                </span>
-              </div>
-            </div>
-          </button>
-
-          {/* Dropdown Menu */}
-          {isDropdownOpen && (
-            <div className="absolute top-11 left-0 w-64 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-2 z-50 animate-in fade-in zoom-in-95 duration-150">
-              <div className="text-[10px] uppercase font-bold tracking-wider text-slate-400 px-2 py-1">
-                {language === 'bn' ? 'আপনার যানবাহন সমূহ' : 'Fleet Vehicles'} ({devices.length})
-              </div>
-              <div className="max-h-60 overflow-y-auto space-y-1 mt-1">
-                {devices.map((device) => {
-                  const isSel = device.id === selectedDeviceId;
-                  return (
-                    <button
-                      key={device.id}
-                      onClick={() => {
-                        setSelectedDeviceId(device.id);
-                        setIsDropdownOpen(false);
-                      }}
-                      className={`w-full flex items-center justify-between p-2 rounded-xl text-left transition ${
-                        isSel ? 'bg-blue-600/20 border border-blue-500/40 text-blue-300' : 'hover:bg-slate-800 text-slate-200'
-                      }`}
-                    >
-                      <div className="flex items-center space-x-2 truncate">
-                        <div 
-                          className="w-6 h-6 rounded-md flex items-center justify-center text-white shrink-0"
-                          style={{ backgroundColor: device.attributes?.color || '#3b82f6' }}
-                        >
-                          <VehicleIcon type={device.category} className="w-3.5 h-3.5" />
-                        </div>
-                        <div className="truncate text-xs font-medium">
-                          <div className="truncate">{device.name}</div>
-                          <div className="text-[10px] text-slate-400">{device.attributes?.plateNumber || 'No Plate'}</div>
-                        </div>
-                      </div>
-                      {isSel && <CheckCircle2 className="w-4 h-4 text-blue-400 shrink-0 ml-2" />}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+              <Home className="w-3.5 h-3.5" />
+              <span className="hidden xs:inline">{language === 'bn' ? 'হোম' : 'Home'}</span>
+            </button>
           )}
+
+          {/* Vehicle Selector Dropdown Button */}
+          <div className="relative min-w-0 max-w-[135px] sm:max-w-[170px]">
+            <button
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              className="flex items-center space-x-1.5 bg-slate-800 hover:bg-slate-750 border border-slate-700/90 rounded-xl px-1.5 py-1 transition active:scale-95 shadow-sm text-left w-full"
+            >
+              <div 
+                className="w-5 h-5 rounded-lg flex items-center justify-center text-white font-bold shadow-inner shrink-0"
+                style={{ backgroundColor: selectedDevice?.attributes?.color || '#3b82f6' }}
+              >
+                <VehicleIcon type={selectedDevice?.category} className="w-3 h-3" />
+              </div>
+
+              <div className="flex flex-col min-w-0 flex-1">
+                <div className="flex items-center justify-between min-w-0">
+                  <span className="font-extrabold text-[10.5px] text-slate-100 truncate leading-none">
+                    {selectedDevice?.name || 'My Vehicle'}
+                  </span>
+                  <ChevronDown className="w-3 h-3 text-slate-400 shrink-0 ml-0.5" />
+                </div>
+                <div className="flex items-center space-x-1 text-[8.5px] leading-none mt-0.5">
+                  <span className={`inline-block w-1.5 h-1.5 rounded-full shrink-0 ${isMoving ? 'bg-emerald-400 animate-pulse' : selectedPosition?.attributes?.ignition ? 'bg-amber-400' : 'bg-rose-400'}`} />
+                  <span className="text-slate-300 font-semibold truncate">
+                    {isMoving ? `${speedKmh} km/h` : selectedPosition?.attributes?.ignition ? 'Idle' : 'Parked'}
+                  </span>
+                </div>
+              </div>
+            </button>
+
+            {/* Dropdown Menu */}
+            {isDropdownOpen && (
+              <div className="absolute top-11 left-0 w-64 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-2 z-50 animate-in fade-in zoom-in-95 duration-150">
+                <div className="text-[10px] uppercase font-bold tracking-wider text-slate-400 px-2 py-1">
+                  {language === 'bn' ? 'আপনার যানবাহন সমূহ' : 'Fleet Vehicles'} ({devices.length})
+                </div>
+                <div className="max-h-60 overflow-y-auto space-y-1 mt-1">
+                  {devices.map((device) => {
+                    const isSel = device.id === selectedDeviceId;
+                    return (
+                      <button
+                        key={device.id}
+                        onClick={() => {
+                          setSelectedDeviceId(device.id);
+                          setIsDropdownOpen(false);
+                        }}
+                        className={`w-full flex items-center justify-between p-2 rounded-xl text-left transition ${
+                          isSel ? 'bg-blue-600/20 border border-blue-500/40 text-blue-300' : 'hover:bg-slate-800 text-slate-200'
+                        }`}
+                      >
+                        <div className="flex items-center space-x-2 truncate">
+                          <div 
+                            className="w-6 h-6 rounded-md flex items-center justify-center text-white shrink-0"
+                            style={{ backgroundColor: device.attributes?.color || '#3b82f6' }}
+                          >
+                            <VehicleIcon type={device.category} className="w-3.5 h-3.5" />
+                          </div>
+                          <div className="truncate text-xs font-medium">
+                            <div className="truncate">{device.name}</div>
+                            <div className="text-[10px] text-slate-400">{device.attributes?.plateNumber || 'No Plate'}</div>
+                          </div>
+                        </div>
+                        {isSel && <CheckCircle2 className="w-4 h-4 text-blue-400 shrink-0 ml-2" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Right Header Controls */}
@@ -124,26 +140,26 @@ export const Header: React.FC = () => {
           {/* Quick SaaS Role Switcher Pill */}
           <button
             onClick={() => setIsRoleSwitcherOpen(true)}
-            className={`px-2 py-1 rounded-xl border flex items-center space-x-1 font-bold text-[10.5px] transition active:scale-95 shadow-sm ${
-              currentRole === 'super_admin' ? 'bg-amber-600/30 border-amber-500/50 text-amber-300' :
-              currentRole === 'sales' ? 'bg-emerald-600/30 border-emerald-500/50 text-emerald-300' :
-              currentRole === 'technician' ? 'bg-purple-600/30 border-purple-500/50 text-purple-300' :
-              currentRole === 'support' ? 'bg-sky-600/30 border-sky-500/50 text-sky-300' :
-              currentRole === 'rescue' ? 'bg-rose-600/30 border-rose-500/50 text-rose-300 animate-pulse' :
+            className={`px-2 py-1 rounded-xl border flex items-center space-x-1 font-bold text-[10px] sm:text-[11px] transition active:scale-95 shadow-sm ${
+              currentRole === 'super_admin' ? 'bg-amber-600/30 border-amber-500/60 text-amber-300' :
+              currentRole === 'sales' ? 'bg-emerald-600/30 border-emerald-500/60 text-emerald-300' :
+              currentRole === 'technician' ? 'bg-purple-600/30 border-purple-500/60 text-purple-300' :
+              currentRole === 'support' ? 'bg-sky-600/30 border-sky-500/60 text-sky-300' :
+              currentRole === 'rescue' ? 'bg-rose-600/30 border-rose-500/60 text-rose-300 animate-pulse' :
               'bg-slate-800 border-slate-700 text-slate-300 hover:text-white'
             }`}
             title="SaaS পোর্টাল পরিবর্তন করুন"
           >
-            {currentRole === 'super_admin' && <Crown className="w-3 h-3 text-amber-400" />}
-            {currentRole === 'sales' && <Briefcase className="w-3 h-3 text-emerald-400" />}
-            {currentRole === 'technician' && <Wrench className="w-3 h-3 text-purple-400" />}
-            {currentRole === 'support' && <Headphones className="w-3 h-3 text-sky-400" />}
-            {currentRole === 'rescue' && <Flame className="w-3 h-3 text-rose-400" />}
-            {currentRole === 'customer' && <Sparkles className="w-3 h-3 text-blue-400" />}
-            <span className="capitalize">
+            {currentRole === 'super_admin' && <Crown className="w-3 h-3 text-amber-400 shrink-0" />}
+            {currentRole === 'sales' && <Briefcase className="w-3 h-3 text-emerald-400 shrink-0" />}
+            {currentRole === 'technician' && <Wrench className="w-3 h-3 text-purple-400 shrink-0" />}
+            {currentRole === 'support' && <Headphones className="w-3 h-3 text-sky-400 shrink-0" />}
+            {currentRole === 'rescue' && <Flame className="w-3 h-3 text-rose-400 shrink-0" />}
+            {currentRole === 'customer' && <Sparkles className="w-3 h-3 text-blue-400 shrink-0" />}
+            <span className="capitalize font-extrabold">
               {currentRole === 'super_admin' ? 'অ্যাডমিন' :
                currentRole === 'sales' ? 'সেলস' :
-               currentRole === 'technician' ? 'টেকনিশিয়ান' :
+               currentRole === 'technician' ? 'টেক' :
                currentRole === 'support' ? 'সাপোর্ট' :
                currentRole === 'rescue' ? 'রেসকিউ' :
                'কাস্টমার'}
@@ -164,7 +180,7 @@ export const Header: React.FC = () => {
 
           <button
             onClick={() => setLanguage(language === 'bn' ? 'en' : 'bn')}
-            className="px-1.5 py-1 rounded-lg bg-slate-800 border border-slate-700 text-[10.5px] font-bold text-slate-200 hover:bg-slate-700 transition flex items-center space-x-0.5"
+            className="px-1.5 py-1 rounded-lg bg-slate-800 border border-slate-700 text-[10px] font-bold text-slate-200 hover:bg-slate-700 transition flex items-center space-x-0.5"
           >
             <Globe className="w-3 h-3 text-blue-400" />
             <span>{language === 'bn' ? 'EN' : 'বাং'}</span>
@@ -217,4 +233,3 @@ export const Header: React.FC = () => {
     </>
   );
 };
-

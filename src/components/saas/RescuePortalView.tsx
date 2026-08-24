@@ -12,7 +12,10 @@ import {
   AlertOctagon,
   Radio,
   Clock,
-  Zap
+  Zap,
+  Search,
+  Sliders,
+  Filter
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
@@ -20,8 +23,9 @@ export const RescuePortalView: React.FC = () => {
   const { language, setActiveTab, setCurrentRole, devices, positions, sendCommand } = useApp();
 
   const [activeDistressId, setActiveDistressId] = useState<number>(1);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterType, setFilterType] = useState<'all' | 'sos' | 'moving' | 'parked'>('all');
   const [engineCutSuccess, setEngineCutSuccess] = useState(false);
-  const [isIntercepting, setIsIntercepting] = useState(false);
 
   const distressDevice = devices.find(d => d.id === activeDistressId) || devices[0];
   const distressPos = positions[distressDevice?.id] || Object.values(positions)[0];
@@ -31,6 +35,29 @@ export const RescuePortalView: React.FC = () => {
     setEngineCutSuccess(true);
     setTimeout(() => setEngineCutSuccess(false), 3000);
   };
+
+  // Search and Filter Vehicles
+  const filteredDevices = devices.filter(dev => {
+    const pos = positions[dev.id];
+    const isMoving = pos?.speed && pos.speed > 5;
+    const isSos = dev.id === 1 || dev.id === 3; // Simulated high alert fleet
+
+    if (filterType === 'sos' && !isSos) return false;
+    if (filterType === 'moving' && !isMoving) return false;
+    if (filterType === 'parked' && isMoving) return false;
+
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      dev.name.toLowerCase().includes(q) ||
+      (dev.attributes?.plateNumber && dev.attributes.plateNumber.toLowerCase().includes(q)) ||
+      (dev.attributes?.driverName && dev.attributes.driverName.toLowerCase().includes(q)) ||
+      (dev.attributes?.driverPhone && dev.attributes.driverPhone.includes(q)) ||
+      (dev.phone && dev.phone.includes(q)) ||
+      (dev.uniqueId && dev.uniqueId.includes(q)) ||
+      dev.id.toString().includes(q)
+    );
+  });
 
   return (
     <div className="w-full h-full flex flex-col bg-slate-950 text-slate-100 overflow-y-auto p-4 space-y-4 pb-24 select-none">
@@ -63,6 +90,58 @@ export const RescuePortalView: React.FC = () => {
         </span>
       </div>
 
+      {/* Instant Search Bar & Filter Chips */}
+      <div className="space-y-2">
+        <div className="relative">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="🔍 কাস্টমার মোবাইল নম্বর, গাড়ি, বা ডিভাইস IMEI দিয়ে খুঁজুন..."
+            className="w-full bg-slate-900 border border-slate-800 rounded-2xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:border-rose-500 focus:outline-none shadow-md"
+          />
+        </div>
+
+        <div className="flex items-center space-x-1.5 overflow-x-auto no-scrollbar pb-1 text-[10.5px]">
+          <button
+            onClick={() => setFilterType('all')}
+            className={`px-3 py-1 rounded-xl font-bold transition whitespace-nowrap ${
+              filterType === 'all' ? 'bg-rose-600 text-white shadow-md' : 'bg-slate-900 text-slate-400 border border-slate-800'
+            }`}
+          >
+            সব গাড়ি ({devices.length})
+          </button>
+
+          <button
+            onClick={() => setFilterType('sos')}
+            className={`px-3 py-1 rounded-xl font-bold transition whitespace-nowrap flex items-center space-x-1 ${
+              filterType === 'sos' ? 'bg-rose-600 text-white shadow-md' : 'bg-slate-900 text-rose-400 border border-slate-800'
+            }`}
+          >
+            <Flame className="w-3 h-3 text-rose-400" />
+            <span>🚨 জরুরি এসওএস</span>
+          </button>
+
+          <button
+            onClick={() => setFilterType('moving')}
+            className={`px-3 py-1 rounded-xl font-bold transition whitespace-nowrap ${
+              filterType === 'moving' ? 'bg-emerald-600 text-white shadow-md' : 'bg-slate-900 text-emerald-400 border border-slate-800'
+            }`}
+          >
+            🚗 গতিশীল (Running)
+          </button>
+
+          <button
+            onClick={() => setFilterType('parked')}
+            className={`px-3 py-1 rounded-xl font-bold transition whitespace-nowrap ${
+              filterType === 'parked' ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-900 text-slate-400 border border-slate-800'
+            }`}
+          >
+            🅿️ পার্কড (Parked)
+          </button>
+        </div>
+      </div>
+
       {/* Emergency Distress Live Target Card */}
       <div className="bg-gradient-to-r from-rose-950/60 via-slate-900 to-slate-900 border border-rose-500/60 rounded-3xl p-4 shadow-2xl space-y-3">
         <div className="flex items-center justify-between">
@@ -78,7 +157,7 @@ export const RescuePortalView: React.FC = () => {
                 </span>
               </div>
               <p className="text-[10.5px] text-slate-400 mt-0.5">
-                মালিক: <strong className="text-slate-200">{distressDevice?.attributes?.driverName || 'Mohammad Azhar'}</strong> • ফোন: {distressDevice?.attributes?.driverPhone || '01700000000'}
+                মালিক: <strong className="text-slate-200">{distressDevice?.attributes?.driverName || 'Mohammad Azhar'}</strong> • ফোন: <strong className="text-rose-300 font-mono">{distressDevice?.attributes?.driverPhone || '01700000000'}</strong>
               </p>
             </div>
           </div>
@@ -155,28 +234,40 @@ export const RescuePortalView: React.FC = () => {
 
       {/* Distress Vehicle Selector List */}
       <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl space-y-3">
-        <span className="text-xs font-bold uppercase tracking-wider text-slate-300 block">
-          অন্যান্য সক্রিয় জিপিএস ট্র্যাকার সমূহ
-        </span>
+        <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-300">
+            ফিল্টারকৃত সক্রিয় যানবাহন ({filteredDevices.length})
+          </span>
+        </div>
 
         <div className="space-y-2">
-          {devices.map((dev) => {
+          {filteredDevices.map((dev) => {
             const isSel = dev.id === activeDistressId;
+            const pos = positions[dev.id];
             return (
               <button
                 key={dev.id}
                 onClick={() => setActiveDistressId(dev.id)}
                 className={`w-full p-3 rounded-2xl border text-left flex items-center justify-between transition text-xs ${
-                  isSel ? 'bg-rose-600/20 border-rose-500/50 text-rose-300' : 'bg-slate-950/80 border-slate-800 text-slate-300'
+                  isSel ? 'bg-rose-600/20 border-rose-500/50 text-rose-300' : 'bg-slate-950/80 border-slate-800 text-slate-300 hover:border-slate-700'
                 }`}
               >
                 <div>
-                  <div className="font-extrabold text-slate-100">{dev.name}</div>
-                  <div className="text-[10px] text-slate-400 mt-0.5">{dev.attributes?.plateNumber || 'No Plate'}</div>
+                  <div className="font-extrabold text-slate-100 flex items-center space-x-2">
+                    <span>{dev.name}</span>
+                    <span className="text-[9.5px] bg-slate-800 px-1.5 py-0.2 rounded font-mono text-slate-300">
+                      {dev.attributes?.plateNumber || 'No Plate'}
+                    </span>
+                  </div>
+                  <div className="text-[10px] text-slate-400 mt-1">
+                    মোবাইল: <strong className="text-slate-300 font-mono">{dev.attributes?.driverPhone || dev.phone || '01700000000'}</strong> • IMEI: {dev.uniqueId || '864720058291034'}
+                  </div>
                 </div>
 
-                <span className="px-2 py-1 rounded-xl bg-slate-800 text-slate-300 font-mono text-[10.5px]">
-                  {isSel ? 'টার্গেট সিলেক্টেড' : 'সিলেক্ট করুন'}
+                <span className={`px-2.5 py-1 rounded-xl text-[10.5px] font-bold ${
+                  isSel ? 'bg-rose-600 text-white' : 'bg-slate-800 text-slate-300'
+                }`}>
+                  {isSel ? 'টার্গেট' : 'সিলেক্ট'}
                 </span>
               </button>
             );

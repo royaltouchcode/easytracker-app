@@ -270,19 +270,33 @@ export const LiveTrackingMap: React.FC = () => {
       const heading = pos.course || 0;
 
       const statusClass = isMoving 
-        ? 'marker-pulse-moving border-emerald-400' 
+        ? 'border-emerald-400 shadow-lg shadow-emerald-500/40 ring-2 ring-emerald-400/30' 
         : isIgnition 
-          ? 'marker-pulse-idle border-amber-400' 
+          ? 'border-amber-400 shadow-lg shadow-amber-500/40 ring-2 ring-amber-400/30' 
           : isLastKnown
-          ? 'border-indigo-400 shadow-indigo-500/50'
-          : 'marker-pulse-stopped border-rose-500';
+          ? 'border-indigo-400 shadow-lg shadow-indigo-500/40'
+          : 'border-rose-500 shadow-lg shadow-rose-500/40';
 
       const customHtml = `
-        <div class="custom-vehicle-marker" style="transform: rotate(${heading}deg);">
-          <div class="relative w-11 h-11 rounded-2xl flex items-center justify-center shadow-2xl border-2 ${statusClass}" style="background-color: ${color};">
-            ${getVehicleMarkerSvg(dev.category, color)}
-            <div class="absolute -top-2 w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-b-[8px] border-b-white"></div>
-            ${isLastKnown ? `<div class="absolute -bottom-2.5 bg-indigo-600 text-white font-extrabold text-[8px] px-1 py-0.2 rounded shadow">🅿️ পার্কিং</div>` : ''}
+        <div class="relative flex flex-col items-center justify-center pointer-events-none select-none" style="width: 120px; height: 100px; margin-left: -38px; margin-top: -30px;">
+          <!-- 1. Floating Non-Rotated Vehicle Tag (Always horizontal & crystal clear) -->
+          <div class="mb-1 bg-slate-900/95 text-white border border-slate-700/90 rounded-full px-2 py-0.5 shadow-2xl flex items-center space-x-1 whitespace-nowrap text-[9px] font-bold">
+            <span class="w-1.5 h-1.5 rounded-full ${isMoving ? 'bg-emerald-400 animate-pulse' : isIgnition ? 'bg-amber-400' : 'bg-rose-400'}"></span>
+            <span class="text-slate-100 max-w-[65px] truncate">${dev.name}</span>
+            <span class="text-blue-300 font-mono font-black">${isMoving ? `${speed} km/h` : isIgnition ? 'Idle' : '🅿️ Parked'}</span>
+          </div>
+
+          <!-- 2. Halo Radar Glow Circle + Rotatable Vehicle Core -->
+          <div class="relative w-11 h-11 flex items-center justify-center">
+            <!-- Pulsing Radar Halo -->
+            <div class="absolute inset-0 rounded-full ${isMoving ? 'bg-emerald-500/30 animate-ping' : isIgnition ? 'bg-amber-500/25' : 'bg-blue-500/20'}" style="transform: scale(${isMoving ? '1.4' : '1.15'});"></div>
+
+            <!-- Rotated Disc with Heading Pointer Arrow -->
+            <div class="relative w-10 h-10 rounded-full flex items-center justify-center shadow-2xl border-2 ${statusClass} transition-transform duration-300" style="background-color: ${color}; transform: rotate(${heading}deg);">
+              <!-- Sleek Forward Heading Arrowhead -->
+              <div class="absolute -top-2 text-white text-[11px] font-black drop-shadow-md">▲</div>
+              ${getVehicleMarkerSvg(dev.category, color)}
+            </div>
           </div>
         </div>
       `;
