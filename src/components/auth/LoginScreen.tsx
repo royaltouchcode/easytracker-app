@@ -32,6 +32,8 @@ const PRESET_SERVERS: ServerConfig[] = [
 import { APP_CONFIG } from '../../config/appConfig';
 import { PrivacyPolicyModal } from '../compliance/PrivacyPolicyModal';
 import { RefundPolicyModal } from '../compliance/RefundPolicyModal';
+import { PartnerRegistrationModal } from './PartnerRegistrationModal';
+import { Building2, Briefcase } from 'lucide-react';
 
 export const LoginScreen: React.FC = () => {
   const { 
@@ -51,6 +53,7 @@ export const LoginScreen: React.FC = () => {
   const [successMessage, setSuccessMessage] = useState('');
   const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
   const [isRefundModalOpen, setIsRefundModalOpen] = useState(false);
+  const [isPartnerModalOpen, setIsPartnerModalOpen] = useState(false);
   const [policyAccepted, setPolicyAccepted] = useState(() => {
     return localStorage.getItem('gps_policy_accepted') === 'true';
   });
@@ -264,6 +267,22 @@ export const LoginScreen: React.FC = () => {
                 </>
               )}
             </button>
+
+            {/* B2B Partner / Staff Registration Entry Button */}
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => setIsPartnerModalOpen(true)}
+                className="w-full py-2.5 px-3 rounded-2xl bg-slate-900/90 hover:bg-slate-850 border border-slate-700/80 hover:border-indigo-500/50 text-indigo-300 font-bold text-xs flex items-center justify-center space-x-2 transition active:scale-95 shadow-md"
+              >
+                <Building2 className="w-4 h-4 text-indigo-400" />
+                <span>
+                  {language === 'bn' 
+                    ? '💼 পার্টনার বা ব্র্যান্ড হিসেবে রেজিস্ট্রেশন করুন' 
+                    : '💼 Register as Partner / Brand Owner'}
+                </span>
+              </button>
+            </div>
           </form>
         ) : (
           /* Hidden Admin Server Config */
@@ -368,6 +387,11 @@ export const LoginScreen: React.FC = () => {
           localStorage.setItem('gps_policy_accepted', 'true');
         }}
         language={language}
+      />
+
+      <PartnerRegistrationModal
+        isOpen={isPartnerModalOpen}
+        onClose={() => setIsPartnerModalOpen(false)}
       />
     </div>
   );

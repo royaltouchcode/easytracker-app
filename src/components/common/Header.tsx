@@ -16,7 +16,8 @@ import {
   Flame,
   Sparkles,
   Home,
-  ShieldCheck
+  ShieldCheck,
+  Building2
 } from 'lucide-react';
 import { VehicleIcon } from '../../utils/vehicleIcons';
 import { UserProfileModal } from '../auth/UserProfileModal';
@@ -142,15 +143,19 @@ export const Header: React.FC = () => {
             </>
           )}
 
-          {/* If Sales Agent: Show Sales Logo & Branding (NO Customer Vehicle Dropdown) */}
+          {/* If Sales Agent / B2B Partner: Show Brand Logo & Branding */}
           {currentRole === 'sales' && (
             <div className="flex items-center space-x-2">
               <div className="w-7 h-7 rounded-xl bg-emerald-600/30 border border-emerald-500/50 flex items-center justify-center text-emerald-400 shadow-sm">
-                <Briefcase className="w-4 h-4" />
+                {user?.partnerBrandName ? <Building2 className="w-4 h-4 text-purple-400" /> : <Briefcase className="w-4 h-4" />}
               </div>
               <div>
-                <span className="font-extrabold text-xs text-slate-100 block leading-tight">EasyTracker Sales</span>
-                <span className="text-[9px] text-emerald-400 font-semibold leading-none">অনবোর্ডিং ও সেলস হাব</span>
+                <span className="font-extrabold text-xs text-slate-100 block leading-tight truncate max-w-[140px]">
+                  {user?.partnerBrandName || 'EasyTracker Sales'}
+                </span>
+                <span className="text-[9px] text-emerald-400 font-semibold leading-none">
+                  {user?.serviceTier ? `টিয়ার: ${user.serviceTier}` : 'অনবোর্ডিং ও সেলস হাব'}
+                </span>
               </div>
             </div>
           )}

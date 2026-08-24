@@ -215,6 +215,9 @@ export interface UserSession {
   serverUrl: string;
   role?: SaasRole;
   approvedRoles?: SaasRole[];
+  partnerId?: string;
+  partnerBrandName?: string;
+  serviceTier?: PartnerServiceTier;
 }
 
 export type MapLayerType = 'carto_positron' | 'google_roadmap' | 'google_satellite' | 'google_hybrid' | 'google_terrain' | 'osm' | 'baidu_dark';
@@ -258,5 +261,34 @@ export interface WarrantyClaimTicket {
   technicianNotes?: string;
   replacementImei?: string;
   completedDate?: string;
+}
+
+// B2B Multi-Tenant Partner & Whitelabel Service Types
+export type PartnerServiceTier = 'tracking_only' | 'all_inclusive' | 'subscription_wise';
+export type PartnerRegistrationType = 'staff_partner' | 'b2b_brand';
+
+export interface PartnerRegistrationEntry {
+  id: string;
+  type: PartnerRegistrationType;
+  applicantName: string;
+  brandName?: string;
+  businessCategory?: string;
+  phone: string;
+  whatsapp: string;
+  email?: string;
+  emergencyPhone?: string;
+  district: string;
+  fullAddress: string;
+  geoLat?: number;
+  geoLng?: number;
+  googleMapsUrl?: string;
+  desiredRoles: SaasRole[];
+  requestedServices: ('server_tracking' | 'shared_technicians' | 'shared_rescue' | 'shared_support' | 'shared_sales')[];
+  serviceTier: PartnerServiceTier;
+  status: 'pending_approval' | 'approved' | 'rejected';
+  submittedAt: string;
+  assignedUsername?: string;
+  partnerId?: string;
+  adminReviewNotes?: string;
 }
 

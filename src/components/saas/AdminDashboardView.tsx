@@ -28,6 +28,7 @@ import { APP_CONFIG } from '../../config/appConfig';
 import { SalesLeadEntry } from './SalesPortalView';
 import { VehicleCatalogManager } from './VehicleCatalogManager';
 import { WarrantyAdminManager } from './WarrantyAdminManager';
+import { PartnerOnboardingManager } from './PartnerOnboardingManager';
 
 
 export const AdminDashboardView: React.FC = () => {
@@ -524,6 +525,9 @@ export const AdminDashboardView: React.FC = () => {
 
       {/* ===== Device-wise Warranty Policy & Claims RMA Manager ===== */}
       <WarrantyAdminManager />
+
+      {/* ===== B2B Partner & Multi-Tenant Brand Onboarding Manager ===== */}
+      <PartnerOnboardingManager />
 
     </div>
   );

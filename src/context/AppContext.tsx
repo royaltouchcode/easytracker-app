@@ -16,7 +16,9 @@ import {
   AlertFeedbackMode,
   SaasRole,
   DeviceWarrantyInfo,
-  WarrantyClaimTicket
+  WarrantyClaimTicket,
+  PartnerRegistrationEntry,
+  PartnerServiceTier
 } from '../types/traccar';
 import { traccarApi } from '../services/traccarApi';
 import { traccarSocket } from '../services/traccarSocket';
@@ -168,6 +170,13 @@ interface AppContextType {
   submitWarrantyClaim: (claim: Omit<WarrantyClaimTicket, 'id' | 'claimDate' | 'status'>) => Promise<WarrantyClaimTicket>;
   assignTechnicianToClaim: (claimId: string, techName: string, techPhone: string, techNotes?: string) => void;
   completeWarrantyClaim: (claimId: string, replacementImei?: string, techNotes?: string) => void;
+
+  // B2B Multi-Tenant Partner & Whitelabel Ecosystem
+  partnerRegistrations: PartnerRegistrationEntry[];
+  approvedPartners: PartnerRegistrationEntry[];
+  registerPartner: (entry: Omit<PartnerRegistrationEntry, 'id' | 'status' | 'submittedAt'>) => Promise<PartnerRegistrationEntry>;
+  approvePartner: (id: string, serviceTier: PartnerServiceTier, username: string, assignedRoles: SaasRole[], adminNotes?: string) => void;
+  rejectPartner: (id: string, reason?: string) => void;
 
   language: Language;
   setLanguage: (lang: Language) => void;
@@ -946,6 +955,146 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       `✅ ওয়ারেন্টি সার্ভিস সম্পন্ন (ID: ${claimId})! ডিভাইস পুরোপুরি ডায়াগনস্টিক টেস্টে উত্তীর্ণ হয়েছে।`
     );
   };
+
+  // B2B Multi-Tenant Partner & Whitelabel Registrations Queue
+  const [partnerRegistrations, setPartnerRegistrations] = useState<PartnerRegistrationEntry[]>(() => {
+    const saved = localStorage.getItem('gps_partner_registrations_queue');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return [
+      {
+        id: 'PREG-901',
+        type: 'b2b_brand',
+        applicantName: 'Tariqul Islam',
+        brandName: 'Green Fleet GPS Solutions',
+        businessCategory: 'জিপিএস ডিলারশিপ ও ফ্লিট ম্যানেজমেন্ট',
+        phone: '01811-998877',
+        whatsapp: '01811-998877',
+        email: 'tariq@greenfleetgps.com',
+        district: 'ঢাকা (মিরপুর ১০)',
+        fullAddress: 'প্লট ১৪, ব্লক সি, মিরপুর ১০ গোলচত্বর, ঢাকা',
+        geoLat: 23.8067,
+        geoLng: 90.3687,
+        googleMapsUrl: 'https://maps.google.com/?q=23.8067,90.3687',
+        desiredRoles: ['sales', 'technician'],
+        requestedServices: ['server_tracking', 'shared_technicians', 'shared_support'],
+        serviceTier: 'all_inclusive',
+        status: 'pending_approval',
+        submittedAt: '24 Aug 2026'
+      },
+      {
+        id: 'PREG-902',
+        type: 'staff_partner',
+        applicantName: 'Mizanur Rahman',
+        phone: '01911-334455',
+        whatsapp: '01911-334455',
+        district: 'চট্টগ্রাম (জিইসি মোড়)',
+        fullAddress: 'জিইসি সার্কেল, সিডিএ এভিনিউ, চট্টগ্রাম',
+        geoLat: 22.3587,
+        geoLng: 91.8215,
+        googleMapsUrl: 'https://maps.google.com/?q=22.3587,91.8215',
+        desiredRoles: ['sales', 'technician', 'rescue'],
+        requestedServices: ['server_tracking', 'shared_rescue'],
+        serviceTier: 'subscription_wise',
+        status: 'pending_approval',
+        submittedAt: '24 Aug 2026'
+      }
+    ];
+  });
+
+  const [approvedPartners, setApprovedPartners] = useState<PartnerRegistrationEntry[]>(() => {
+    const saved = localStorage.getItem('gps_approved_partners');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return [
+      {
+        id: 'PREG-880',
+        type: 'b2b_brand',
+        applicantName: 'Shafiqul Alam',
+        brandName: 'Dhaka Motor Club Tracking',
+        phone: '01711-556677',
+        whatsapp: '01711-556677',
+        district: 'ঢাকা (গুলশান)',
+        fullAddress: 'রোড ১১, গুলশান-২, ঢাকা',
+        geoLat: 23.7937,
+        geoLng: 90.4066,
+        googleMapsUrl: 'https://maps.google.com/?q=23.7937,90.4066',
+        desiredRoles: ['sales', 'technician'],
+        requestedServices: ['server_tracking', 'shared_technicians', 'shared_rescue', 'shared_support'],
+        serviceTier: 'all_inclusive',
+        status: 'approved',
+        submittedAt: '20 Aug 2026',
+        partnerId: 'partner_dmc',
+        assignedUsername: 'partner/dmc'
+      }
+    ];
+  });
+
+  const registerPartner = async (entry: Omit<PartnerRegistrationEntry, 'id' | 'status' | 'submittedAt'>): Promise<PartnerRegistrationEntry> => {
+    const newEntry: PartnerRegistrationEntry = {
+      ...entry,
+      id: `PREG-${Date.now().toString().slice(-4)}`,
+      status: 'pending_approval',
+      submittedAt: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+    };
+
+    setPartnerRegistrations(prev => {
+      const next = [newEntry, ...prev];
+      localStorage.setItem('gps_partner_registrations_queue', JSON.stringify(next));
+      return next;
+    });
+
+    triggerManualAlert(
+      'subscription_reminder',
+      `💼 নতুন পার্টনার আবেদন জমা হয়েছে (ID: ${newEntry.id})! আবেদনকারী: ${newEntry.applicantName} (${newEntry.phone})। সুপার অ্যাডমিন যাচাই ও অনুমোদন অপেক্ষমান।`
+    );
+
+    return newEntry;
+  };
+
+  const approvePartner = (id: string, serviceTier: PartnerServiceTier, username: string, assignedRoles: SaasRole[], adminNotes?: string) => {
+    const target = partnerRegistrations.find(p => p.id === id);
+    if (!target) return;
+
+    const partnerId = target.partnerId || `partner_${id.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
+    const approvedEntry: PartnerRegistrationEntry = {
+      ...target,
+      status: 'approved',
+      serviceTier,
+      assignedUsername: username,
+      partnerId,
+      desiredRoles: assignedRoles,
+      adminReviewNotes: adminNotes
+    };
+
+    setPartnerRegistrations(prev => {
+      const next = prev.map(p => p.id === id ? approvedEntry : p);
+      localStorage.setItem('gps_partner_registrations_queue', JSON.stringify(next));
+      return next;
+    });
+
+    setApprovedPartners(prev => {
+      const next = [approvedEntry, ...prev.filter(p => p.id !== id)];
+      localStorage.setItem('gps_approved_partners', JSON.stringify(next));
+      return next;
+    });
+
+    triggerManualAlert(
+      'subscription_reminder',
+      `✅ পার্টনার অনুমোদন সম্পন্ন! ব্র্যান্ড/পার্টনার: ${target.brandName || target.applicantName}। ইউজারনেম: ${username}। সার্ভিস টিয়ার: ${serviceTier}।`
+    );
+  };
+
+  const rejectPartner = (id: string, reason?: string) => {
+    setPartnerRegistrations(prev => {
+      const next = prev.map(p => p.id === id ? { ...p, status: 'rejected' as const, adminReviewNotes: reason } : p);
+      localStorage.setItem('gps_partner_registrations_queue', JSON.stringify(next));
+      return next;
+    });
+  };
+
   const [lastReadTimestamp, setLastReadTimestamp] = useState<number>(() => {
     const saved = localStorage.getItem('gps_last_read_alerts_ts');
     return saved ? Number(saved) : Date.now() - 86400000;
@@ -1185,7 +1334,31 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
       let approvedRoles: SaasRole[] = ['customer'];
 
-      if (lower.startsWith('admin') || res.user.administrator) {
+      const matchingPartner = approvedPartners.find(p => 
+        (p.assignedUsername && p.assignedUsername.toLowerCase() === lower) || 
+        p.phone === emailOrUser || 
+        (p.partnerId && p.partnerId.toLowerCase() === lower)
+      );
+
+      let partnerId: string | undefined = undefined;
+      let partnerBrandName: string | undefined = undefined;
+      let serviceTier: PartnerServiceTier | undefined = undefined;
+
+      if (matchingPartner) {
+        determinedRole = matchingPartner.desiredRoles[0] || 'sales';
+        defaultTab = determinedRole === 'sales' ? 'saas_sales' : determinedRole === 'technician' ? 'saas_technician' : 'saas_admin';
+        approvedRoles = matchingPartner.desiredRoles.length > 0 ? matchingPartner.desiredRoles : ['sales', 'technician', 'customer'];
+        partnerId = matchingPartner.partnerId;
+        partnerBrandName = matchingPartner.brandName || matchingPartner.applicantName;
+        serviceTier = matchingPartner.serviceTier;
+      } else if (lower.startsWith('partner')) {
+        determinedRole = 'sales';
+        defaultTab = 'saas_sales';
+        approvedRoles = ['sales', 'technician', 'customer'];
+        partnerId = 'partner_custom';
+        partnerBrandName = 'Partner Fleet Network';
+        serviceTier = 'all_inclusive';
+      } else if (lower.startsWith('admin') || res.user.administrator) {
         determinedRole = 'super_admin';
         defaultTab = 'saas_admin';
         approvedRoles = ['super_admin', 'sales', 'technician', 'support', 'rescue', 'customer'];
@@ -1215,7 +1388,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         ...res.user, 
         role: determinedRole,
         approvedRoles: approvedRoles,
-        administrator: determinedRole === 'super_admin' || res.user.administrator
+        administrator: determinedRole === 'super_admin' || res.user.administrator,
+        partnerId,
+        partnerBrandName,
+        serviceTier
       };
 
       setUser(userWithRole);
@@ -1448,6 +1624,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         submitWarrantyClaim,
         assignTechnicianToClaim,
         completeWarrantyClaim,
+        partnerRegistrations,
+        approvedPartners,
+        registerPartner,
+        approvePartner,
+        rejectPartner,
         language,
         setLanguage,
         t,
