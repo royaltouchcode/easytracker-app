@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Briefcase, 
   ArrowLeft, 
@@ -11,10 +11,27 @@ import {
   DollarSign, 
   Award,
   Scan,
-  ShieldCheck
+  ShieldCheck,
+  Clock,
+  Send
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { VehicleType } from '../../types/traccar';
+
+export interface SalesLeadEntry {
+  id: string;
+  customer: string;
+  phone: string;
+  vehicle: string;
+  plate: string;
+  category: VehicleType;
+  imei: string;
+  sim: string;
+  plan: string;
+  commission: number;
+  date: string;
+  status: 'pending_admin_approval' | 'approved_pushed' | 'rejected';
+}
 
 export const SalesPortalView: React.FC = () => {
   const { language, setActiveTab, setCurrentRole } = useApp();
@@ -29,26 +46,39 @@ export const SalesPortalView: React.FC = () => {
   const [selectedPlan, setSelectedPlan] = useState('12_months');
   const [onboardSuccess, setOnboardSuccess] = useState(false);
 
-  const [salesLeads, setSalesLeads] = useState([
-    { id: 1, customer: 'Tanvir Hossain', phone: '01712-345678', vehicle: 'Yamaha FZ-S V3', imei: '864720058291090', plan: '1 Year', commission: 500, date: '24 Aug 2026' },
-    { id: 2, customer: 'Kazi Mahbub', phone: '01819-876543', vehicle: 'Toyota Axio', imei: '864720058291091', plan: '6 Months', commission: 350, date: '23 Aug 2026' },
-    { id: 3, customer: 'Shohel Rana', phone: '01911-223344', vehicle: 'Bajaj Pulsar 150', imei: '864720058291092', plan: '1 Year', commission: 500, date: '22 Aug 2026' }
-  ]);
+  const [salesLeads, setSalesLeads] = useState<SalesLeadEntry[]>(() => {
+    const saved = localStorage.getItem('gps_sales_leads_queue');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return [
+      { id: 'lead-1', customer: 'Tanvir Hossain', phone: '01712-345678', vehicle: 'Yamaha FZ-S V3', plate: 'DHAKA METRO-LA 22-3344', category: 'motorcycle', imei: '864720058291090', sim: '01711223344', plan: '1 Year', commission: 500, date: '24 Aug 2026', status: 'approved_pushed' },
+      { id: 'lead-2', customer: 'Kazi Mahbub', phone: '01819-876543', vehicle: 'Toyota Axio', plate: 'DHAKA METRO-GA 33-4455', category: 'car', imei: '864720058291091', sim: '01811223344', plan: '6 Months', commission: 350, date: '24 Aug 2026', status: 'pending_admin_approval' },
+      { id: 'lead-3', customer: 'Shohel Rana', phone: '01911-223344', vehicle: 'Bajaj Pulsar 150', plate: 'DHAKA METRO-HA 44-5566', category: 'motorcycle', imei: '864720058291092', sim: '01911223344', plan: '1 Year', commission: 500, date: '23 Aug 2026', status: 'approved_pushed' }
+    ];
+  });
 
   const handleOnboardSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const newLead = {
-      id: Date.now(),
+    const newLead: SalesLeadEntry = {
+      id: 'lead-' + Date.now(),
       customer: customerName,
       phone: customerPhone,
       vehicle: vehicleName,
+      plate: plateNumber,
+      category: vehicleCategory,
       imei: trackerImei,
+      sim: simNumber,
       plan: selectedPlan === '12_months' ? '1 Year' : selectedPlan === '6_months' ? '6 Months' : '3 Months',
       commission: selectedPlan === '12_months' ? 500 : 350,
-      date: new Date().toLocaleDateString('en-GB')
+      date: new Date().toLocaleDateString('en-GB'),
+      status: 'pending_admin_approval'
     };
 
-    setSalesLeads([newLead, ...salesLeads]);
+    const updated = [newLead, ...salesLeads];
+    setSalesLeads(updated);
+    localStorage.setItem('gps_sales_leads_queue', JSON.stringify(updated));
+
     setOnboardSuccess(true);
     setTimeout(() => {
       setOnboardSuccess(false);
@@ -58,10 +88,16 @@ export const SalesPortalView: React.FC = () => {
       setPlateNumber('');
       setTrackerImei('');
       setSimNumber('');
-    }, 2000);
+    }, 2500);
   };
 
-  const totalCommission = salesLeads.reduce((sum, l) => sum + l.commission, 0);
+  const totalCommission = salesLeads
+    .filter(l => l.status === 'approved_pushed')
+    .reduce((sum, l) => sum + l.commission, 0);
+
+  const pendingCommission = salesLeads
+    .filter(l => l.status === 'pending_admin_approval')
+    .reduce((sum, l) => sum + l.commission, 0);
 
   return (
     <div className="w-full h-full flex flex-col bg-slate-950 text-slate-100 overflow-y-auto p-4 space-y-4 pb-24 select-none">
@@ -84,14 +120,17 @@ export const SalesPortalView: React.FC = () => {
               <span>{language === 'bn' ? 'সেলস ও কাস্টমার অনবোর্ডিং পোর্টাল' : 'Sales & Onboarding Portal'}</span>
             </h2>
             <p className="text-[10px] text-slate-400">
-              {language === 'bn' ? 'নতুন জিপিএস ট্র্যাকার সেলস, সিম অ্যাসাইন ও কমিশন লেজার' : 'Device activation & agent commission ledger'}
+              {language === 'bn' ? 'নতুন ট্র্যাকার রিকোয়েস্ট তৈরি ➔ অ্যাডমিন ভেরিফিকেশন ও কমিশন' : 'Sales lead submission & admin approval workflow'}
             </p>
           </div>
         </div>
 
         <div className="text-right">
-          <span className="text-[9.5px] text-slate-400 block">মোট অর্জিত কমিশন</span>
+          <span className="text-[9px] text-slate-400 block">অনুমোদিত কমিশন</span>
           <span className="text-xs font-mono font-black text-emerald-300">৳{totalCommission.toLocaleString()}</span>
+          {pendingCommission > 0 && (
+            <span className="text-[8.5px] text-amber-400 block font-mono">পেন্ডিং: ৳{pendingCommission.toLocaleString()}</span>
+          )}
         </div>
       </div>
 
@@ -102,33 +141,37 @@ export const SalesPortalView: React.FC = () => {
             <Award className="w-4 h-4 text-emerald-400" />
             <span className="text-xs font-bold text-slate-200">চলতি মাসের সেলস টার্গেট (আগস্ট ২০২৬)</span>
           </div>
-          <span className="text-xs font-mono font-bold text-emerald-300">{salesLeads.length} / ১৫ টি সম্পন্ন</span>
+          <span className="text-xs font-mono font-bold text-emerald-300">{salesLeads.filter(l => l.status === 'approved_pushed').length} / ১৫ টি সম্পন্ন</span>
         </div>
 
         <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden">
           <div 
             className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-500" 
-            style={{ width: `${Math.min(100, (salesLeads.length / 15) * 100)}%` }} 
+            style={{ width: `${Math.min(100, (salesLeads.filter(l => l.status === 'approved_pushed').length / 15) * 100)}%` }} 
           />
         </div>
       </div>
 
-      {/* New Customer Onboarding Wizard */}
+      {/* New Customer Onboarding Wizard (Submits to Admin Queue) */}
       <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl space-y-3">
         <div className="flex items-center justify-between border-b border-slate-800 pb-2">
           <div className="flex items-center space-x-2">
             <UserCheck className="w-4 h-4 text-emerald-400" />
             <span className="text-xs font-bold uppercase tracking-wider text-emerald-300">
-              {language === 'bn' ? 'নতুন কাস্টমার অনবোর্ডিং ও ট্র্যাকার অ্যাক্টিভেশন' : 'Onboard New Customer & Activate GPS'}
+              {language === 'bn' ? '১. নতুন কাস্টমার অনবোর্ডিং ফর্ম (Submit for Approval)' : 'Onboard Customer'}
             </span>
           </div>
           {onboardSuccess && (
-            <span className="text-[10px] text-emerald-400 font-bold flex items-center space-x-1">
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>সফলভাবে অ্যাক্টিভ হয়েছে!</span>
+            <span className="text-[10px] text-amber-300 bg-amber-950/60 px-2 py-0.5 rounded-full border border-amber-500/40 font-bold flex items-center space-x-1 animate-pulse">
+              <Clock className="w-3.5 h-3.5" />
+              <span>অ্যাডমিন অ্যাপ্রুভালের জন্য জমা হয়েছে!</span>
             </span>
           )}
         </div>
+
+        <p className="text-[11px] text-slate-400">
+          💡 <strong>নিরাপত্তা নীতি:</strong> সেলস থেকে সাবমিট করার পর রিকোয়েস্টটি সুপার অ্যাডমিনের প্যানেলে যাবে। অ্যাডমিন ভেরিফাই করে অ্যাপ্রুভ দিলেই ডিভাইসটি স্বয়ংক্রিয়ভাবে জিপিএস সার্ভারে লাইভ হবে।
+        </p>
 
         <form onSubmit={handleOnboardSubmit} className="space-y-3 text-xs">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
@@ -244,16 +287,16 @@ export const SalesPortalView: React.FC = () => {
             type="submit"
             className="w-full py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/30 transition active:scale-95 flex items-center justify-center space-x-1.5"
           >
-            <Plus className="w-4 h-4" />
-            <span>{language === 'bn' ? 'অনবোর্ডিং সম্পন্ন ও ডিভাইস অ্যাক্টিভ করুন' : 'Complete Onboarding & Activate'}</span>
+            <Send className="w-4 h-4" />
+            <span>{language === 'bn' ? 'অ্যাডমিন ভেরিফিকেশন ও অ্যাপ্রুভালের জন্য পাঠান' : 'Submit to Admin for Server Push'}</span>
           </button>
         </form>
       </div>
 
-      {/* Agent Sales Log */}
+      {/* Agent Sales Log & Status Tracker */}
       <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl space-y-3">
         <span className="text-xs font-bold uppercase tracking-wider text-slate-300 block">
-          সাম্প্রতিক সফল অনবোর্ডিং ও কমিশন হিস্ট্রি ({salesLeads.length})
+          ২. সেলস হিস্ট্রি ও অ্যাডমিন অ্যাপ্রুভাল স্ট্যাটাস ({salesLeads.length})
         </span>
 
         <div className="space-y-2">
@@ -270,8 +313,16 @@ export const SalesPortalView: React.FC = () => {
               </div>
 
               <div className="text-right">
-                <div className="text-emerald-400 font-mono font-extrabold">+৳{lead.commission}</div>
-                <div className="text-[9px] text-slate-500">{lead.date}</div>
+                <div className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                  lead.status === 'approved_pushed' ? 'bg-emerald-950 text-emerald-300 border-emerald-700' :
+                  lead.status === 'rejected' ? 'bg-rose-950 text-rose-300 border-rose-700' :
+                  'bg-amber-950 text-amber-300 border-amber-700 animate-pulse'
+                }`}>
+                  {lead.status === 'approved_pushed' ? '🟢 সার্ভারে লাইভ' :
+                   lead.status === 'rejected' ? '🔴 বাতিলকৃত' :
+                   '🟡 পেন্ডিং অ্যাপ্রুভাল'}
+                </div>
+                <div className="text-emerald-400 font-mono font-extrabold text-xs mt-1">+৳{lead.commission}</div>
               </div>
             </div>
           ))}

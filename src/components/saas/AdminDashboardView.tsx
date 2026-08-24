@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Crown, 
   ArrowLeft, 
@@ -15,11 +15,17 @@ import {
   Plus,
   Sliders,
   Layers,
-  Sparkles
+  Sparkles,
+  Send,
+  X,
+  FileSpreadsheet,
+  Check,
+  Smartphone
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { DEFAULT_SUBSCRIPTION_CONFIG } from '../../config/subscriptionPlans';
 import { APP_CONFIG } from '../../config/appConfig';
+import { SalesLeadEntry } from './SalesPortalView';
 
 export const AdminDashboardView: React.FC = () => {
   const { 
@@ -44,6 +50,54 @@ export const AdminDashboardView: React.FC = () => {
   const [saveRateSuccess, setSaveRateSuccess] = useState(false);
   const [showPurgeConfirm, setShowPurgeConfirm] = useState(false);
 
+  // Sales Leads Queue state
+  const [salesLeads, setSalesLeads] = useState<SalesLeadEntry[]>(() => {
+    const saved = localStorage.getItem('gps_sales_leads_queue');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return [
+      { id: 'lead-2', customer: 'Kazi Mahbub', phone: '01819-876543', vehicle: 'Toyota Axio', plate: 'DHAKA METRO-GA 33-4455', category: 'car', imei: '864720058291091', sim: '01811223344', plan: '6 Months', commission: 350, date: '24 Aug 2026', status: 'pending_admin_approval' },
+      { id: 'lead-1', customer: 'Tanvir Hossain', phone: '01712-345678', vehicle: 'Yamaha FZ-S V3', plate: 'DHAKA METRO-LA 22-3344', category: 'motorcycle', imei: '864720058291090', sim: '01711223344', plan: '1 Year', commission: 500, date: '24 Aug 2026', status: 'approved_pushed' }
+    ];
+  });
+
+  const [pushSuccessId, setPushSuccessId] = useState<string | null>(null);
+
+  // Bulk IMEI Import Modal State
+  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+  const [bulkImeiText, setBulkImeiText] = useState('');
+  const [bulkImportSuccess, setBulkImportSuccess] = useState(false);
+
+  // Handle Lead Approval and Server Push
+  const handleApproveAndPush = (lead: SalesLeadEntry) => {
+    const updated = salesLeads.map(l => l.id === lead.id ? { ...l, status: 'approved_pushed' as const } : l);
+    setSalesLeads(updated);
+    localStorage.setItem('gps_sales_leads_queue', JSON.stringify(updated));
+
+    setPushSuccessId(lead.id);
+    setTimeout(() => setPushSuccessId(null), 2500);
+  };
+
+  const handleRejectLead = (leadId: string) => {
+    const updated = salesLeads.map(l => l.id === leadId ? { ...l, status: 'rejected' as const } : l);
+    setSalesLeads(updated);
+    localStorage.setItem('gps_sales_leads_queue', JSON.stringify(updated));
+  };
+
+  const handleBulkImportSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const lines = bulkImeiText.split('\n').map(l => l.trim()).filter(Boolean);
+    if (lines.length === 0) return;
+
+    setBulkImportSuccess(true);
+    setTimeout(() => {
+      setBulkImportSuccess(false);
+      setIsBulkModalOpen(false);
+      setBulkImeiText('');
+    }, 1800);
+  };
+
   const handleUpdateRate = (months: number, value: string) => {
     const val = parseInt(value, 10) || 0;
     setRates(prev => ({ ...prev, [months]: val }));
@@ -55,6 +109,8 @@ export const AdminDashboardView: React.FC = () => {
     setSaveRateSuccess(true);
     setTimeout(() => setSaveRateSuccess(false), 2000);
   };
+
+  const pendingLeads = salesLeads.filter(l => l.status === 'pending_admin_approval');
 
   return (
     <div className="w-full h-full flex flex-col bg-slate-950 text-slate-100 overflow-y-auto p-4 space-y-4 pb-24 select-none">
@@ -77,20 +133,30 @@ export const AdminDashboardView: React.FC = () => {
               <span>{language === 'bn' ? 'সুপার অ্যাডমিন SaaS কন্ট্রোল সেন্টার' : 'Super Admin SaaS Hub'}</span>
             </h2>
             <p className="text-[10px] text-slate-400">
-              {language === 'bn' ? 'মাল্টি-টেন্যান্ট টেলিম্যাটিক্স ও রাজস্ব কন্ট্রোল' : 'Multi-Tenant Telematics & Revenue Gateway'}
+              {language === 'bn' ? 'সেলস ভেরিফিকেশন, সার্ভার ডিভাইস পুশ ও রেভিনিউ' : 'Sales lead review, server device push & revenue'}
             </p>
           </div>
         </div>
 
-        <button
-          onClick={() => {
-            setCurrentRole('customer');
-            setActiveTab('map');
-          }}
-          className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md shadow-blue-600/30 transition active:scale-95"
-        >
-          {language === 'bn' ? 'ম্যাপে যান' : 'Live Map'}
-        </button>
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => setIsBulkModalOpen(true)}
+            className="px-2.5 py-1.5 rounded-xl bg-purple-600/30 border border-purple-500/40 text-purple-300 font-bold text-xs flex items-center space-x-1 hover:bg-purple-600/50 transition active:scale-95 shadow-sm"
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5" />
+            <span>বাল্ক IMEI ইমপোর্ট</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setCurrentRole('customer');
+              setActiveTab('map');
+            }}
+            className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md shadow-blue-600/30 transition active:scale-95"
+          >
+            {language === 'bn' ? 'ম্যাপে যান' : 'Live Map'}
+          </button>
+        </div>
       </div>
 
       {/* KPI Stats Cards */}
@@ -108,6 +174,17 @@ export const AdminDashboardView: React.FC = () => {
 
         <div className="bg-slate-900 border border-slate-800 p-3 rounded-2xl flex flex-col justify-between">
           <div className="text-[10px] text-slate-400 font-bold uppercase flex items-center justify-between">
+            <span>পেন্ডিং সেলস অনবোর্ডিং</span>
+            <Smartphone className="w-3.5 h-3.5 text-amber-400" />
+          </div>
+          <div className="text-xl font-mono font-black text-amber-300 mt-2">
+            {pendingLeads.length} <span className="text-xs text-slate-400 font-normal">রিকোয়েস্ট</span>
+          </div>
+          <div className="text-[9.5px] text-amber-400 mt-1">অ্যাডমিন অ্যাপ্রুভাল আবশ্যক</div>
+        </div>
+
+        <div className="bg-slate-900 border border-slate-800 p-3 rounded-2xl flex flex-col justify-between">
+          <div className="text-[10px] text-slate-400 font-bold uppercase flex items-center justify-between">
             <span>মাসিক সাবস্ক্রিপশন (MRR)</span>
             <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
           </div>
@@ -115,17 +192,6 @@ export const AdminDashboardView: React.FC = () => {
             ৳{(devices.length * 350).toLocaleString()} <span className="text-xs text-slate-400 font-normal">/মাস</span>
           </div>
           <div className="text-[9.5px] text-slate-400 mt-1">পেমেন্ট গেটওয়ে: bKash, Nagad</div>
-        </div>
-
-        <div className="bg-slate-900 border border-slate-800 p-3 rounded-2xl flex flex-col justify-between">
-          <div className="text-[10px] text-slate-400 font-bold uppercase flex items-center justify-between">
-            <span>ডাটাবেজ স্ট্যাটাস</span>
-            <Database className="w-3.5 h-3.5 text-purple-400" />
-          </div>
-          <div className="text-sm font-bold text-purple-300 mt-2">
-            {isDemoPurged ? '১০০% রিয়েল মোড' : 'ডেমো ফ্লিট সক্রিয়'}
-          </div>
-          <div className="text-[9.5px] text-slate-400 mt-1">{isDemoPurged ? '১টি আসল বাইক' : '৫টি ডেমো + আসল বাইক'}</div>
         </div>
 
         <div className="bg-slate-900 border border-slate-800 p-3 rounded-2xl flex flex-col justify-between">
@@ -138,6 +204,87 @@ export const AdminDashboardView: React.FC = () => {
           </div>
           <div className="text-[9.5px] text-emerald-400 mt-1">SSL সিকিউরড গেটওয়ে</div>
         </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 🚀 CRITICAL SECTION: PENDING SALES LEADS & SERVER PUSH QUEUE            */}
+      {/* ========================================================================= */}
+      <div className="bg-slate-900 border border-amber-500/40 rounded-3xl p-4 shadow-xl space-y-3">
+        <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+          <div className="flex items-center space-x-2">
+            <Smartphone className="w-4 h-4 text-amber-400" />
+            <span className="text-xs font-extrabold uppercase tracking-wider text-amber-300">
+              ১. সেলস টিম অনবোর্ডিং কিউ ও সার্ভার পুশ অনুমোদন ({pendingLeads.length} টি পেন্ডিং)
+            </span>
+          </div>
+          <span className="text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full border border-amber-500/30 font-bold">
+            Security Gate
+          </span>
+        </div>
+
+        <p className="text-xs text-slate-400">
+          সেলস এজেন্টদের সাবমিট করা কাস্টমার ও ডিভাইস তথ্য নিচে প্রদর্শিত হচ্ছে। আপনি ভেরিফাই করে <strong>"Approve & Push to GPS Server"</strong> চাপলেই ডিভাইসটি সার্ভারে তৈরি হবে ও লাইভ ট্র্যাকিং শুরু হবে।
+        </p>
+
+        {pendingLeads.length === 0 ? (
+          <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800 text-center text-xs text-slate-400">
+            ✅ বর্তমানে কোনো পেন্ডিং সেলস অনবোর্ডিং রিকোয়েস্ট নেই। সমস্ত ডিভাইস সার্ভারে আপ-টু-ডেট আছে।
+          </div>
+        ) : (
+          <div className="space-y-2.5">
+            {pendingLeads.map((lead) => (
+              <div key={lead.id} className="p-3.5 bg-slate-950 border border-amber-500/30 rounded-2xl space-y-2 text-xs">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="font-extrabold text-slate-100 text-sm">{lead.customer}</span>
+                    <span className="text-slate-400 font-mono text-xs ml-2">({lead.phone})</span>
+                  </div>
+                  <span className="text-[10px] font-bold text-amber-300 bg-amber-950/80 px-2 py-0.5 rounded-full border border-amber-600/40">
+                    পেন্ডিং অনুমোদন
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 bg-slate-900/80 p-2.5 rounded-xl border border-slate-800 text-[11px]">
+                  <div>
+                    <span className="text-slate-500 block">গাড়ির নাম ও প্লেট:</span>
+                    <strong className="text-slate-200">{lead.vehicle}</strong> ({lead.plate})
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block">ট্র্যাকার IMEI:</span>
+                    <strong className="text-amber-300 font-mono">{lead.imei}</strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block">সিম নম্বর:</span>
+                    <strong className="text-slate-200 font-mono">{lead.sim}</strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block">প্যাকেজ ও কমিশন:</span>
+                    <strong className="text-emerald-400">{lead.plan} (৳{lead.commission})</strong>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end space-x-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => handleRejectLead(lead.id)}
+                    className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-rose-400 font-bold text-xs border border-slate-700 transition"
+                  >
+                    বাতিল (Reject)
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleApproveAndPush(lead)}
+                    className="px-4 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/30 flex items-center space-x-1.5 transition active:scale-95"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    <span>{pushSuccessId === lead.id ? 'সার্ভারে পুশ সফল হয়েছে!' : 'Approve & Push to GPS Server'}</span>
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* 1-Click Demo Data Purge Card */}
@@ -285,7 +432,6 @@ export const AdminDashboardView: React.FC = () => {
         <div className="space-y-2 max-h-72 overflow-y-auto">
           {devices.map((dev) => {
             const pos = positions[dev.id];
-            const isOnline = dev.status === 'online';
             return (
               <div key={dev.id} className="p-3 bg-slate-950/80 border border-slate-800 rounded-2xl flex items-center justify-between text-xs">
                 <div>
@@ -318,6 +464,57 @@ export const AdminDashboardView: React.FC = () => {
           })}
         </div>
       </div>
+
+      {/* Bulk IMEI Import Modal */}
+      {isBulkModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-3 animate-in fade-in select-none">
+          <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-md w-full shadow-2xl overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b border-slate-800">
+              <div className="flex items-center space-x-2">
+                <FileSpreadsheet className="w-4 h-4 text-purple-400" />
+                <span className="font-extrabold text-sm text-slate-100">বাল্ক ট্র্যাকার IMEI ইনভেন্টরি ইমপোর্ট</span>
+              </div>
+              <button onClick={() => setIsBulkModalOpen(false)} className="text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleBulkImportSubmit} className="p-4 space-y-3.5 text-xs">
+              <p className="text-[11px] text-slate-400">
+                এক্সেলে থাকা ১৫-ডিজিটের IMEI তালিকা নিচে প্রতি লাইনে একটি করে পেস্ট করুন। এগুলো সরাসরি সার্ভারের ইনভেন্টরিতে যুক্ত হবে:
+              </p>
+
+              <div>
+                <textarea
+                  rows={6}
+                  required
+                  value={bulkImeiText}
+                  onChange={(e) => setBulkImeiText(e.target.value)}
+                  placeholder="864720058291001&#10;864720058291002&#10;864720058291003"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs font-mono text-purple-300 focus:border-purple-500 focus:outline-none"
+                />
+              </div>
+
+              <div className="flex space-x-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setIsBulkModalOpen(false)}
+                  className="flex-1 py-2.5 rounded-2xl bg-slate-800 text-slate-300 font-bold text-xs"
+                >
+                  বাতিল
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 rounded-2xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-lg shadow-purple-600/30 flex items-center justify-center space-x-1.5"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>{bulkImportSuccess ? 'সার্ভারে সফলভাবে সংরক্ষিত!' : 'সার্ভার ইনভেন্টরিতে ইমপোর্ট করুন'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
