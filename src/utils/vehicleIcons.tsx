@@ -51,6 +51,24 @@ export const getVehicleMarkerSvg = (type?: VehicleType, color: string = '#ef4444
         <circle cx="20" cy="5" r="2" fill="#fef08a" />
       </svg>`;
 
+    case 'auto':
+      return `<svg viewBox="0 0 40 40" width="34" height="34" class="drop-shadow-md">
+        <!-- 3 Wheels -->
+        <rect x="9" y="29" width="3.5" height="8" rx="1.5" fill="#0f172a" />
+        <rect x="27.5" y="29" width="3.5" height="8" rx="1.5" fill="#0f172a" />
+        <rect x="18" y="3" width="4" height="8" rx="2" fill="#0f172a" />
+        <!-- Body Canopy Shell (Yellow/Amber Auto Rickshaw) -->
+        <path d="M11 17 L29 17 L30 33 L10 33 Z" fill="#f59e0b" stroke="#fbbf24" stroke-width="1" />
+        <!-- Striped Green Hood -->
+        <path d="M12 16 L28 16 L20 7 Z" fill="#16a34a" />
+        <!-- Canopy Roof Stripe -->
+        <rect x="13" y="18" width="14" height="3" rx="1" fill="#78350f" opacity="0.7" />
+        <!-- Passenger Window -->
+        <rect x="13" y="21" width="14" height="8" rx="1.5" fill="#38bdf8" opacity="0.6" />
+        <!-- Front Light -->
+        <circle cx="20" cy="6" r="2" fill="#fef08a" />
+      </svg>`;
+
     case 'ambulance':
       return `<svg viewBox="0 0 40 40" width="34" height="34" class="drop-shadow-md">
         <rect x="11" y="5" width="18" height="31" rx="4" fill="#f8fafc" stroke="#ef4444" stroke-width="1.5" />
@@ -136,6 +154,16 @@ export const VehicleIcon: React.FC<{ type?: VehicleType; className?: string }> =
           <path d="M6 24a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm20 0a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm-17-7V9l6-4h8l5 5v7H9zm3-6v4h5v-4h-5zm7 0v4h4.5l-2-4H19zm-8 8h17v2H11v-2z"/>
         </svg>
       );
+
+    case 'auto':
+      return (
+        <svg viewBox="0 0 32 32" className={className} fill="currentColor">
+          {/* Auto Rickshaw 3-Wheeler Icon */}
+          <path d="M5 23a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5zm22 0a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5zm-19-6V11l5-5h12l3 3.5V17H8zm4-5v3h4v-3h-4zm6 0v3h5l-1.5-3H18zm-7 7h16v2H11v-2z"/>
+          <circle cx="16" cy="5" r="1.5"/>
+        </svg>
+      );
+
 
     case 'pickup':
       return (

@@ -4,23 +4,11 @@ import {
   ArrowLeft, 
   UserPlus, 
   CheckCircle2, 
-  DollarSign, 
-  Search, 
-  Clock, 
-  ShieldCheck, 
-  Plus, 
-  Phone, 
   Tag, 
-  Layers, 
   Scan, 
   Camera, 
   X, 
-  ChevronRight, 
-  Sparkles, 
-  Info,
-  Car,
-  Bike,
-  Truck
+  Sparkles
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { VehicleType } from '../../types/traccar';
@@ -146,6 +134,66 @@ const VEHICLE_CATALOG: Record<string, {
         models: [
           { name: 'Bolero Maxi Truck', versions: ['Plus Power Steering', 'City Pickup'] },
           { name: 'Maxximo HD', versions: ['8 Wheeler Cargo', 'Mini Van'] }
+        ]
+      }
+    ]
+  },
+  ambulance: {
+    brands: [
+      {
+        brand: 'Toyota',
+        models: [
+          { name: 'HiAce High-Roof Ambulance', versions: ['2TR-FE Petrol (CNG Conv)', 'Diesel Turbo High-Deck', '1KD-FTV Semi-ICU'] },
+          { name: 'Land Cruiser Prado Paramedic', versions: ['4WD Medical 150 Series'] }
+        ]
+      },
+      {
+        brand: 'Mitsubishi',
+        models: [
+          { name: 'Rosa Minibus Ambulance', versions: ['BE64DG High Roof ICU', 'Standard Stretcher'] }
+        ]
+      },
+      {
+        brand: 'Tata',
+        models: [
+          { name: 'Winger Ambulance', versions: ['AC High Roof ICU', 'Basic Life Support (BLS)'] },
+          { name: 'Sumo Gold Ambulance', versions: ['EX Edition Patient Transport'] }
+        ]
+      },
+      {
+        brand: 'Mahindra',
+        models: [
+          { name: 'Supro Ambulance', versions: ['Maxi Van ALS', 'Basic Patient Transport'] }
+        ]
+      }
+    ]
+  },
+  auto: {
+    brands: [
+      {
+        brand: 'Bajaj',
+        models: [
+          { name: 'RE Compact 4S CNG', versions: ['4-Stroke দিওয়ালি অটো', 'Passenger 4-Stroke', 'Cargo/Microbus'] },
+          { name: 'RE Maxima Z', versions: ['CNG Passenger 9 Seater', 'Cargo Hauler Maxima'] }
+        ]
+      },
+      {
+        brand: 'Piaggio',
+        models: [
+          { name: 'Ape City CNG', versions: ['3-Wheeler Passenger 6 Seat', 'Cargo Flat Bed'] },
+          { name: 'Ape Xtra Dlx', versions: ['DLX CNG Passenger'] }
+        ]
+      },
+      {
+        brand: 'TVS',
+        models: [
+          { name: 'King Deluxe', versions: ['4-Stroke CNG 8 Seat', 'TVS King Duramax'] }
+        ]
+      },
+      {
+        brand: 'Mahindra',
+        models: [
+          { name: 'Alfa CNG', versions: ['Passenger 6-Seat', 'Load Carrier'] }
         ]
       }
     ]
@@ -423,10 +471,12 @@ export const SalesPortalView: React.FC = () => {
             {/* Category Pills */}
             <div className="flex flex-wrap gap-1.5">
               {[
-                { id: 'motorcycle', label: '🏍️ বাইক', icon: Bike },
-                { id: 'car', label: '🚗 কার / সিডান', icon: Car },
-                { id: 'cng', label: '🛺 সিএনজি', icon: Car },
-                { id: 'truck', label: '🚚 ট্রাক / পিকআপ', icon: Truck }
+                { id: 'motorcycle', label: '🏍️ বাইক' },
+                { id: 'car', label: '🚗 কার / সিডান' },
+                { id: 'cng', label: '🛺 সিএনজি (৩চাকা)' },
+                { id: 'auto', label: '🛺 অটোরিকশা' },
+                { id: 'truck', label: '🚚 ট্রাক / পিকআপ' },
+                { id: 'ambulance', label: '🚑 অ্যাম্বুলেন্স' }
               ].map(cat => (
                 <button
                   type="button"
@@ -434,7 +484,9 @@ export const SalesPortalView: React.FC = () => {
                   onClick={() => handleCategoryChange(cat.id as VehicleType)}
                   className={`px-2.5 py-1 rounded-xl text-xs font-bold transition ${
                     vehicleCategory === cat.id 
-                      ? 'bg-blue-600 text-white shadow-md' 
+                      ? cat.id === 'ambulance' ? 'bg-rose-600 text-white shadow-md' 
+                        : cat.id === 'auto' ? 'bg-amber-600 text-white shadow-md'
+                        : 'bg-blue-600 text-white shadow-md' 
                       : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white'
                   }`}
                 >

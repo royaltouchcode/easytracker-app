@@ -43,7 +43,13 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
     return localStorage.getItem(`gps_subscription_cancelled_${selectedDevice?.id}`) === 'true';
   });
 
+  // Show subscription card ONLY if user also has 'customer' role in their approvedRoles
+  // (i.e. they are also a tracked GPS customer themselves, not just a staff member)
+  const isAdmin = user?.administrator || user?.role === 'super_admin';
+  const isCustomerUser = isAdmin || (user?.approvedRoles?.includes('customer') ?? false);
+
   if (!isOpen) return null;
+
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-3 animate-in fade-in duration-150 select-none overflow-y-auto">
@@ -76,70 +82,72 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
         {/* Modal Body */}
         <div className="p-4 space-y-3.5 overflow-y-auto">
           
-          {/* Subscription & Billing Card */}
-          <div className="bg-gradient-to-br from-indigo-950/70 via-slate-900 to-slate-900 border border-indigo-500/40 rounded-2xl p-3.5 shadow-xl space-y-2.5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-1.5 text-indigo-300">
-                <CreditCard className="w-4 h-4 text-indigo-400" />
-                <span className="text-xs font-bold uppercase tracking-wider">
-                  {language === 'bn' ? 'সাবস্ক্রিপশন প্যাকেজ ও ফি' : 'Subscription Plan & Fee'}
-                </span>
-              </div>
-              {isCancelled ? (
-                <span className="px-2 py-0.5 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold text-[9px]">
-                  {language === 'bn' ? 'বাতিলকৃত (মেয়াদ চলমান)' : 'Cancelled (Active till expiry)'}
-                </span>
-              ) : (
-                <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-extrabold text-[9.5px] flex items-center space-x-1">
-                  <CheckCircle2 className="w-2.5 h-2.5" />
-                  <span>{language === 'bn' ? 'সক্রিয় (Active)' : 'Active'}</span>
-                </span>
-              )}
-            </div>
-
-            <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-2.5 space-y-1.5">
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-slate-400">{language === 'bn' ? 'প্যাকেজ নাম:' : 'Plan Name:'}</span>
-                <span className="font-bold text-slate-100">লাইভ জিপিএস প্রিমিয়াম</span>
+          {/* Subscription & Billing Card — only for users who are also customers */}
+          {isCustomerUser && (
+            <div className="bg-gradient-to-br from-indigo-950/70 via-slate-900 to-slate-900 border border-indigo-500/40 rounded-2xl p-3.5 shadow-xl space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-1.5 text-indigo-300">
+                  <CreditCard className="w-4 h-4 text-indigo-400" />
+                  <span className="text-xs font-bold uppercase tracking-wider">
+                    {language === 'bn' ? 'সাবস্ক্রিপশন প্যাকেজ ও ফি' : 'Subscription Plan & Fee'}
+                  </span>
+                </div>
+                {isCancelled ? (
+                  <span className="px-2 py-0.5 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold text-[9px]">
+                    {language === 'bn' ? 'বাতিলকৃত (মেয়াদ চলমান)' : 'Cancelled (Active till expiry)'}
+                  </span>
+                ) : (
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-extrabold text-[9.5px] flex items-center space-x-1">
+                    <CheckCircle2 className="w-2.5 h-2.5" />
+                    <span>{language === 'bn' ? 'সক্রিয় (Active)' : 'Active'}</span>
+                  </span>
+                )}
               </div>
 
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-slate-400">{language === 'bn' ? 'সাবস্ক্রিপশন রেট:' : 'Plan Rate:'}</span>
-                <span className="font-bold font-mono text-emerald-400 text-sm">৳ ৩৫০ / মাস <span className="text-[10px] text-slate-400 font-sans">(বাৎসরিক ৳ ৩,৫০০)</span></span>
+              <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-2.5 space-y-1.5">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-400">{language === 'bn' ? 'প্যাকেজ নাম:' : 'Plan Name:'}</span>
+                  <span className="font-bold text-slate-100">লাইভ জিপিএস প্রিমিয়াম</span>
+                </div>
+
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-400">{language === 'bn' ? 'সাবস্ক্রিপশন রেট:' : 'Plan Rate:'}</span>
+                  <span className="font-bold font-mono text-emerald-400 text-sm">৳ ৩৫০ / মাস <span className="text-[10px] text-slate-400 font-sans">(বাৎসরিক ৳ ৩,৫০০)</span></span>
+                </div>
+
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-400">{language === 'bn' ? 'মেয়াদ উত্তীর্ণের তারিখ:' : 'Expiry Date:'}</span>
+                  <span className="font-bold text-amber-300 font-mono">৩১ ডিসেম্বর ২০২৬</span>
+                </div>
+
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-400">{language === 'bn' ? 'সংযুক্ত যানবাহন:' : 'Linked Vehicles:'}</span>
+                  <span className="font-bold text-blue-300 font-mono">{devices.length} টি</span>
+                </div>
               </div>
 
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-slate-400">{language === 'bn' ? 'মেয়াদ উত্তীর্ণের তারিখ:' : 'Expiry Date:'}</span>
-                <span className="font-bold text-amber-300 font-mono">৩১ ডিসেম্বর ২০২৬</span>
-              </div>
-
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-slate-400">{language === 'bn' ? 'সংযুক্ত যানবাহন:' : 'Linked Vehicles:'}</span>
-                <span className="font-bold text-blue-300 font-mono">{devices.length} টি</span>
-              </div>
-            </div>
-
-            {/* Action Buttons: Renew & Cancel */}
-            <div className="space-y-1.5 pt-1">
-              <button
-                onClick={() => setIsRenewOpen(true)}
-                className="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs flex items-center justify-center space-x-1.5 shadow-md shadow-emerald-600/20 transition active:scale-95"
-              >
-                <CreditCard className="w-4 h-4" />
-                <span>{isCancelled ? (language === 'bn' ? '🔄 পুনরায় সাবস্ক্রাইব করুন' : '🔄 Resubscribe Plan') : (language === 'bn' ? '💳 সাবস্ক্রিপশন রিনিউ করুন (Renew)' : '💳 Renew Subscription')}</span>
-              </button>
-
-              {!isCancelled && (
+              {/* Action Buttons: Renew & Cancel */}
+              <div className="space-y-1.5 pt-1">
                 <button
-                  onClick={() => setIsCancelOpen(true)}
-                  className="w-full py-2 px-3 rounded-xl bg-slate-800/80 hover:bg-rose-950/30 border border-slate-700 hover:border-rose-500/40 text-slate-400 hover:text-rose-300 font-bold text-[10.5px] flex items-center justify-center space-x-1.5 transition active:scale-95"
+                  onClick={() => setIsRenewOpen(true)}
+                  className="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs flex items-center justify-center space-x-1.5 shadow-md shadow-emerald-600/20 transition active:scale-95"
                 >
-                  <X className="w-3.5 h-3.5" />
-                  <span>{language === 'bn' ? 'সাবস্ক্রিপশন বাতিল করুন (Cancel)' : 'Cancel Subscription'}</span>
+                  <CreditCard className="w-4 h-4" />
+                  <span>{isCancelled ? (language === 'bn' ? '🔄 পুনরায় সাবস্ক্রাইব করুন' : '🔄 Resubscribe Plan') : (language === 'bn' ? '💳 সাবস্ক্রিপশন রিনিউ করুন (Renew)' : '💳 Renew Subscription')}</span>
                 </button>
-              )}
+
+                {!isCancelled && (
+                  <button
+                    onClick={() => setIsCancelOpen(true)}
+                    className="w-full py-2 px-3 rounded-xl bg-slate-800/80 hover:bg-rose-950/30 border border-slate-700 hover:border-rose-500/40 text-slate-400 hover:text-rose-300 font-bold text-[10.5px] flex items-center justify-center space-x-1.5 transition active:scale-95"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                    <span>{language === 'bn' ? 'সাবস্ক্রিপশন বাতিল করুন (Cancel)' : 'Cancel Subscription'}</span>
+                  </button>
+                )}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Security PIN Management */}
           <div className="bg-slate-800/60 border border-slate-700/80 rounded-2xl p-3 space-y-2">

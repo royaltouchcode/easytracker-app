@@ -6,6 +6,7 @@ export type VehicleType =
   | 'truck' 
   | 'bus' 
   | 'cng' 
+  | 'auto'
   | 'pickup' 
   | 'microbus' 
   | 'bicycle' 

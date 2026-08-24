@@ -26,6 +26,8 @@ import { useApp } from '../../context/AppContext';
 import { DEFAULT_SUBSCRIPTION_CONFIG } from '../../config/subscriptionPlans';
 import { APP_CONFIG } from '../../config/appConfig';
 import { SalesLeadEntry } from './SalesPortalView';
+import { VehicleCatalogManager } from './VehicleCatalogManager';
+
 
 export const AdminDashboardView: React.FC = () => {
   const { 
@@ -515,6 +517,10 @@ export const AdminDashboardView: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* ===== Vehicle Catalog Manager (Admin / Super Admin Only) ===== */}
+      <VehicleCatalogManager />
+
     </div>
   );
 };
