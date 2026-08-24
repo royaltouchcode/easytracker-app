@@ -35,6 +35,7 @@ import { VehicleCatalogManager } from './VehicleCatalogManager';
 import { WarrantyAdminManager } from './WarrantyAdminManager';
 import { PartnerOnboardingManager } from './PartnerOnboardingManager';
 import { UserAccessManager } from './UserAccessManager';
+import { ServiceRateCardManager } from './ServiceRateCardManager';
 
 export const AdminDashboardView: React.FC = () => {
   const { 
@@ -676,6 +677,9 @@ export const AdminDashboardView: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* ===== Out-of-Warranty Rate-Card & Spare Parts Pricing Hub ===== */}
+      <ServiceRateCardManager />
 
       {/* ===== Staff & User Access Control Hub (RBAC Permissions) ===== */}
       <UserAccessManager />

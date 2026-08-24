@@ -25,7 +25,8 @@ import { PrivacyPolicyModal } from '../compliance/PrivacyPolicyModal';
 import { RefundPolicyModal } from '../compliance/RefundPolicyModal';
 import { CustomerWarrantyModal } from '../warranty/CustomerWarrantyModal';
 import { CustomerSupportModal } from '../support/CustomerSupportModal';
-import { Headphones } from 'lucide-react';
+import { PaidServiceBookingModal } from '../support/PaidServiceBookingModal';
+import { Headphones, Receipt } from 'lucide-react';
 
 interface UserProfileModalProps {
   isOpen: boolean;
@@ -43,6 +44,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
   const [isRefundOpen, setIsRefundOpen] = useState(false);
   const [isWarrantyOpen, setIsWarrantyOpen] = useState(false);
   const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
+  const [isPaidServiceOpen, setIsPaidServiceOpen] = useState(false);
 
   const [isCancelled, setIsCancelled] = useState(() => {
     return localStorage.getItem(`gps_subscription_cancelled_${selectedDevice?.id}`) === 'true';
@@ -204,6 +206,31 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
             </div>
           )}
 
+          {/* Paid Maintenance & Rate-Card Hub Card */}
+          {isCustomerUser && (
+            <div className="bg-slate-800/60 border border-amber-500/40 rounded-2xl p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-1.5 text-amber-300">
+                  <Receipt className="w-4 h-4 text-amber-400" />
+                  <span className="text-xs font-bold">
+                    {language === 'bn' ? 'পেইড মেইনটেন্যান্স ও রেট-কার্ড হাব' : 'Paid Maintenance & Rate-Card'}
+                  </span>
+                </div>
+                <span className="text-[9.5px] font-bold text-amber-300 bg-amber-950 px-2 py-0.5 rounded-full border border-amber-700">
+                  স্বচ্ছ রেট
+                </span>
+              </div>
+
+              <button
+                onClick={() => setIsPaidServiceOpen(true)}
+                className="w-full py-2 px-3 rounded-xl bg-amber-600/30 hover:bg-amber-600/50 border border-amber-500/50 text-amber-300 font-bold text-[11px] flex items-center justify-center space-x-1.5 transition active:scale-95 shadow-sm"
+              >
+                <Receipt className="w-3.5 h-3.5" />
+                <span>{language === 'bn' ? 'রেট-কার্ড দেখুন ও জব-কার্ড বুক করুন' : 'View Rates & Book Job-Card'}</span>
+              </button>
+            </div>
+          )}
+
           <div className="bg-slate-800/60 border border-slate-700/80 rounded-2xl p-3 space-y-2">
             <div className="flex items-center space-x-1.5 text-slate-300">
               <KeyRound className="w-4 h-4 text-amber-400" />
@@ -295,6 +322,11 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
       <CustomerSupportModal
         isOpen={isSupportModalOpen}
         onClose={() => setIsSupportModalOpen(false)}
+      />
+
+      <PaidServiceBookingModal
+        isOpen={isPaidServiceOpen}
+        onClose={() => setIsPaidServiceOpen(false)}
       />
     </div>
   );

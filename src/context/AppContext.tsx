@@ -21,7 +21,12 @@ import {
   PartnerServiceTier,
   SupportTicket,
   TicketStatus,
-  TicketPriority
+  TicketPriority,
+  RateCardService,
+  SparePartItem,
+  PaidJobCard,
+  SelectedServiceItem,
+  SelectedSparePartItem
 } from '../types/traccar';
 import { traccarApi } from '../services/traccarApi';
 import { traccarSocket } from '../services/traccarSocket';
@@ -187,6 +192,23 @@ interface AppContextType {
   registerPartner: (entry: Omit<PartnerRegistrationEntry, 'id' | 'status' | 'submittedAt'>) => Promise<PartnerRegistrationEntry>;
   approvePartner: (id: string, serviceTier: PartnerServiceTier, username: string, assignedRoles: SaasRole[], adminNotes?: string) => void;
   rejectPartner: (id: string, reason?: string) => void;
+
+  // Paid Out-of-Warranty Rate-Card & Spare Parts Management
+  rateCardServices: RateCardService[];
+  sparePartsCatalog: SparePartItem[];
+  paidJobCards: PaidJobCard[];
+  platformCommissionPercent: number;
+  setPlatformCommissionPercent: (percent: number) => void;
+  addRateCardService: (service: Omit<RateCardService, 'id'>) => void;
+  updateRateCardService: (id: string, service: Partial<RateCardService>) => void;
+  deleteRateCardService: (id: string) => void;
+  addSparePart: (part: Omit<SparePartItem, 'id'>) => void;
+  updateSparePart: (id: string, part: Partial<SparePartItem>) => void;
+  deleteSparePart: (id: string) => void;
+  createPaidJobCard: (card: Omit<PaidJobCard, 'id' | 'createdAt' | 'jobStatus' | 'platformCommissionAmount' | 'technicianPayoutAmount' | 'totalAmount'>) => Promise<PaidJobCard>;
+  sendJobCardBill: (jobCardId: string, services: SelectedServiceItem[], parts: SelectedSparePartItem[], techNote?: string) => void;
+  confirmJobCardByCustomer: (jobCardId: string, paymentMethod: 'cash_at_center' | 'online_bkash') => void;
+  completeJobCard: (jobCardId: string) => void;
 
   language: Language;
   setLanguage: (lang: Language) => void;
@@ -1194,6 +1216,355 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     });
   };
 
+  // =========================================================================
+  // 🛠️ PAID OUT-OF-WARRANTY RATE-CARD, SPARE PARTS & JOB-CARD ENGINE
+  // =========================================================================
+  const [platformCommissionPercent, setPlatformCommissionPercent] = useState<number>(() => {
+    const saved = localStorage.getItem('gps_platform_commission_percent');
+    return saved ? Number(saved) : 20; // Default 20% commission
+  });
+
+  const [rateCardServices, setRateCardServices] = useState<RateCardService[]>(() => {
+    const saved = localStorage.getItem('gps_rate_card_services');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return [
+      {
+        id: 'srv_reinstall',
+        nameBn: 'ডিভাইস স্থানান্তর ও রি-ইনস্টলেশন (গাড়ি পরিবর্তন)',
+        nameEn: 'Device Re-installation & Vehicle Transfer',
+        category: 'labor',
+        basePrice: 350,
+        warrantyDays: 30,
+        descriptionBn: 'পুরাতন গাড়ি থেকে ট্র্যাকার নিরাপদে খুলে নতুন গাড়িতে ওয়্যারিং সহ ইনস্টলেশন।',
+        isActive: true
+      },
+      {
+        id: 'srv_relay_fix',
+        nameBn: 'ইঞ্জিন কাটঅফ রিলে ওয়্যারিং ও সার্কিট ফিক্স',
+        nameEn: 'Relay Wiring & Circuit Repair',
+        category: 'repair',
+        basePrice: 200,
+        warrantyDays: 30,
+        descriptionBn: 'বাইক বা গাড়ির ইগনিশন কাটঅফ ওয়্যারিং ফল্ট টেস্টিং ও রিলে সংযোগ মেরামত।',
+        isActive: true
+      },
+      {
+        id: 'srv_full_diag',
+        nameBn: 'জেনারেল হেলথ চেক ও ভোল্টেজ ডায়াগনস্টিক',
+        nameEn: 'General Health Check & Diagnostic',
+        category: 'diagnostic',
+        basePrice: 100,
+        warrantyDays: 7,
+        descriptionBn: 'মাদারবোর্ড, জিএসএম সিগন্যাল, স্যাটেলাইট রিসিভার ও অল্টারনেটর ভোল্টেজ টেস্ট।',
+        isActive: true
+      },
+      {
+        id: 'srv_home_visit',
+        nameBn: 'অন-সাইট হোম সার্ভিস চার্জ (টেকনিশিয়ান ভিজিট ফি)',
+        nameEn: 'On-Site Home Service Visit Fee',
+        category: 'onsite',
+        basePrice: 200,
+        warrantyDays: 0,
+        descriptionBn: 'কাস্টমারের বাসা বা অফিসে অভিজ্ঞ টেকনিশিয়ান প্রেরণের অতিরিক্ত ভিজিট ফি।',
+        isActive: true
+      },
+      {
+        id: 'srv_ic_repair',
+        nameBn: 'মাদারবোর্ড ও আইসি সার্কিট রিপেয়ারিং',
+        nameEn: 'Motherboard IC Circuit Repair',
+        category: 'repair',
+        basePrice: 500,
+        warrantyDays: 60,
+        descriptionBn: 'পাওয়ার আইসি রিস্টার্ট লুপ বা রিভার্স পোলারিটি ড্যামেজ সার্কিট মাইক্রো-সোল্ডারিং।',
+        isActive: true
+      },
+      {
+        id: 'srv_sim_service',
+        nameBn: 'সিম রিপ্লেসমেন্ট ও নেটওয়ার্ক কনফিগারেশন',
+        nameEn: 'SIM Replacement & Network Config',
+        category: 'diagnostic',
+        basePrice: 150,
+        warrantyDays: 30,
+        descriptionBn: 'নতুন টেলিমেটিক্স সিম ইনসার্ট ও Traccar APN / IP পোর্ট কনফিগারেশন।',
+        isActive: true
+      }
+    ];
+  });
+
+  const [sparePartsCatalog, setSparePartsCatalog] = useState<SparePartItem[]>(() => {
+    const saved = localStorage.getItem('gps_spare_parts_catalog');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return [
+      {
+        id: 'part_relay_40a',
+        nameBn: '12V 40A হেভি ডিউটি রিলে ও ওয়্যারিং হারনেস',
+        nameEn: '12V 40A Heavy Duty Relay with Harness',
+        partCode: 'RELAY-40A',
+        unitPrice: 200,
+        warrantyDays: 90,
+        stockCount: 95,
+        descriptionBn: 'উচ্চ ক্ষমতা সম্পন্ন ফায়ারপ্রুফ অটোমোবাইল ইগনিশন কাটঅফ রিলে।',
+        isActive: true
+      },
+      {
+        id: 'part_gps_antenna',
+        nameBn: 'হাই-গেইন সিরামিক জিপিএস প্যাচ অ্যান্টেনা',
+        nameEn: 'High-Gain Ceramic GPS Patch Antenna',
+        partCode: 'ANT-GPS-25',
+        unitPrice: 250,
+        warrantyDays: 180,
+        stockCount: 45,
+        descriptionBn: 'বিল্ডিং বা আন্ডারগ্রাউন্ড পার্কিংয়ে দ্রুত স্যাটেলাইট লক পাওয়ার সিরামিক অ্যান্টেনা।',
+        isActive: true
+      },
+      {
+        id: 'part_backup_battery',
+        nameBn: '3.7V 450mAh ইন্টারনাল পলিমার ব্যাটারি',
+        nameEn: '3.7V 450mAh Li-Po Backup Battery',
+        partCode: 'BAT-LIPO-450',
+        unitPrice: 350,
+        warrantyDays: 180,
+        stockCount: 60,
+        descriptionBn: 'গাড়ির মেইন ব্যাটারি সংযোগ বিচ্ছিন্ন হলেও ট্র্যাকার ৮ ঘন্টা চালু রাখার জন্য।',
+        isActive: true
+      },
+      {
+        id: 'part_fuse_cable',
+        nameBn: 'ইন-লাইন ওয়াটারপ্রুফ ফিউজ হোল্ডার ও ক্যাবল',
+        nameEn: 'Waterproof Fuse Holder & Power Cable',
+        partCode: 'CBL-FUSE-WP',
+        unitPrice: 80,
+        warrantyDays: 365,
+        stockCount: 120,
+        descriptionBn: 'শর্ট সার্কিট থেকে ট্র্যাকার ও বাইকের ব্যাটারি সুরক্ষার ফিউজ কেবল।',
+        isActive: true
+      },
+      {
+        id: 'part_m2m_sim',
+        nameBn: 'স্পেশালাইজড টেলিমেটিক্স M2M সিম কার্ড',
+        nameEn: 'Telematics M2M SIM Card',
+        partCode: 'SIM-M2M-ROAM',
+        unitPrice: 100,
+        warrantyDays: 30,
+        stockCount: 50,
+        descriptionBn: 'সারাদেশে নিরবচ্ছিন্ন ডেটা সংযোগের প্রি-কনফিগারড ট্র্যাকিং সিম।',
+        isActive: true
+      }
+    ];
+  });
+
+  const [paidJobCards, setPaidJobCards] = useState<PaidJobCard[]>(() => {
+    const saved = localStorage.getItem('gps_paid_job_cards');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return [
+      {
+        id: 'JC-8821',
+        customerName: 'Rakib Hasan',
+        customerPhone: '01719-887766',
+        vehicleName: 'Bajaj Pulsar 150',
+        plateNumber: 'DM LA 19-8877',
+        deviceId: 1,
+        serviceCenterName: 'মিরপুর সার্ভিস সেন্টার (মিরপুর ১০, ঢাকা)',
+        technicianName: 'সুজন মিয়া',
+        technicianPhone: '01733-445566',
+        selectedServices: [
+          { serviceId: 'srv_relay_fix', nameBn: 'ইঞ্জিন কাটঅফ রিলে ওয়্যারিং ও সার্কিট ফিক্স', price: 200 }
+        ],
+        selectedSpareParts: [
+          { partId: 'part_relay_40a', nameBn: '12V 40A হেভি ডিউটি রিলে ও ওয়্যারিং হারনেস', unitPrice: 200, quantity: 1 }
+        ],
+        totalAmount: 400,
+        platformCommissionPercent: 20,
+        platformCommissionAmount: 80,
+        technicianPayoutAmount: 320,
+        paymentMethod: 'cash_at_center',
+        jobStatus: 'completed',
+        createdAt: '24 Aug 2026',
+        completedAt: '24 Aug 2026',
+        warrantyExpiryDate: '23 Sep 2026',
+        technicianNote: 'পুরাতন নষ্ট রিলে পরিবর্তন করে নতুন 40A রিলে সংযোগ দেওয়া হয়েছে।'
+      }
+    ];
+  });
+
+  const addRateCardService = (service: Omit<RateCardService, 'id'>) => {
+    const newService: RateCardService = {
+      ...service,
+      id: `srv_${Date.now().toString().slice(-4)}`
+    };
+    setRateCardServices(prev => {
+      const next = [...prev, newService];
+      localStorage.setItem('gps_rate_card_services', JSON.stringify(next));
+      return next;
+    });
+    triggerManualAlert('service_reminder', `🛠️ নতুন সার্ভিস যোগ হয়েছে: ${newService.nameBn} (৳${newService.basePrice})`);
+  };
+
+  const updateRateCardService = (id: string, partial: Partial<RateCardService>) => {
+    setRateCardServices(prev => {
+      const next = prev.map(s => s.id === id ? { ...s, ...partial } : s);
+      localStorage.setItem('gps_rate_card_services', JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const deleteRateCardService = (id: string) => {
+    setRateCardServices(prev => {
+      const next = prev.filter(s => s.id !== id);
+      localStorage.setItem('gps_rate_card_services', JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const addSparePart = (part: Omit<SparePartItem, 'id'>) => {
+    const newPart: SparePartItem = {
+      ...part,
+      id: `part_${Date.now().toString().slice(-4)}`
+    };
+    setSparePartsCatalog(prev => {
+      const next = [...prev, newPart];
+      localStorage.setItem('gps_spare_parts_catalog', JSON.stringify(next));
+      return next;
+    });
+    triggerManualAlert('service_reminder', `🔩 নতুন স্পেয়ার পার্ট যোগ হয়েছে: ${newPart.nameBn} (৳${newPart.unitPrice})`);
+  };
+
+  const updateSparePart = (id: string, partial: Partial<SparePartItem>) => {
+    setSparePartsCatalog(prev => {
+      const next = prev.map(p => p.id === id ? { ...p, ...partial } : p);
+      localStorage.setItem('gps_spare_parts_catalog', JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const deleteSparePart = (id: string) => {
+    setSparePartsCatalog(prev => {
+      const next = prev.filter(p => p.id !== id);
+      localStorage.setItem('gps_spare_parts_catalog', JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const createPaidJobCard = async (
+    card: Omit<PaidJobCard, 'id' | 'createdAt' | 'jobStatus' | 'platformCommissionAmount' | 'technicianPayoutAmount' | 'totalAmount'>
+  ): Promise<PaidJobCard> => {
+    const total = card.selectedServices.reduce((sum, s) => sum + s.price, 0) +
+                  card.selectedSpareParts.reduce((sum, p) => sum + (p.unitPrice * p.quantity), 0);
+    
+    const commissionAmount = Math.round(total * (card.platformCommissionPercent / 100));
+    const techPayout = total - commissionAmount;
+
+    const newJobCard: PaidJobCard = {
+      ...card,
+      id: `JC-${Math.floor(1000 + Math.random() * 9000)}`,
+      totalAmount: total,
+      platformCommissionAmount: commissionAmount,
+      technicianPayoutAmount: techPayout,
+      jobStatus: 'created',
+      createdAt: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+    };
+
+    setPaidJobCards(prev => {
+      const next = [newJobCard, ...prev];
+      localStorage.setItem('gps_paid_job_cards', JSON.stringify(next));
+      return next;
+    });
+
+    triggerManualAlert(
+      'service_reminder',
+      `🎫 ডিজিটাল জব-কার্ড তৈরি হয়েছে (ID: ${newJobCard.id})! সার্ভিস পয়েন্ট: ${newJobCard.serviceCenterName}।`
+    );
+
+    return newJobCard;
+  };
+
+  const sendJobCardBill = (
+    jobCardId: string, 
+    services: SelectedServiceItem[], 
+    parts: SelectedSparePartItem[], 
+    techNote?: string
+  ) => {
+    const total = services.reduce((sum, s) => sum + s.price, 0) +
+                  parts.reduce((sum, p) => sum + (p.unitPrice * p.quantity), 0);
+
+    setPaidJobCards(prev => {
+      const next = prev.map(jc => {
+        if (jc.id === jobCardId) {
+          const commissionAmount = Math.round(total * (jc.platformCommissionPercent / 100));
+          return {
+            ...jc,
+            selectedServices: services,
+            selectedSpareParts: parts,
+            totalAmount: total,
+            platformCommissionAmount: commissionAmount,
+            technicianPayoutAmount: total - commissionAmount,
+            technicianNote: techNote || jc.technicianNote,
+            jobStatus: 'bill_sent' as const
+          };
+        }
+        return jc;
+      });
+      localStorage.setItem('gps_paid_job_cards', JSON.stringify(next));
+      return next;
+    });
+
+    triggerManualAlert(
+      'service_reminder',
+      `📲 ডিজিটাল বিল পাঠানো হয়েছে (Job Card: ${jobCardId})! মোট বিল: ৳${total}। কাস্টমার অ্যাপ থেকে ১-ট্যাপে কনফার্ম করবেন।`
+    );
+  };
+
+  const confirmJobCardByCustomer = (jobCardId: string, paymentMethod: 'cash_at_center' | 'online_bkash') => {
+    const expiryDate = new Date(Date.now() + 30 * 86400000).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+
+    setPaidJobCards(prev => {
+      const next = prev.map(jc => {
+        if (jc.id === jobCardId) {
+          return {
+            ...jc,
+            paymentMethod,
+            jobStatus: 'completed' as const,
+            completedAt: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
+            warrantyExpiryDate: expiryDate
+          };
+        }
+        return jc;
+      });
+      localStorage.setItem('gps_paid_job_cards', JSON.stringify(next));
+      return next;
+    });
+
+    triggerManualAlert(
+      'geofenceEnter',
+      `✅ সার্ভিস সম্পন্ন ও ৩০ দিনের গ্যারান্টি সক্রিয় (Job Card: ${jobCardId})! পেমেন্ট মেথড: ${paymentMethod === 'online_bkash' ? 'অনলাইন বিকাশ' : 'সার্ভিস সেন্টারে ক্যাশ'}।`
+    );
+  };
+
+  const completeJobCard = (jobCardId: string) => {
+    const expiryDate = new Date(Date.now() + 30 * 86400000).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    setPaidJobCards(prev => {
+      const next = prev.map(jc => {
+        if (jc.id === jobCardId) {
+          return {
+            ...jc,
+            jobStatus: 'completed' as const,
+            completedAt: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
+            warrantyExpiryDate: expiryDate
+          };
+        }
+        return jc;
+      });
+      localStorage.setItem('gps_paid_job_cards', JSON.stringify(next));
+      return next;
+    });
+  };
+
   const [lastReadTimestamp, setLastReadTimestamp] = useState<number>(() => {
     const saved = localStorage.getItem('gps_last_read_alerts_ts');
     return saved ? Number(saved) : Date.now() - 86400000;
@@ -1769,6 +2140,21 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         supportTickets,
         submitSupportTicket,
         updateSupportTicketStatus,
+        rateCardServices,
+        sparePartsCatalog,
+        paidJobCards,
+        platformCommissionPercent,
+        setPlatformCommissionPercent,
+        addRateCardService,
+        updateRateCardService,
+        deleteRateCardService,
+        addSparePart,
+        updateSparePart,
+        deleteSparePart,
+        createPaidJobCard,
+        sendJobCardBill,
+        confirmJobCardByCustomer,
+        completeJobCard,
         language,
         setLanguage,
         t,

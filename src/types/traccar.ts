@@ -312,3 +312,67 @@ export interface SupportTicket {
   issueCategory?: 'engine_cutoff' | 'location_update' | 'offline_device' | 'sim_balance' | 'wiring_check' | 'other';
 }
 
+// Out-of-Warranty Paid Maintenance & Spare Parts Catalog Types
+export interface RateCardService {
+  id: string;
+  nameBn: string;
+  nameEn: string;
+  category: 'labor' | 'repair' | 'diagnostic' | 'onsite';
+  basePrice: number; // In BDT
+  warrantyDays: number; // Free service guarantee in days
+  descriptionBn: string;
+  isActive: boolean;
+}
+
+export interface SparePartItem {
+  id: string;
+  nameBn: string;
+  nameEn: string;
+  partCode: string;
+  unitPrice: number; // In BDT
+  warrantyDays: number;
+  stockCount: number;
+  descriptionBn: string;
+  isActive: boolean;
+}
+
+export type JobCardStatus = 'created' | 'in_service' | 'bill_sent' | 'customer_confirmed' | 'completed';
+
+export interface SelectedServiceItem {
+  serviceId: string;
+  nameBn: string;
+  price: number;
+}
+
+export interface SelectedSparePartItem {
+  partId: string;
+  nameBn: string;
+  unitPrice: number;
+  quantity: number;
+}
+
+export interface PaidJobCard {
+  id: string;
+  customerName: string;
+  customerPhone: string;
+  vehicleName: string;
+  plateNumber?: string;
+  deviceId?: number;
+  serviceCenterName: string;
+  technicianName?: string;
+  technicianPhone?: string;
+  selectedServices: SelectedServiceItem[];
+  selectedSpareParts: SelectedSparePartItem[];
+  totalAmount: number;
+  platformCommissionPercent: number; // Default 20%
+  platformCommissionAmount: number;
+  technicianPayoutAmount: number;
+  paymentMethod: 'cash_at_center' | 'online_bkash' | 'unpaid';
+  jobStatus: JobCardStatus;
+  createdAt: string;
+  completedAt?: string;
+  warrantyExpiryDate?: string;
+  customerNote?: string;
+  technicianNote?: string;
+}
+

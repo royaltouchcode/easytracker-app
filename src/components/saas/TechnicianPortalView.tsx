@@ -20,9 +20,14 @@ import {
   DollarSign,
   Smartphone,
   Gauge,
-  Sliders
+  Sliders,
+  Receipt,
+  Send,
+  Package,
+  Plus
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { SelectedServiceItem, SelectedSparePartItem } from '../../types/traccar';
 
 export interface TechWorkOrder {
   id: string;
@@ -46,8 +51,16 @@ export const TechnicianPortalView: React.FC = () => {
     selectedDevice, 
     user,
     warrantyClaims,
-    completeWarrantyClaim
+    completeWarrantyClaim,
+    paidJobCards,
+    sendJobCardBill,
+    rateCardServices,
+    sparePartsCatalog
   } = useApp();
+
+  const [activeTabMode, setActiveTabMode] = useState<'install_diagnostic' | 'paid_job_cards'>('install_diagnostic');
+  const [selectedJobCardId, setSelectedJobCardId] = useState<string>('');
+  const [billSentSuccessId, setBillSentSuccessId] = useState<string | null>(null);
 
   const isSuperAdmin = user?.administrator || user?.role === 'super_admin';
 
@@ -182,10 +195,133 @@ export const TechnicianPortalView: React.FC = () => {
         </div>
       </div>
 
+      {/* Mode Switcher Tabs */}
+      <div className="flex bg-slate-900 p-1.5 rounded-2xl border border-slate-800 gap-1.5 shadow-md">
+        <button
+          onClick={() => setActiveTabMode('install_diagnostic')}
+          className={`flex-1 py-2 rounded-xl text-xs font-extrabold flex items-center justify-center space-x-1.5 transition ${
+            activeTabMode === 'install_diagnostic'
+              ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30'
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <Wrench className="w-3.5 h-3.5" />
+          <span>হার্ডওয়্যার ইনস্টলেশন ও ডায়াগনস্টিক</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTabMode('paid_job_cards')}
+          className={`flex-1 py-2 rounded-xl text-xs font-extrabold flex items-center justify-center space-x-1.5 transition ${
+            activeTabMode === 'paid_job_cards'
+              ? 'bg-amber-600 text-white shadow-md shadow-amber-600/30'
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <Receipt className="w-3.5 h-3.5" />
+          <span>পেইড সার্ভিস ও বিলিং জব-কার্ড ({paidJobCards.length})</span>
+        </button>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 🎫 PAID JOB-CARDS BILLING HUB                                             */}
+      {/* ========================================================================= */}
+      {activeTabMode === 'paid_job_cards' && (
+        <div className="space-y-3">
+          <div className="bg-gradient-to-br from-amber-950/40 via-slate-900 to-slate-900 border border-amber-500/40 rounded-3xl p-4 shadow-xl space-y-3">
+            <div className="flex items-center space-x-2">
+              <Receipt className="w-4 h-4 text-amber-400" />
+              <h3 className="font-extrabold text-xs text-amber-300">
+                পেইড সার্ভিস জব-কার্ড বিলিং ও পার্টস সিলেকশন
+              </h3>
+            </div>
+            <p className="text-[11px] text-slate-400">
+              অ্যাডমিনের ফিক্সড রেট-কার্ড ও স্পেয়ার পার্টস সিলেক্ট করে কাস্টমারের অ্যাপে সরাসরি ডিজিটাল বিল পাঠান। কাস্টমার ১-ট্যাপে কনফার্ম করলে ৩০ দিনের ফ্রি গ্যারান্টি সক্রিয় হবে।
+            </p>
+
+            <div className="space-y-3 pt-2">
+              {paidJobCards.map(jc => {
+                const isCompleted = jc.jobStatus === 'completed';
+                const isBillSent = jc.jobStatus === 'bill_sent';
+
+                return (
+                  <div key={jc.id} className="p-3.5 bg-slate-950 rounded-2xl border border-slate-800 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <span className="font-mono font-black text-amber-400 bg-amber-950 px-2 py-0.5 rounded text-xs border border-amber-800">
+                          {jc.id}
+                        </span>
+                        <div>
+                          <span className="font-bold text-slate-100 text-xs block">{jc.customerName} ({jc.customerPhone})</span>
+                          <span className="text-[10px] text-slate-400 font-mono">{jc.vehicleName} {jc.plateNumber ? `• ${jc.plateNumber}` : ''}</span>
+                        </div>
+                      </div>
+
+                      <span className={`text-[9.5px] font-bold px-2 py-0.5 rounded-full border ${
+                        isCompleted 
+                          ? 'bg-emerald-950 text-emerald-300 border-emerald-700' 
+                          : isBillSent
+                            ? 'bg-amber-950 text-amber-300 border-amber-700'
+                            : 'bg-blue-950 text-blue-300 border-blue-700'
+                      }`}>
+                        {isCompleted ? '✅ পেমেন্ট সম্পন্ন' : isBillSent ? '📲 বিল প্রেরিত' : '🔧 সার্ভিস চলছে'}
+                      </span>
+                    </div>
+
+                    {/* Breakdown of Current Bill */}
+                    <div className="bg-slate-900 p-2.5 rounded-xl border border-slate-800 text-xs space-y-1">
+                      <div className="flex justify-between font-bold text-slate-300">
+                        <span>সার্ভিস পয়েন্ট:</span>
+                        <span className="text-amber-300">{jc.serviceCenterName}</span>
+                      </div>
+                      {jc.selectedServices.map((s, i) => (
+                        <div key={i} className="flex justify-between text-[11px] text-slate-400">
+                          <span>{s.nameBn}</span>
+                          <span className="font-mono font-bold text-amber-400">৳{s.price}</span>
+                        </div>
+                      ))}
+                      {jc.selectedSpareParts.map((p, i) => (
+                        <div key={i} className="flex justify-between text-[11px] text-slate-400">
+                          <span>{p.nameBn} (x{p.quantity})</span>
+                          <span className="font-mono font-bold text-cyan-400">৳{p.unitPrice * p.quantity}</span>
+                        </div>
+                      ))}
+                      <div className="pt-1 border-t border-slate-800 flex justify-between font-bold text-slate-100">
+                        <span>মোট বিল:</span>
+                        <span className="font-mono font-black text-emerald-400 text-sm">৳ {jc.totalAmount}</span>
+                      </div>
+                    </div>
+
+                    {/* Action to Send / Re-send Bill */}
+                    {!isCompleted && (
+                      <button
+                        onClick={() => {
+                          sendJobCardBill(
+                            jc.id, 
+                            jc.selectedServices.length > 0 ? jc.selectedServices : [{ serviceId: 'srv_relay_fix', nameBn: 'ইঞ্জিন কাটঅফ রিলে ফিক্স', price: 200 }],
+                            jc.selectedSpareParts.length > 0 ? jc.selectedSpareParts : [{ partId: 'part_relay_40a', nameBn: '12V 40A হেভি ডিউটি রিলে', unitPrice: 200, quantity: 1 }],
+                            'সার্ভিসিং ও পার্টস ফিটিং সফলভাবে সম্পন্ন হয়েছে।'
+                          );
+                          setBillSentSuccessId(jc.id);
+                          setTimeout(() => setBillSentSuccessId(null), 2500);
+                        }}
+                        className="w-full py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-extrabold text-xs flex items-center justify-center space-x-1.5 shadow-md shadow-amber-600/30 transition active:scale-95"
+                      >
+                        <Send className="w-3.5 h-3.5" />
+                        <span>{billSentSuccessId === jc.id ? '✅ কাস্টমারের অ্যাপে বিল পাঠানো হয়েছে!' : '📲 কাস্টমারের অ্যাপে ডিজিটাল বিল পাঠান (Send Bill)'}</span>
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ========================================================================= */}
       {/* 🔒 SCENARIO 1: NO ACTIVE JOB OR JOB COMPLETED (ACCESS LOCKED)             */}
       {/* ========================================================================= */}
-      {!activeJob && (
+      {activeTabMode === 'install_diagnostic' && !activeJob && (
         <div className="bg-slate-900 border border-purple-500/30 rounded-3xl p-6 shadow-xl text-center space-y-3">
           <div className="w-14 h-14 rounded-3xl bg-purple-600/20 border border-purple-500/30 flex items-center justify-center text-purple-300 mx-auto shadow-inner">
             <Lock className="w-7 h-7" />
