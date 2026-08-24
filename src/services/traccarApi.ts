@@ -207,8 +207,8 @@ class TraccarApiService {
                 attributes: {
                   ...p.attributes,
                   ignition: isIgnition,
-                  power: p.attributes?.power ? Number(p.attributes.power) : (p.attributes?.battery ? Number(p.attributes.battery) : undefined),
-                  sat: p.attributes?.sat ? Number(p.attributes.sat) : (p.attributes?.satellites ? Number(p.attributes.satellites) : 12)
+                  power: p.attributes?.power !== undefined ? Number(p.attributes.power) : (p.attributes?.battery !== undefined ? Number(p.attributes.battery) : undefined),
+                  sat: p.attributes?.sat !== undefined ? Number(p.attributes.sat) : (p.attributes?.satellites !== undefined ? Number(p.attributes.satellites) : (p.valid === false ? 0 : (p.attributes?.satCount !== undefined ? Number(p.attributes.satCount) : 0)))
                 }
               };
             });

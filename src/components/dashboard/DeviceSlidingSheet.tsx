@@ -159,9 +159,15 @@ export const DeviceSlidingSheet: React.FC = () => {
     backupBattery = 95;
   }
 
-  // Satellites
-  const satCount = Number(selectedPosition?.attributes?.sat ?? selectedPosition?.attributes?.satellites ?? selectedPosition?.attributes?.satCount ?? (selectedPosition?.valid ? 14 : 0));
-  const isGpsValid = selectedPosition ? selectedPosition.valid !== false && (satCount > 0 || (selectedPosition.latitude !== 0 && selectedPosition.longitude !== 0)) : false;
+  // Satellites (Strictly respect 0 when GPS hardware sends 0 fix/indoor/sleep)
+  const rawSat = selectedPosition?.attributes?.sat !== undefined 
+    ? selectedPosition.attributes.sat 
+    : (selectedPosition?.attributes?.satellites !== undefined 
+        ? selectedPosition.attributes.satellites 
+        : selectedPosition?.attributes?.satCount);
+
+  const satCount = rawSat !== undefined && rawSat !== null ? Number(rawSat) : 0;
+  const isGpsValid = selectedPosition ? selectedPosition.valid !== false && satCount > 0 : false;
   const address = selectedPosition?.address || (selectedPosition && selectedPosition.latitude && selectedPosition.longitude ? `${selectedPosition.latitude.toFixed(4)}°N, ${selectedPosition.longitude.toFixed(4)}°E` : 'Waiting for GPS Fix...');
   const plate = selectedDevice.attributes?.plateNumber || '';
   const driver = selectedDevice.attributes?.driverName || '';
