@@ -422,6 +422,7 @@ export const PartnerRegistrationModal: React.FC<PartnerRegistrationModalProps> =
                 />
               </div>
             </div>
+          </div>
 
           {/* ========================================================================= */}
           {/* SECTION D: BANGLADESH NESTED LOCATION & GOOGLE MAPS PIN                   */}
