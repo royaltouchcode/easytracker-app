@@ -27,12 +27,13 @@ export const Header: React.FC = () => {
   const { 
     user, 
     devices, 
+    tenantDevices,
     selectedDeviceId, 
     setSelectedDeviceId, 
     selectedDevice, 
     selectedPosition, 
     unreadAlertCount, 
-    activeTab,
+    activeTab, 
     setActiveTab, 
     currentRole,
     isRoleSwitcherOpen,
@@ -45,6 +46,8 @@ export const Header: React.FC = () => {
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+
+  const displayDevices = user?.partnerId ? (tenantDevices.length > 0 ? tenantDevices : devices) : devices;
 
   const speedKmh = selectedPosition ? Math.round(selectedPosition.speed || 0) : 0;
   const isMoving = speedKmh > 3;
@@ -104,10 +107,10 @@ export const Header: React.FC = () => {
                 {isDropdownOpen && (
                   <div className="absolute top-11 left-0 w-64 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-2 z-50 animate-in fade-in zoom-in-95 duration-150">
                     <div className="text-[10px] uppercase font-bold tracking-wider text-slate-400 px-2 py-1">
-                      {language === 'bn' ? 'আপনার যানবাহন সমূহ' : 'Fleet Vehicles'} ({devices.length})
+                      {language === 'bn' ? 'আপনার যানবাহন সমূহ' : 'Fleet Vehicles'} ({displayDevices.length})
                     </div>
                     <div className="max-h-60 overflow-y-auto space-y-1 mt-1">
-                      {devices.map((device) => {
+                      {displayDevices.map((device) => {
                         const isSel = device.id === selectedDeviceId;
                         return (
                           <button

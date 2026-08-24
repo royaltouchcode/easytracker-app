@@ -114,8 +114,13 @@ export const TechnicianPortalView: React.FC = () => {
     setWorkOrders(updated);
     localStorage.setItem('gps_tech_work_orders', JSON.stringify(updated));
 
-    // Also match any active warranty claim and mark it complete
-    const matchingClaim = warrantyClaims.find(c => c.status === 'tech_assigned' || c.vehicleName.includes(activeJob.vehicleName));
+    // Bug Fix #2: Strict AND matching — must match IMEI + vehicle + status
+    // Previously OR logic could accidentally complete another customer's claim
+    const matchingClaim = warrantyClaims.find(c =>
+      c.status === 'tech_assigned' &&
+      c.imei === activeJob.trackerImei &&
+      c.vehicleName === activeJob.vehicleName
+    );
     if (matchingClaim) {
       completeWarrantyClaim(
         matchingClaim.id,

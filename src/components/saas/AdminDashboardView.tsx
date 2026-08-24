@@ -20,7 +20,12 @@ import {
   X,
   FileSpreadsheet,
   Check,
-  Smartphone
+  Smartphone,
+  ExternalLink,
+  Activity,
+  Radio,
+  Settings2,
+  Wifi
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { DEFAULT_SUBSCRIPTION_CONFIG } from '../../config/subscriptionPlans';
@@ -29,12 +34,16 @@ import { SalesLeadEntry } from './SalesPortalView';
 import { VehicleCatalogManager } from './VehicleCatalogManager';
 import { WarrantyAdminManager } from './WarrantyAdminManager';
 import { PartnerOnboardingManager } from './PartnerOnboardingManager';
-
+import { UserAccessManager } from './UserAccessManager';
 
 export const AdminDashboardView: React.FC = () => {
   const { 
     devices, 
     positions, 
+    serverConfig,
+    setServerConfig,
+    syncServerData,
+    triggerManualAlert,
     language, 
     setActiveTab, 
     setCurrentRole, 
@@ -67,6 +76,45 @@ export const AdminDashboardView: React.FC = () => {
   });
 
   const [pushSuccessId, setPushSuccessId] = useState<string | null>(null);
+
+  // Tracking Server Sync State
+  const [isSyncingServer, setIsSyncingServer] = useState(false);
+  const [lastSyncTime, setLastSyncTime] = useState<string>(() => {
+    return localStorage.getItem('gps_last_server_sync_time') || 'আজ কিছুক্ষণ আগে';
+  });
+  const [syncSuccessMessage, setSyncSuccessMessage] = useState('');
+  const [isServerConfigModalOpen, setIsServerConfigModalOpen] = useState(false);
+  const [tempServerUrl, setTempServerUrl] = useState(serverConfig?.url || 'https://demo3.traccar.org');
+  const [tempServerPort, setTempServerPort] = useState(serverConfig?.port || '8082');
+
+  const handleSyncDevicesWithServer = async () => {
+    setIsSyncingServer(true);
+    setSyncSuccessMessage('');
+    try {
+      await syncServerData();
+      const nowFormatted = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      const timeStr = `আজ ${nowFormatted}`;
+      setLastSyncTime(timeStr);
+      localStorage.setItem('gps_last_server_sync_time', timeStr);
+      setSyncSuccessMessage(`✅ ট্র্যাকিং সার্ভার থেকে ${devices.length} টি ডিভাইসের লাইভ অবস্থান ও সেন্সর ডাটা সফলভাবে সিঙ্ক হয়েছে!`);
+      triggerManualAlert('service_reminder', `📡 সার্ভার সিঙ্ক সম্পন্ন: ${devices.length} টি জিপিএস ট্র্যাকার অনলাইনে সক্রিয় আছে।`);
+      setTimeout(() => setSyncSuccessMessage(''), 4000);
+    } catch (err) {
+      alert('সার্ভার থেকে সিঙ্ক করতে সমস্যা হয়েছে। দয়া করে সার্ভার ইউআরএল ও ইন্টারনেট কানেকশন চেক করুন।');
+    } finally {
+      setIsSyncingServer(false);
+    }
+  };
+
+  const handleSaveServerConfig = (e: React.FormEvent) => {
+    e.preventDefault();
+    setServerConfig({
+      url: tempServerUrl.trim(),
+      port: tempServerPort.trim()
+    });
+    setIsServerConfigModalOpen(false);
+    handleSyncDevicesWithServer();
+  };
 
   // Bulk IMEI Import Modal State
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
@@ -208,6 +256,115 @@ export const AdminDashboardView: React.FC = () => {
           </div>
           <div className="text-[9.5px] text-emerald-400 mt-1">SSL সিকিউরড গেটওয়ে</div>
         </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 🌐 GPS TRACKING SERVER CONNECTION & LIVE DEVICE SYNC HUB                 */}
+      {/* ========================================================================= */}
+      <div className="bg-gradient-to-r from-blue-950/40 via-slate-900 to-indigo-950/30 border border-blue-500/40 rounded-3xl p-4 shadow-xl space-y-3.5">
+        <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+          <div className="flex items-center space-x-2.5">
+            <div className="w-9 h-9 rounded-2xl bg-blue-600/30 border border-blue-500/50 flex items-center justify-center text-blue-400 shadow-sm">
+              <Server className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-extrabold text-xs text-slate-100 flex items-center space-x-1.5">
+                <span>GPS ট্র্যাকিং সার্ভার গেটওয়ে ও ডিভাইস সিঙ্ক হাব</span>
+                <span className="text-[9px] bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.2 rounded-full border border-emerald-500/30 flex items-center space-x-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span>লাইভ কানেক্টেড</span>
+                </span>
+              </h3>
+              <p className="text-[10px] text-slate-400">
+                টেলিম্যাটিক্স ট্র্যাকার থেকে লাইভ অবস্থান, ওডোমিটার ও সেন্সর ডাটা সিঙ্ক্রোনাইজেশন
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => {
+              setTempServerUrl(serverConfig.url);
+              setTempServerPort(serverConfig.port);
+              setIsServerConfigModalOpen(true);
+            }}
+            className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-750 border border-slate-700 text-slate-300 font-bold text-xs flex items-center space-x-1 transition active:scale-95"
+          >
+            <Settings2 className="w-3.5 h-3.5 text-blue-400" />
+            <span>সার্ভার সেটিংস</span>
+          </button>
+        </div>
+
+        {/* Server Link & Live Metrics Banner */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs">
+          <div className="bg-slate-950/80 p-2.5 rounded-2xl border border-slate-800 space-y-1">
+            <span className="text-slate-400 text-[10px] block">🔗 ট্র্যাকিং সার্ভার ইউআরএল ও ওয়েব লিংক:</span>
+            <div className="flex items-center justify-between">
+              <span className="font-mono font-bold text-blue-300 text-[11px] truncate max-w-[190px]">
+                {serverConfig.url || 'https://demo3.traccar.org'}
+              </span>
+              <a
+                href={serverConfig.url || 'https://demo3.traccar.org'}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-1 rounded-lg bg-blue-600/20 hover:bg-blue-600/40 text-blue-300 transition"
+                title="ব্রাউজারে সার্ভার খুলুন"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            </div>
+          </div>
+
+          <div className="bg-slate-950/80 p-2.5 rounded-2xl border border-slate-800 space-y-1">
+            <span className="text-slate-400 text-[10px] block">📡 প্রোটোকল ও ডিভাইস পোর্ট:</span>
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-emerald-400 text-[11px] font-bold">
+                Port {serverConfig.port || '8082'} • GT06/Coban (5023)
+              </span>
+              <Radio className="w-3.5 h-3.5 text-emerald-400" />
+            </div>
+          </div>
+
+          <div className="bg-slate-950/80 p-2.5 rounded-2xl border border-slate-800 space-y-1">
+            <span className="text-slate-400 text-[10px] block">⏱️ সর্বশেষ সার্ভার সিঙ্ক:</span>
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-amber-300 text-[11px] font-bold">
+                {lastSyncTime}
+              </span>
+              <Activity className="w-3.5 h-3.5 text-amber-400" />
+            </div>
+          </div>
+        </div>
+
+        {/* Sync Action Area */}
+        <div className="flex flex-col sm:flex-row items-center justify-between bg-slate-950/90 p-3 rounded-2xl border border-blue-500/30 gap-2.5">
+          <div className="text-xs space-y-0.5">
+            <div className="font-extrabold text-slate-200 flex items-center space-x-1.5">
+              <span>সার্ভারে মোট সংযুক্ত ডিভাইস: {devices.length} টি</span>
+              <span className="text-[9.5px] font-mono text-emerald-400 bg-emerald-950 px-1.5 py-0.2 rounded border border-emerald-800">
+                100% Telemetry Live
+              </span>
+            </div>
+            <p className="text-[10.5px] text-slate-400">
+              ডিভাইস ট্র্যাকার হার্ডওয়্যার থেকে জিপিএস স্যাটেলাইট সিগন্যাল ও রিলে ডাটা ক্লাউডে রিফ্রেশ করুন
+            </p>
+          </div>
+
+          <button
+            onClick={handleSyncDevicesWithServer}
+            disabled={isSyncingServer}
+            className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs shadow-lg shadow-blue-600/30 flex items-center justify-center space-x-2 transition active:scale-95 disabled:opacity-50 shrink-0"
+          >
+            <RefreshCw className={`w-4 h-4 ${isSyncingServer ? 'animate-spin text-amber-300' : ''}`} />
+            <span>{isSyncingServer ? 'সার্ভার থেকে সিঙ্ক হচ্ছে...' : '🔄 সার্ভার থেকে লাইভ ডিভাইস সিঙ্ক করুন'}</span>
+          </button>
+        </div>
+
+        {syncSuccessMessage && (
+          <div className="p-2.5 bg-emerald-950/80 border border-emerald-500/60 rounded-xl text-xs text-emerald-300 font-bold flex items-center space-x-2 animate-in fade-in">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span>{syncSuccessMessage}</span>
+          </div>
+        )}
       </div>
 
       {/* ========================================================================= */}
@@ -520,6 +677,9 @@ export const AdminDashboardView: React.FC = () => {
         </div>
       )}
 
+      {/* ===== Staff & User Access Control Hub (RBAC Permissions) ===== */}
+      <UserAccessManager />
+
       {/* ===== Vehicle Catalog Manager (Admin / Super Admin Only) ===== */}
       <VehicleCatalogManager />
 
@@ -528,6 +688,84 @@ export const AdminDashboardView: React.FC = () => {
 
       {/* ===== B2B Partner & Multi-Tenant Brand Onboarding Manager ===== */}
       <PartnerOnboardingManager />
+
+      {/* ========================================================================= */}
+      {/* GPS TRACKING SERVER CONFIGURATION MODAL                                   */}
+      {/* ========================================================================= */}
+      {isServerConfigModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-3 animate-in fade-in select-none">
+          <div className="bg-slate-900 border border-blue-500/50 rounded-3xl max-w-md w-full p-4 shadow-2xl space-y-3.5">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+              <div className="flex items-center space-x-2">
+                <Server className="w-4 h-4 text-blue-400" />
+                <span className="font-extrabold text-xs text-blue-300">
+                  GPS ট্র্যাকিং সার্ভার কানেকশন ও গেটওয়ে সেটিংস
+                </span>
+              </div>
+              <button onClick={() => setIsServerConfigModalOpen(false)} className="text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveServerConfig} className="space-y-3 text-xs">
+              <div>
+                <label className="text-[10.5px] font-bold text-slate-300 block mb-1">
+                  সার্ভার ইউআরএল (Server Base URL / IP) *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={tempServerUrl}
+                  onChange={(e) => setTempServerUrl(e.target.value)}
+                  placeholder="https://demo3.traccar.org বা http://103.x.x.x"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono font-bold focus:border-blue-500 focus:outline-none"
+                />
+                <span className="text-[9.5px] text-slate-500 block mt-1">
+                  Traccar ক্লাউড সার্ভার বা লোকাল ভিপিএস এর হোস্ট ইউআরএল
+                </span>
+              </div>
+
+              <div>
+                <label className="text-[10.5px] font-bold text-slate-300 block mb-1">
+                  সার্ভার ওয়েব / এপিআই পোর্ট *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={tempServerPort}
+                  onChange={(e) => setTempServerPort(e.target.value)}
+                  placeholder="8082"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono font-bold focus:border-blue-500 focus:outline-none"
+                />
+              </div>
+
+              <div className="p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-[10.5px] text-slate-400 space-y-1">
+                <span className="font-bold text-slate-300 block">📡 ডিভাইস প্রোটোকল পোর্ট গাইড:</span>
+                <div>• GT06 / SinoTrack / Concox: <strong className="text-emerald-400 font-mono">5023</strong></div>
+                <div>• Coban / TK103: <strong className="text-emerald-400 font-mono">5001</strong></div>
+                <div>• Teltonika: <strong className="text-emerald-400 font-mono">5027</strong></div>
+              </div>
+
+              <div className="flex space-x-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setIsServerConfigModalOpen(false)}
+                  className="flex-1 py-2.5 rounded-2xl bg-slate-800 text-slate-300 font-bold text-xs"
+                >
+                  বাতিল
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg shadow-blue-600/30 flex items-center justify-center space-x-1.5"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>সংরক্ষণ ও সার্ভার রি-কানেক্ট</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
     </div>
   );

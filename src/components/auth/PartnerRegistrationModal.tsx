@@ -75,9 +75,9 @@ export const PartnerRegistrationModal: React.FC<PartnerRegistrationModalProps> =
   // Staff Specific Role Combination
   const [staffRoleCombo, setStaffRoleCombo] = useState<string>('sales_tech');
 
-  // Geo-Location Coordinates
-  const [geoLat, setGeoLat] = useState<number | undefined>(23.7937);
-  const [geoLng, setGeoLng] = useState<number | undefined>(90.4066);
+  // Bug Fix #4: No default GPS coordinates — undefined until user explicitly captures location
+  const [geoLat, setGeoLat] = useState<number | undefined>(undefined);
+  const [geoLng, setGeoLng] = useState<number | undefined>(undefined);
   const [isFetchingGeo, setIsFetchingGeo] = useState(false);
   const [geoDetected, setGeoDetected] = useState(false);
 
@@ -163,7 +163,7 @@ export const PartnerRegistrationModal: React.FC<PartnerRegistrationModalProps> =
 
       setSuccessMsg('আপনার আবেদন সফলভাবে জমা হয়েছে! সুপার অ্যাডমিন ভেরিফাই করে আপনার একাউন্ট ও পার্টনার আইডি সক্রিয় করবে।');
       setTimeout(() => {
-        setSuccessMsg('');
+        resetForm();
         onClose();
       }, 2500);
     } catch (e) {
@@ -171,6 +171,26 @@ export const PartnerRegistrationModal: React.FC<PartnerRegistrationModalProps> =
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  // Bug Fix #3: Reset form state so modal re-opens clean
+  const resetForm = () => {
+    setApplicantName('');
+    setPhone('');
+    setWhatsapp('');
+    setEmail('');
+    setEmergencyPhone('');
+    setDistrict(BANGLADESH_DISTRICTS[0]);
+    setFullAddress('');
+    setBrandName('');
+    setBusinessCategory('জিপিএস ডিলার ও শপ');
+    setRequestedServices(['server_tracking', 'shared_technicians', 'shared_support']);
+    setServiceTier('all_inclusive');
+    setStaffRoleCombo('sales_tech');
+    setGeoLat(undefined);
+    setGeoLng(undefined);
+    setGeoDetected(false);
+    setSuccessMsg('');
   };
 
   return (
@@ -464,7 +484,10 @@ export const PartnerRegistrationModal: React.FC<PartnerRegistrationModalProps> =
               </button>
 
               <div className="bg-slate-900 border border-slate-800 rounded-xl px-2.5 py-1.5 font-mono text-[10px] text-slate-300 shrink-0">
-                {geoLat}, {geoLng}
+                {(geoLat !== undefined && geoLng !== undefined)
+                  ? `${geoLat}, ${geoLng}`
+                  : <span className="text-slate-500 italic">ক্যাপচার করা হয়নি</span>
+                }
               </div>
             </div>
           </div>

@@ -68,7 +68,7 @@ const MainAppContent: React.FC = () => {
           {/* Rescue Role: STRICTLY SOS Distress Radar Only */}
           {currentRole === 'rescue' && <RescuePortalView />}
 
-          {/* Super Admin Role: Admin Hub or Audited Tab */}
+          {/* Super Admin Role: Admin Hub or Audited Tab with Resilient Fallback */}
           {currentRole === 'super_admin' && (
             <>
               {activeTab === 'saas_admin' && <AdminDashboardView />}
@@ -89,10 +89,14 @@ const MainAppContent: React.FC = () => {
               {activeTab === 'geofence' && <GeofenceView />}
               {activeTab === 'alerts' && <AlertHistoryView />}
               {activeTab === 'settings' && <DeviceSettingsView />}
+              {/* Fallback if an unrecognized tab is active */}
+              {!['saas_admin', 'saas_sales', 'saas_technician', 'saas_support', 'saas_rescue', 'map', 'reports', 'playback', 'commands', 'surveillance', 'geofence', 'alerts', 'settings'].includes(activeTab) && (
+                <AdminDashboardView />
+              )}
             </>
           )}
 
-          {/* Customer Role: Standard Telematics Map & Menus */}
+          {/* Customer Role: Standard Telematics Map & Menus with Resilient Fallback */}
           {currentRole === 'customer' && (
             <>
               {activeTab === 'map' && (
@@ -108,6 +112,13 @@ const MainAppContent: React.FC = () => {
               {activeTab === 'geofence' && <GeofenceView />}
               {activeTab === 'alerts' && <AlertHistoryView />}
               {activeTab === 'settings' && <DeviceSettingsView />}
+              {/* Fallback to Map View if activeTab is not a customer tab (e.g. was a saas tab before switching) */}
+              {!['map', 'reports', 'playback', 'commands', 'surveillance', 'geofence', 'alerts', 'settings'].includes(activeTab) && (
+                <>
+                  <LiveTrackingMap />
+                  <DeviceSlidingSheet />
+                </>
+              )}
             </>
           )}
         </Suspense>

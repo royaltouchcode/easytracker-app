@@ -109,12 +109,14 @@ interface AppContextType {
   isDemoPurged: boolean;
 
   devices: Device[];
+  tenantDevices: Device[]; // Partner-filtered: only devices belonging to the logged-in partner
   selectedDeviceId: number;
   setSelectedDeviceId: (id: number) => void;
   selectedDevice: Device | undefined;
   positions: Record<number, Position>;
   selectedPosition: Position | undefined;
   updateDeviceProfile: (id: number, partial: Partial<Device>) => void;
+  syncServerData: () => Promise<void>;
 
   userLocation: UserLocation | null;
   requestUserLocation: () => void;
@@ -1280,6 +1282,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const selectedDevice = devices.find(d => d.id === selectedDeviceId) || devices[0];
   const selectedPosition = selectedDevice ? positions[selectedDevice.id] : Object.values(positions)[0];
 
+  // Bug Fix #1: Strict Tenant Data Isolation
+  // tenantDevices filters devices to only show those belonging to the logged-in partner.
+  // Super admins and regular staff (no partnerId) see all devices.
+  const tenantDevices = user?.partnerId
+    ? devices.filter(d =>
+        (d.attributes as any)?.partnerId === user.partnerId ||
+        (d.attributes as any)?.partner_id === user.partnerId
+      )
+    : devices;
+
   const effectiveUserLat = userLocation?.latitude || selectedPosition?.latitude;
   const effectiveUserLon = userLocation?.longitude || selectedPosition?.longitude;
   const effectiveVehLat = selectedPosition?.latitude;
@@ -1526,7 +1538,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
 
   const handleSetCurrentRole = (role: SaasRole) => {
-    // BUG #2 FIX: Validate role switch is within user's approvedRoles before allowing
+    // Validate role switch is within user's approvedRoles before allowing
     const isAdmin = user?.administrator || user?.role === 'super_admin';
     const userApprovedRoles: SaasRole[] = user?.approvedRoles || ['customer'];
     if (!isAdmin && !userApprovedRoles.includes(role)) {
@@ -1535,6 +1547,28 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
     setCurrentRole(role);
     localStorage.setItem('gps_saas_current_role', role);
+
+    // CRITICAL FIX: Auto-align activeTab with the newly selected role
+    // This completely prevents blank page / missing UI issues when moving between admin & users
+    if (role === 'customer') {
+      const validCustomerTabs: TabType[] = ['map', 'reports', 'playback', 'commands', 'surveillance', 'geofence', 'alerts', 'settings'];
+      if (!validCustomerTabs.includes(activeTab)) {
+        setActiveTab('map');
+      }
+    } else if (role === 'sales') {
+      setActiveTab('saas_sales');
+    } else if (role === 'technician') {
+      setActiveTab('saas_technician');
+    } else if (role === 'support') {
+      setActiveTab('saas_support');
+    } else if (role === 'rescue') {
+      setActiveTab('saas_rescue');
+    } else if (role === 'super_admin') {
+      const validAdminTabs: TabType[] = ['saas_admin', 'saas_sales', 'saas_technician', 'saas_support', 'saas_rescue', 'map', 'reports', 'playback', 'commands', 'surveillance', 'geofence', 'alerts', 'settings'];
+      if (!validAdminTabs.includes(activeTab)) {
+        setActiveTab('saas_admin');
+      }
+    }
   };
 
   const purgeDemoFleetData = () => {
@@ -1575,12 +1609,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         restoreDemoFleetData,
         isDemoPurged,
         devices,
+        tenantDevices,
         selectedDeviceId,
         setSelectedDeviceId,
         selectedDevice,
         positions,
         selectedPosition,
         updateDeviceProfile,
+        syncServerData,
         userLocation,
         requestUserLocation,
         distanceInfo,

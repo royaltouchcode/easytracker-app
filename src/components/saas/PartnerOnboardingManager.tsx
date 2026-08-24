@@ -373,6 +373,49 @@ export const PartnerOnboardingManager: React.FC = () => {
                 </select>
               </div>
 
+              {/* Bug Fix #5: Role multi-select — Super Admin can set exact approved roles */}
+              <div>
+                <label className="text-[10.5px] font-bold text-slate-300 block mb-1.5">
+                  অনুমোদিত রোল সমূহ (নির্বাচন করুন) *
+                </label>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {(['sales', 'technician', 'rescue', 'support', 'customer'] as SaasRole[]).map(role => {
+                    const roleLabels: Record<string, string> = {
+                      sales: '💼 সেলস এজেন্ট',
+                      technician: '🔧 টেকনিশিয়ান',
+                      rescue: '🚨 রেসকিউ টিম',
+                      support: '🎧 সাপোর্ট',
+                      customer: '👤 কাস্টমার'
+                    };
+                    const isChecked = approvedRoles.includes(role);
+                    return (
+                      <label
+                        key={role}
+                        className={`flex items-center space-x-1.5 px-2 py-1.5 rounded-xl border cursor-pointer transition text-[10.5px] ${
+                          isChecked
+                            ? 'bg-emerald-950/60 border-emerald-500/50 text-emerald-200'
+                            : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => {
+                            setApprovedRoles(prev =>
+                              prev.includes(role)
+                                ? prev.filter(r => r !== role)
+                                : [...prev, role]
+                            );
+                          }}
+                          className="w-3.5 h-3.5 text-emerald-600 rounded bg-slate-900 border-slate-700 focus:ring-0"
+                        />
+                        <span className="font-bold">{roleLabels[role]}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
               <div>
                 <label className="text-[10.5px] font-bold text-slate-300 block mb-1">
                   অ্যাডমিন অ্যাপ্রুভাল নোট:
