@@ -1148,7 +1148,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         }));
 
         setDevices(merged);
-        // BUG #4 FIX: Only reset selectedDeviceId if current selection no longer exists in merged list
+        
+        // Priority selection: keep selected if valid, or select the first real device on server
         setSelectedDeviceId(prev => {
           const stillExists = merged.some(d => d.id === prev);
           return stillExists ? prev : merged[0].id;
@@ -1158,15 +1159,18 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         if (realPositions && realPositions.length > 0) {
           setPositions(prev => mergePositionsSafely(realPositions, prev));
 
-          // Update initial geofence center to real vehicle position
-          setGeofences(prev => {
-            if (prev.length > 0 && prev[0].id === 101 && prev[0].latitude === 23.7937) {
-              const updated = prev.map((g, idx) => idx === 0 ? { ...g, latitude: realPositions[0].latitude, longitude: realPositions[0].longitude } : g);
-              localStorage.setItem('gps_saved_geofences', JSON.stringify(updated));
-              return updated;
-            }
-            return prev;
-          });
+          // Center initial geofence on vehicle's actual real position
+          const firstValidPos = realPositions.find(p => p.latitude && p.longitude && p.latitude !== 0);
+          if (firstValidPos) {
+            setGeofences(prev => {
+              if (prev.length > 0) {
+                const updated = prev.map((g, idx) => idx === 0 ? { ...g, latitude: firstValidPos.latitude, longitude: firstValidPos.longitude } : g);
+                localStorage.setItem('gps_saved_geofences', JSON.stringify(updated));
+                return updated;
+              }
+              return prev;
+            });
+          }
         }
       }
     } catch (e) {

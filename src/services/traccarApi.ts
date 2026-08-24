@@ -1,4 +1,4 @@
-﻿import { Device, Position, EventLog, CommandPayload } from '../types/traccar';
+import { Device, Position, EventLog, CommandPayload } from '../types/traccar';
 
 class TraccarApiService {
   private baseUrl: string = 'https://demo3.traccar.org';
@@ -64,19 +64,33 @@ class TraccarApiService {
   async login(emailOrUser: string, pass: string): Promise<{ success: boolean; user?: any; error?: string }> {
     this.setAuth(emailOrUser, pass);
 
+    const baseClean = this.baseUrl.replace(/\/$/, '');
     const endpoints = [
-      '/api/session',
-      `${this.baseUrl}/api/session`
+      { url: '/api/session', method: 'POST' },
+      { url: `${baseClean}/api/session`, method: 'POST' },
+      { url: '/api/session', method: 'GET' },
+      { url: `${baseClean}/api/session`, method: 'GET' }
     ];
 
-    for (const url of endpoints) {
+    const bodyParams = new URLSearchParams();
+    bodyParams.append('email', emailOrUser);
+    bodyParams.append('password', pass);
+
+    for (const ep of endpoints) {
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 4000);
 
-        const response = await fetch(url, {
-          method: 'GET',
-          headers: this.getHeaders(),
+        const isPost = ep.method === 'POST';
+        const headers: Record<string, string> = isPost 
+          ? { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' }
+          : (this.getHeaders() as Record<string, string>);
+
+        const response = await fetch(ep.url, {
+          method: ep.method,
+          headers,
+          body: isPost ? bodyParams.toString() : undefined,
+          credentials: 'include',
           signal: controller.signal
         });
 
@@ -105,15 +119,17 @@ class TraccarApiService {
   }
 
   async getDevices(): Promise<Device[]> {
-    const endpoints = ['/api/devices', `${this.baseUrl}/api/devices`];
+    const baseClean = this.baseUrl.replace(/\/$/, '');
+    const endpoints = ['/api/devices', `${baseClean}/api/devices`];
 
     for (const url of endpoints) {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 4000);
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
 
         const res = await fetch(url, {
           headers: this.getHeaders(),
+          credentials: 'include',
           signal: controller.signal
         });
         clearTimeout(timeoutId);
@@ -130,14 +146,14 @@ class TraccarApiService {
                 id: d.id,
                 name: d.name || 'My Bike',
                 uniqueId: d.uniqueId || '',
-                status: d.status || 'offline',
+                status: d.status || 'online',
                 disabled: !!d.disabled,
                 lastUpdate: d.lastUpdate || new Date().toISOString(),
                 positionId: d.positionId,
                 phone: serverPhone,
                 category: d.category || (isBike ? 'motorcycle' : 'motorcycle'),
                 attributes: {
-                  color: d.attributes?.color || '#3b82f6',
+                  color: d.attributes?.color || '#ef4444',
                   plateNumber: d.attributes?.plateNumber || '',
                   driverName: d.attributes?.driverName || '',
                   driverPhone: d.attributes?.driverPhone || '',
@@ -155,15 +171,17 @@ class TraccarApiService {
   }
 
   async getPositions(): Promise<Position[]> {
-    const endpoints = ['/api/positions', `${this.baseUrl}/api/positions`];
+    const baseClean = this.baseUrl.replace(/\/$/, '');
+    const endpoints = ['/api/positions', `${baseClean}/api/positions`];
 
     for (const url of endpoints) {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 4000);
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
 
         const res = await fetch(url, {
           headers: this.getHeaders(),
+          credentials: 'include',
           signal: controller.signal
         });
         clearTimeout(timeoutId);
@@ -186,7 +204,7 @@ class TraccarApiService {
                   ...p.attributes,
                   ignition: isIgnition,
                   power: p.attributes?.power ? Number(p.attributes.power) : (p.attributes?.battery ? Number(p.attributes.battery) : undefined),
-                  sat: p.attributes?.sat ? Number(p.attributes.sat) : 0
+                  sat: p.attributes?.sat ? Number(p.attributes.sat) : (p.attributes?.satellites ? Number(p.attributes.satellites) : 12)
                 }
               };
             });

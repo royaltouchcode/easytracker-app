@@ -63,9 +63,11 @@ const TRAFFIC_LAYER_URL = 'https://mt1.google.com/vt/lyrs=h,traffic&x={x}&y={y}&
 
 export const LiveTrackingMap: React.FC = () => {
   const { 
+    user,
     devices, 
+    tenantDevices,
     selectedDeviceId, 
-    setSelectedDeviceId, 
+    setSelectedDeviceId,
     selectedPosition, 
     positions, 
     userLocation,
@@ -80,6 +82,10 @@ export const LiveTrackingMap: React.FC = () => {
     geofences,
     language
   } = useApp();
+
+  const displayDevices = user?.partnerId 
+    ? (tenantDevices.length > 0 ? tenantDevices : devices) 
+    : (user?.role === 'customer' ? devices.slice(0, 1) : devices);
 
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
@@ -100,8 +106,8 @@ export const LiveTrackingMap: React.FC = () => {
   useEffect(() => {
     if (!mapContainerRef.current || mapInstanceRef.current) return;
 
-    const initialLat = selectedPosition?.latitude || 23.7937;
-    const initialLon = selectedPosition?.longitude || 90.4066;
+    const initialLat = (selectedPosition?.latitude && selectedPosition.latitude !== 0) ? selectedPosition.latitude : 23.7937;
+    const initialLon = (selectedPosition?.longitude && selectedPosition.longitude !== 0) ? selectedPosition.longitude : 90.4066;
 
     const map = L.map(mapContainerRef.current, {
       center: [initialLat, initialLon],
@@ -299,7 +305,18 @@ export const LiveTrackingMap: React.FC = () => {
     const map = mapInstanceRef.current;
     if (!map) return;
 
-    devices.forEach(dev => {
+    // 1. Remove ghost markers that are not in displayDevices
+    const activeIds = new Set(displayDevices.map(d => d.id));
+    Object.keys(markersRef.current).forEach(idStr => {
+      const devId = Number(idStr);
+      if (!activeIds.has(devId)) {
+        map.removeLayer(markersRef.current[devId]);
+        delete markersRef.current[devId];
+      }
+    });
+
+    // 2. Render / update markers for all active displayDevices
+    displayDevices.forEach(dev => {
       const pos = positions[dev.id];
       if (!pos || !pos.latitude || !pos.longitude || (pos.latitude === 0 && pos.longitude === 0)) return;
 
@@ -360,14 +377,14 @@ export const LiveTrackingMap: React.FC = () => {
       }
     });
 
-    // Smart Viewport Offset: Keep vehicle dead-center in the upper visible area above 4-KPI sheet
-    if (followVehicle && selectedPosition) {
-      map.panTo([selectedPosition.latitude, selectedPosition.longitude], {
+    // 3. Keep camera centered on selected vehicle's actual location
+    if (followVehicle && selectedPosition && selectedPosition.latitude && selectedPosition.longitude && selectedPosition.latitude !== 0) {
+      map.setView([selectedPosition.latitude, selectedPosition.longitude], map.getZoom() < 15 ? 16 : map.getZoom(), {
         animate: true,
-        duration: 0.8
+        duration: 0.5
       });
     }
-  }, [devices, positions, selectedDeviceId, followVehicle]);
+  }, [displayDevices, positions, selectedDeviceId, followVehicle]);
 
   // Center on Vehicle GPS
   const handleCenterVehicle = () => {
