@@ -43,6 +43,8 @@ export const PartnerOnboardingManager: React.FC = () => {
   const [assignedUsername, setAssignedUsername] = useState('');
   const [approvedTier, setApprovedTier] = useState<PartnerServiceTier>('all_inclusive');
   const [approvedRoles, setApprovedRoles] = useState<SaasRole[]>(['sales', 'technician']);
+  const [customServerUrl, setCustomServerUrl] = useState('');
+  const [customServerPort, setCustomServerPort] = useState('8082');
   const [adminNotes, setAdminNotes] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
 
@@ -52,6 +54,8 @@ export const PartnerOnboardingManager: React.FC = () => {
     setAssignedUsername(`partner/${slug}`);
     setApprovedTier(partner.serviceTier || 'all_inclusive');
     setApprovedRoles(partner.desiredRoles.length > 0 ? partner.desiredRoles : ['sales', 'technician']);
+    setCustomServerUrl(partner.customServerUrl || '');
+    setCustomServerPort(partner.customServerPort || '8082');
     setAdminNotes('সুপার অ্যাডমিন কর্তৃক নথি ও লোকেশন যাচাইপূর্বক অনুমোদিত।');
   };
 
@@ -64,7 +68,9 @@ export const PartnerOnboardingManager: React.FC = () => {
       approvedTier,
       assignedUsername.trim(),
       approvedRoles,
-      adminNotes
+      adminNotes,
+      customServerUrl.trim() || undefined,
+      customServerPort.trim() || undefined
     );
 
     setIsSuccess(true);
@@ -299,6 +305,13 @@ export const PartnerOnboardingManager: React.FC = () => {
                 </div>
               </div>
 
+              {p.customServerUrl && (
+                <div className="p-2 bg-purple-950/40 border border-purple-800/60 rounded-xl text-[10px] text-purple-300 flex items-center justify-between">
+                  <span>📡 কাস্টম GPS সার্ভার: <b className="font-mono text-purple-200">{p.customServerUrl}</b></span>
+                  <span className="font-mono text-emerald-400 font-bold">পোর্ট: {p.customServerPort || '8082'}</span>
+                </div>
+              )}
+
               {p.googleMapsUrl && (
                 <a
                   href={p.googleMapsUrl}
@@ -414,6 +427,37 @@ export const PartnerOnboardingManager: React.FC = () => {
                     );
                   })}
                 </div>
+              </div>
+
+              {/* Custom B2B Traccar Server Endpoint (Optional for Bring-Your-Own-Server Logistics) */}
+              <div className="bg-slate-950 p-2.5 rounded-xl border border-purple-500/30 space-y-2">
+                <div className="flex items-center space-x-1.5 text-purple-300">
+                  <LocateFixed className="w-3.5 h-3.5" />
+                  <span className="font-bold text-[10.5px]">কাস্টম GPS ট্র্যাকিং সার্ভার এন্ডপয়েন্ট (ঐচ্ছিক):</span>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="col-span-2">
+                    <input
+                      type="text"
+                      placeholder="https://gps.clientdomain.com (ডিফল্ট খালি)"
+                      value={customServerUrl}
+                      onChange={(e) => setCustomServerUrl(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-purple-200 font-mono focus:border-purple-500 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <input
+                      type="text"
+                      placeholder="পোর্ট: 8082"
+                      value={customServerPort}
+                      onChange={(e) => setCustomServerPort(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-purple-200 font-mono focus:border-purple-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
+                <span className="text-[9.5px] text-slate-500 block">
+                  ক্লায়েন্টের নিজস্ব Traccar সার্ভার থাকলে এখানে ইউআরএল বসিয়ে দিন।
+                </span>
               </div>
 
               <div>

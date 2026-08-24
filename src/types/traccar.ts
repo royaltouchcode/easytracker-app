@@ -290,6 +290,8 @@ export interface PartnerRegistrationEntry {
   assignedUsername?: string;
   partnerId?: string;
   adminReviewNotes?: string;
+  customServerUrl?: string; // Custom B2B Traccar server endpoint e.g. https://gps.meghnalogistics.com
+  customServerPort?: string; // Custom API/Web port e.g. 8082
 }
 
 // Customer Support & Helpdesk Ticket Types

@@ -194,7 +194,7 @@ interface AppContextType {
   partnerRegistrations: PartnerRegistrationEntry[];
   approvedPartners: PartnerRegistrationEntry[];
   registerPartner: (entry: Omit<PartnerRegistrationEntry, 'id' | 'status' | 'submittedAt'>) => Promise<PartnerRegistrationEntry>;
-  approvePartner: (id: string, serviceTier: PartnerServiceTier, username: string, assignedRoles: SaasRole[], adminNotes?: string) => void;
+  approvePartner: (id: string, serviceTier: PartnerServiceTier, username: string, assignedRoles: SaasRole[], adminNotes?: string, customServerUrl?: string, customServerPort?: string) => void;
   rejectPartner: (id: string, reason?: string) => void;
 
   // Paid Out-of-Warranty Rate-Card & Spare Parts Management
@@ -1195,7 +1195,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return newEntry;
   };
 
-  const approvePartner = (id: string, serviceTier: PartnerServiceTier, username: string, assignedRoles: SaasRole[], adminNotes?: string) => {
+  const approvePartner = (
+    id: string,
+    serviceTier: PartnerServiceTier,
+    username: string,
+    assignedRoles: SaasRole[],
+    adminNotes?: string,
+    customServerUrl?: string,
+    customServerPort?: string
+  ) => {
     const target = partnerRegistrations.find(p => p.id === id);
     if (!target) return;
 
@@ -1207,7 +1215,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       assignedUsername: username,
       partnerId,
       desiredRoles: assignedRoles,
-      adminReviewNotes: adminNotes
+      adminReviewNotes: adminNotes,
+      customServerUrl: customServerUrl?.trim() || target.customServerUrl,
+      customServerPort: customServerPort?.trim() || target.customServerPort || '8082'
     };
 
     setPartnerRegistrations(prev => {
