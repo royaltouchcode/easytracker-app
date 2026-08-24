@@ -1,0 +1,178 @@
+version: '3.8'
+
+services:
+  # =========================================================================
+  # 1. ERP & BUSINESS DATABASE (PostgreSQL 16 - OLTP / ACID)
+  # =========================================================================
+  easytracker-erp-db:
+    image: postgres:16-alpine
+    container_name: easytracker-erp-db
+    restart: always
+    environment:
+      POSTGRES_DB: easytracker_erp
+      POSTGRES_USER: ${ERP_DB_USER:-erp_admin}
+      POSTGRES_PASSWORD: ${ERP_DB_PASSWORD:-EasyTracker_ERP_Secret2026!}
+    volumes:
+      - erp_db_data:/var/lib/postgresql/data
+      - ./db/init-erp-db.sql:/docker-entrypoint-initdb.d/init-erp-db.sql:ro
+    ports:
+      - "5432:5432"
+    networks:
+      - easytracker-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U erp_admin -d easytracker_erp"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # =========================================================================
+  # 2. TELEMETRY DATA PLANE (TimescaleDB / PostgreSQL 16 - Time-Series)
+  # =========================================================================
+  easytracker-telemetry-db:
+    image: timescale/timescaledb:latest-pg16
+    container_name: easytracker-telemetry-db
+    restart: always
+    environment:
+      POSTGRES_DB: easytracker_telemetry
+      POSTGRES_USER: ${TELEMETRY_DB_USER:-telemetry_admin}
+      POSTGRES_PASSWORD: ${TELEMETRY_DB_PASSWORD:-EasyTracker_Telemetry_Secret2026!}
+    volumes:
+      - telemetry_db_data:/var/lib/postgresql/data
+      - ./db/init-telemetry-db.sql:/docker-entrypoint-initdb.d/init-telemetry-db.sql:ro
+    ports:
+      - "5433:5432"
+    networks:
+      - easytracker-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U telemetry_admin -d easytracker_telemetry"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # =========================================================================
+  # 3. REAL-TIME IN-MEMORY CACHE (Redis 7)
+  # =========================================================================
+  easytracker-redis:
+    image: redis:7-alpine
+    container_name: easytracker-redis
+    restart: always
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-EasyTracker_Redis_Secret2026!}
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - easytracker-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "EasyTracker_Redis_Secret2026!", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # =========================================================================
+  # 4. EVENT STREAMING BROKER (Kafka & Zookeeper)
+  # =========================================================================
+  easytracker-zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: easytracker-zookeeper
+    restart: always
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    volumes:
+      - zookeeper_data:/var/lib/zookeeper/data
+    networks:
+      - easytracker-net
+
+  easytracker-kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: easytracker-kafka
+    restart: always
+    depends_on:
+      - easytracker-zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: easytracker-zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://easytracker-kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    networks:
+      - easytracker-net
+
+  # =========================================================================
+  # 5. TRACCAR TELEMATICS INGESTION ENGINE (Dedicated to Telemetry DB)
+  # =========================================================================
+  traccar-telematics-cluster:
+    image: traccar/traccar:6.6-alpine
+    container_name: traccar-telematics-cluster
+    restart: always
+    depends_on:
+      easytracker-telemetry-db:
+        condition: service_healthy
+    volumes:
+      - ./traccar/traccar.xml:/opt/traccar/conf/traccar.xml:ro
+      - traccar_logs:/opt/traccar/logs
+    ports:
+      - "8082:8082"       # Traccar Web / Internal API
+      - "5001:5001"       # Coban / Sinotrack GPS Port
+      - "5023:5023"       # GT06 / Concox GPS Port
+      - "5027:5027"       # Teltonika GPS Port
+      - "5055:5055"       # Osmand / Custom Mobile GPS Port
+    networks:
+      - easytracker-net
+
+  # =========================================================================
+  # 6. EASYTRACKER SAAS API GATEWAY & ERP BACKEND (Node.js)
+  # =========================================================================
+  easytracker-erp-backend:
+    build:
+      context: ./
+      dockerfile: Dockerfile.backend
+    container_name: easytracker-erp-backend
+    restart: always
+    depends_on:
+      easytracker-erp-db:
+        condition: service_healthy
+      easytracker-redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      ERP_DB_HOST: easytracker-erp-db
+      ERP_DB_PORT: 5432
+      ERP_DB_NAME: easytracker_erp
+      ERP_DB_USER: ${ERP_DB_USER:-erp_admin}
+      ERP_DB_PASS: ${ERP_DB_PASSWORD:-EasyTracker_ERP_Secret2026!}
+      TELEMETRY_DB_HOST: easytracker-telemetry-db
+      TELEMETRY_DB_PORT: 5432
+      TELEMETRY_DB_NAME: easytracker_telemetry
+      TELEMETRY_DB_USER: ${TELEMETRY_DB_USER:-telemetry_admin}
+      TELEMETRY_DB_PASS: ${TELEMETRY_DB_PASSWORD:-EasyTracker_Telemetry_Secret2026!}
+      REDIS_HOST: easytracker-redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-EasyTracker_Redis_Secret2026!}
+      KAFKA_BROKERS: easytracker-kafka:9092
+      TRACCAR_API_URL: http://traccar-telematics-cluster:8082
+      JWT_SECRET: ${JWT_SECRET:-EasyTracker_JWT_SuperSecret_2026_Key!}
+    ports:
+      - "4000:4000"
+    networks:
+      - easytracker-net
+
+networks:
+  easytracker-net:
+    driver: bridge
+
+volumes:
+  erp_db_data:
+  telemetry_db_data:
+  redis_data:
+  zookeeper_data:
+  kafka_data:
+  traccar_logs:
