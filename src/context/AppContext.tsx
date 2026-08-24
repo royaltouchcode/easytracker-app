@@ -505,25 +505,25 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const realBikePos: Position = {
       id: 101,
       deviceId: 1,
-      protocol: 'osmand',
+      protocol: 'gt06',
       serverTime: new Date().toISOString(),
       deviceTime: new Date().toISOString(),
       fixTime: new Date().toISOString(),
       outdated: false,
       valid: true,
-      latitude: 23.7937,
-      longitude: 90.4066,
-      altitude: 12,
+      latitude: 23.8103,
+      longitude: 90.4125,
+      altitude: 10,
       speed: 0,
-      course: 45,
-      address: 'Gulshan-2, Dhaka, Bangladesh',
+      course: 0,
+      address: 'সার্ভারের শেষ পরিচিত অবস্থান (Last Known Location)',
       accuracy: 5,
       attributes: {
-        ignition: true,
+        ignition: false,
         motion: false,
         batteryLevel: 98,
-        satellites: 14,
-        power: 12.6,
+        satellites: 0,
+        power: 12.2,
         isLastKnown: true
       }
     };
@@ -761,17 +761,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (saved) {
       try { return JSON.parse(saved); } catch (e) {}
     }
-    return [
-      {
-        id: 'eng-1',
-        deviceId: 1,
-        deviceName: 'mdaaziz',
-        action: 'cut',
-        status: 'executed',
-        timestamp: new Date(Date.now() - 3600000).toISOString(),
-        speed: 0
-      }
-    ];
+    return [];
   });
 
   const addEngineLog = (log: Omit<EngineLog, 'id' | 'timestamp'>) => {
