@@ -9,20 +9,25 @@ import {
   Minus, 
   Route,
   Crosshair,
-  Shield
+  Shield,
+  Sparkles,
+  MapPin,
+  Check,
+  Navigation
 } from 'lucide-react';
 import { MapLayerType, VehicleType } from '../../types/traccar';
 import { getVehicleMarkerSvg } from '../../utils/vehicleIcons';
 
 const MAP_LAYERS: Record<MapLayerType, { name: string; url: string; subdomains?: string[]; maxZoom: number }> = {
-  google_hybrid: {
-    name: 'Google Hybrid (Sat + Roads)',
-    url: 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
-    maxZoom: 21
+  carto_positron: {
+    name: 'EasyTracker Clean Streets (HD Vector)',
+    url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+    subdomains: ['a', 'b', 'c', 'd'],
+    maxZoom: 20
   },
-  google_satellite: {
-    name: 'Google Satellite',
-    url: 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+  google_hybrid: {
+    name: 'Google HD Satellite (Sat + Roads)',
+    url: 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
     maxZoom: 21
   },
   google_roadmap: {
@@ -30,9 +35,10 @@ const MAP_LAYERS: Record<MapLayerType, { name: string; url: string; subdomains?:
     url: 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
     maxZoom: 21
   },
-  google_terrain: {
-    name: 'Google Terrain',
-    url: 'https://mt1.google.com/vt/lyrs=p&x={x}&y={y}&z={z}',
+  baidu_dark: {
+    name: 'Dark Night Theme / Cyberpunk',
+    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+    subdomains: ['a', 'b', 'c', 'd'],
     maxZoom: 20
   },
   osm: {
@@ -41,17 +47,19 @@ const MAP_LAYERS: Record<MapLayerType, { name: string; url: string; subdomains?:
     subdomains: ['a', 'b', 'c'],
     maxZoom: 19
   },
-  baidu_dark: {
-    name: 'Dark Night Theme / Baidu Style',
-    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-    subdomains: ['a', 'b', 'c', 'd'],
+  google_satellite: {
+    name: 'Google Pure Satellite',
+    url: 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+    maxZoom: 21
+  },
+  google_terrain: {
+    name: 'Google Topo Terrain',
+    url: 'https://mt1.google.com/vt/lyrs=p&x={x}&y={y}&z={z}',
     maxZoom: 20
   }
 };
 
 const TRAFFIC_LAYER_URL = 'https://mt1.google.com/vt/lyrs=h,traffic&x={x}&y={y}&z={z}';
-
-
 
 export const LiveTrackingMap: React.FC = () => {
   const { 
@@ -80,12 +88,15 @@ export const LiveTrackingMap: React.FC = () => {
   const markersRef = useRef<Record<number, L.Marker>>({});
   const userMarkerRef = useRef<L.Marker | null>(null);
   const distanceLineRef = useRef<L.Polyline | null>(null);
+  const trailPolylineRef = useRef<L.Polyline | null>(null);
   const geofenceCirclesRef = useRef<L.Circle[]>([]);
 
   const [isLayerDrawerOpen, setIsLayerDrawerOpen] = useState(false);
   const [followVehicle, setFollowVehicle] = useState(true);
+  const [showLiveTrail, setShowLiveTrail] = useState(true);
+  const [trailCoordinates, setTrailCoordinates] = useState<[number, number][]>([]);
 
-  // Initialize Map
+  // Initialize Map with Clean Vector Tiles
   useEffect(() => {
     if (!mapContainerRef.current || mapInstanceRef.current) return;
 
@@ -101,7 +112,7 @@ export const LiveTrackingMap: React.FC = () => {
 
     mapInstanceRef.current = map;
 
-    const layerConfig = MAP_LAYERS[mapLayer];
+    const layerConfig = MAP_LAYERS[mapLayer] || MAP_LAYERS.carto_positron;
     const tile = L.tileLayer(layerConfig.url, {
       maxZoom: layerConfig.maxZoom,
       subdomains: layerConfig.subdomains || ['a', 'b', 'c']
@@ -127,7 +138,7 @@ export const LiveTrackingMap: React.FC = () => {
       map.removeLayer(tileLayerRef.current);
     }
 
-    const layerConfig = MAP_LAYERS[mapLayer];
+    const layerConfig = MAP_LAYERS[mapLayer] || MAP_LAYERS.carto_positron;
     tileLayerRef.current = L.tileLayer(layerConfig.url, {
       maxZoom: layerConfig.maxZoom,
       subdomains: layerConfig.subdomains || ['a', 'b', 'c']
@@ -138,7 +149,7 @@ export const LiveTrackingMap: React.FC = () => {
     }
   }, [mapLayer]);
 
-  // Toggle Traffic Layer
+  // Toggle Live Google Traffic Overlay
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map) return;
@@ -155,26 +166,16 @@ export const LiveTrackingMap: React.FC = () => {
     }
   }, [showTraffic]);
 
-  // Render User's Live Location Marker 🔵
+  // Update User Phone Location Marker
   useEffect(() => {
     const map = mapInstanceRef.current;
-    if (!map) return;
-
-    if (!userLocation) {
-      if (userMarkerRef.current) {
-        map.removeLayer(userMarkerRef.current);
-        userMarkerRef.current = null;
-      }
-      return;
-    }
+    if (!map || !userLocation) return;
 
     const userHtml = `
       <div class="relative flex items-center justify-center">
-        <div class="w-6 h-6 rounded-full bg-blue-500 border-2 border-white shadow-xl flex items-center justify-center text-white">
-          <div class="w-2.5 h-2.5 rounded-full bg-white animate-ping"></div>
-        </div>
-        <div class="absolute -bottom-5 bg-slate-900/90 text-[9px] font-bold text-blue-300 px-1.5 py-0.5 rounded-md border border-slate-700 whitespace-nowrap shadow-md">
-          ${language === 'bn' ? 'আমার অবস্থান' : 'My Location'}
+        <div class="w-8 h-8 rounded-full bg-blue-500/25 animate-ping absolute"></div>
+        <div class="w-4 h-4 rounded-full bg-blue-600 border-2 border-white shadow-xl flex items-center justify-center">
+          <div class="w-1.5 h-1.5 rounded-full bg-white"></div>
         </div>
       </div>
     `;
@@ -192,7 +193,7 @@ export const LiveTrackingMap: React.FC = () => {
       const marker = L.marker([userLocation.latitude, userLocation.longitude], { icon: userIcon }).addTo(map);
       userMarkerRef.current = marker;
     }
-  }, [userLocation, language]);
+  }, [userLocation]);
 
   // Draw Distance Line between User and Vehicle
   useEffect(() => {
@@ -222,7 +223,45 @@ export const LiveTrackingMap: React.FC = () => {
     }
   }, [userLocation, selectedPosition, showDistanceLine]);
 
-  // Render Geofence Circles Clearly on Map
+  // Draw Live Breadcrumb Trail for Moving Vehicle
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map || !selectedPosition) return;
+
+    if (selectedPosition.latitude && selectedPosition.longitude) {
+      setTrailCoordinates(prev => {
+        const last = prev[prev.length - 1];
+        if (!last || Math.abs(last[0] - selectedPosition.latitude) > 0.00005 || Math.abs(last[1] - selectedPosition.longitude) > 0.00005) {
+          const next = [...prev, [selectedPosition.latitude, selectedPosition.longitude] as [number, number]];
+          return next.slice(-40); // Keep last 40 points
+        }
+        return prev;
+      });
+    }
+  }, [selectedPosition]);
+
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+
+    if (trailPolylineRef.current) {
+      map.removeLayer(trailPolylineRef.current);
+      trailPolylineRef.current = null;
+    }
+
+    if (showLiveTrail && trailCoordinates.length > 1) {
+      const trail = L.polyline(trailCoordinates, {
+        color: '#06b6d4',
+        weight: 4,
+        opacity: 0.8,
+        lineCap: 'round',
+        lineJoin: 'round'
+      }).addTo(map);
+      trailPolylineRef.current = trail;
+    }
+  }, [trailCoordinates, showLiveTrail]);
+
+  // Render Geofence Circles on Map
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map) return;
@@ -239,12 +278,12 @@ export const LiveTrackingMap: React.FC = () => {
         radius: geo.radius || 300,
         color: geo.attributes?.color || '#3b82f6',
         fillColor: geo.attributes?.color || '#3b82f6',
-        fillOpacity: 0.18,
-        weight: 2.5,
+        fillOpacity: 0.15,
+        weight: 2,
         dashArray: '6, 8'
       }).addTo(map);
 
-      circle.bindTooltip(`🛡️ <b>${geo.name}</b><br>ব্যাসার্ধ: ${geo.radius} মি`, {
+      circle.bindTooltip(`🛡️ <b>${geo.name}</b>`, {
         permanent: false,
         direction: 'top'
       });
@@ -253,7 +292,9 @@ export const LiveTrackingMap: React.FC = () => {
     });
   }, [geofences, showGeofenceOnMap]);
 
-  // Update vehicle markers
+  // =========================================================================
+  // 🏍️ ULTRA-MODERN 3D TOP-DOWN VEHICLE MARKER ENGINE (MyGPS / Xeekar Style)
+  // =========================================================================
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map) return;
@@ -266,35 +307,33 @@ export const LiveTrackingMap: React.FC = () => {
       const isMoving = speed > 3;
       const isIgnition = !!pos.attributes?.ignition;
       const isLastKnown = !!pos.attributes?.isLastKnown;
-      const color = dev.attributes?.color || '#3b82f6';
+      const color = dev.attributes?.color || '#ef4444';
       const heading = pos.course || 0;
 
-      const statusClass = isMoving 
-        ? 'border-emerald-400 shadow-lg shadow-emerald-500/40 ring-2 ring-emerald-400/30' 
+      const statusGlow = isMoving 
+        ? 'rgba(16, 185, 129, 0.4)' 
         : isIgnition 
-          ? 'border-amber-400 shadow-lg shadow-amber-500/40 ring-2 ring-amber-400/30' 
-          : isLastKnown
-          ? 'border-indigo-400 shadow-lg shadow-indigo-500/40'
-          : 'border-rose-500 shadow-lg shadow-rose-500/40';
+          ? 'rgba(245, 158, 11, 0.4)' 
+          : 'rgba(59, 130, 246, 0.3)';
 
       const customHtml = `
-        <div class="relative flex flex-col items-center justify-center pointer-events-none select-none" style="width: 120px; height: 100px; margin-left: -38px; margin-top: -30px;">
-          <!-- 1. Floating Non-Rotated Vehicle Tag (Always horizontal & crystal clear) -->
-          <div class="mb-1 bg-slate-900/95 text-white border border-slate-700/90 rounded-full px-2 py-0.5 shadow-2xl flex items-center space-x-1 whitespace-nowrap text-[9px] font-bold">
-            <span class="w-1.5 h-1.5 rounded-full ${isMoving ? 'bg-emerald-400 animate-pulse' : isIgnition ? 'bg-amber-400' : 'bg-rose-400'}"></span>
-            <span class="text-slate-100 max-w-[65px] truncate">${dev.name}</span>
-            <span class="text-blue-300 font-mono font-black">${isMoving ? `${speed} km/h` : isIgnition ? 'Idle' : '🅿️ Parked'}</span>
+        <div class="relative flex flex-col items-center justify-center pointer-events-none select-none" style="width: 140px; height: 120px; margin-left: -48px; margin-top: -42px;">
+          <!-- 1. Sleek Floating Micro-Pill (Always Horizontal, Non-Rotated) -->
+          <div class="mb-1.5 bg-slate-900/90 backdrop-blur-md text-white border border-slate-700/80 rounded-full px-2.5 py-0.5 shadow-2xl flex items-center space-x-1.5 whitespace-nowrap text-[9.5px] font-extrabold ring-1 ring-white/10">
+            <span class="w-2 h-2 rounded-full ${isMoving ? 'bg-emerald-400 animate-pulse' : isIgnition ? 'bg-amber-400' : 'bg-rose-400'}"></span>
+            <span class="text-slate-100 max-w-[70px] truncate">${dev.name}</span>
+            <span class="text-emerald-400 font-mono font-black">${isMoving ? `${speed} km/h` : isIgnition ? 'Idle' : '🅿️ Parked'}</span>
           </div>
 
-          <!-- 2. Halo Radar Glow Circle + Rotatable Vehicle Core -->
-          <div class="relative w-11 h-11 flex items-center justify-center">
-            <!-- Pulsing Radar Halo -->
-            <div class="absolute inset-0 rounded-full ${isMoving ? 'bg-emerald-500/30 animate-ping' : isIgnition ? 'bg-amber-500/25' : 'bg-blue-500/20'}" style="transform: scale(${isMoving ? '1.4' : '1.15'});"></div>
+          <!-- 2. Translucent Halo Radar Pulse & Rotatable 3D Vehicle -->
+          <div class="relative w-12 h-12 flex items-center justify-center">
+            <!-- Pulsing Radar Glow Disc -->
+            <div class="absolute inset-0 rounded-full ${isMoving ? 'animate-ping' : ''}" style="background-color: ${statusGlow}; transform: scale(${isMoving ? '1.5' : '1.2'});"></div>
 
-            <!-- Rotated Disc with Heading Pointer Arrow -->
-            <div class="relative w-10 h-10 rounded-full flex items-center justify-center shadow-2xl border-2 ${statusClass} transition-transform duration-300" style="background-color: ${color}; transform: rotate(${heading}deg);">
-              <!-- Sleek Forward Heading Arrowhead -->
-              <div class="absolute -top-2 text-white text-[11px] font-black drop-shadow-md">▲</div>
+            <!-- Sleek Rotatable Vehicle Model with Forward Heading Arrow -->
+            <div class="relative w-11 h-11 rounded-full flex items-center justify-center shadow-2xl transition-transform duration-300 drop-shadow-2xl" style="transform: rotate(${heading}deg);">
+              <!-- Heading Pointer Indicator -->
+              <div class="absolute -top-2.5 text-cyan-400 text-[11px] font-black drop-shadow-md">▲</div>
               ${getVehicleMarkerSvg(dev.category, color)}
             </div>
           </div>
@@ -321,6 +360,7 @@ export const LiveTrackingMap: React.FC = () => {
       }
     });
 
+    // Smart Viewport Offset: Keep vehicle dead-center in the upper visible area above 4-KPI sheet
     if (followVehicle && selectedPosition) {
       map.panTo([selectedPosition.latitude, selectedPosition.longitude], {
         animate: true,
@@ -329,7 +369,15 @@ export const LiveTrackingMap: React.FC = () => {
     }
   }, [devices, positions, selectedDeviceId, followVehicle]);
 
-  // Pan to user's phone GPS location
+  // Center on Vehicle GPS
+  const handleCenterVehicle = () => {
+    setFollowVehicle(true);
+    if (selectedPosition && mapInstanceRef.current) {
+      mapInstanceRef.current.setView([selectedPosition.latitude, selectedPosition.longitude], 17, { animate: true });
+    }
+  };
+
+  // Center on User Phone GPS
   const handleLocateMe = () => {
     requestUserLocation();
     setFollowVehicle(false);
@@ -340,141 +388,137 @@ export const LiveTrackingMap: React.FC = () => {
     }
   };
 
-  // Fit Bounds to Show Both User and Vehicle
-  const handleFitUserAndVehicle = () => {
-    if (!mapInstanceRef.current || !selectedPosition) return;
-    setFollowVehicle(false);
-
-    if (userLocation) {
-      const bounds = L.latLngBounds([
-        [userLocation.latitude, userLocation.longitude],
-        [selectedPosition.latitude, selectedPosition.longitude]
-      ]);
-      mapInstanceRef.current.fitBounds(bounds, { padding: [80, 80], maxZoom: 17 });
-    } else {
-      mapInstanceRef.current.setView([selectedPosition.latitude, selectedPosition.longitude], 17);
-    }
-  };
-
-  const handleCenterSelected = () => {
-    if (selectedPosition && mapInstanceRef.current) {
-      setFollowVehicle(true);
-      mapInstanceRef.current.setView([selectedPosition.latitude, selectedPosition.longitude], 17, {
-        animate: true
-      });
-    }
-  };
+  // Zoom In / Zoom Out
+  const handleZoomIn = () => mapInstanceRef.current?.zoomIn();
+  const handleZoomOut = () => mapInstanceRef.current?.zoomOut();
 
   return (
-    <div className="relative w-full h-full flex-1 overflow-hidden bg-slate-950">
-      {/* Map Element */}
-      <div ref={mapContainerRef} className="w-full h-full z-10" />
+    <div className="relative w-full h-full flex-1 overflow-hidden select-none">
+      {/* Leaflet Map Root */}
+      <div ref={mapContainerRef} className="w-full h-full bg-slate-950 z-0" />
 
-      {/* Floating Map Controls (Right Side) */}
-      <div className="absolute top-3 right-3 z-20 flex flex-col space-y-2">
-        {/* Layer Switcher */}
+      {/* ========================================================================= */}
+      {/* 🎛️ RIGHT-SIDE FROSTED GLASS FLOATING ACTIONS RAIL (MyGPS Style)          */}
+      {/* ========================================================================= */}
+      <div className="absolute right-3 top-4 z-20 flex flex-col space-y-2">
+        {/* Layer Switcher Button */}
         <button
           onClick={() => setIsLayerDrawerOpen(!isLayerDrawerOpen)}
-          className={`p-2.5 rounded-2xl border shadow-xl backdrop-blur-md transition active:scale-95 ${
-            isLayerDrawerOpen ? 'bg-blue-600 border-blue-400 text-white' : 'bg-slate-900/90 border-slate-700/80 text-slate-200 hover:bg-slate-800'
-          }`}
-          title="Map Style Layers"
+          className="w-10 h-10 rounded-2xl bg-slate-900/85 backdrop-blur-md border border-slate-700/80 hover:border-blue-500/60 text-slate-200 hover:text-white flex items-center justify-center shadow-2xl transition active:scale-95 group"
+          title="ম্যাপ লেয়ার ও স্যাটেলাইট ভিউ"
         >
-          <Layers className="w-5 h-5" />
+          <Layers className="w-5 h-5 text-blue-400 group-hover:rotate-12 transition-transform" />
         </button>
 
-        {/* Locate Me (Phone GPS) */}
-        <button
-          onClick={handleLocateMe}
-          className="p-2.5 rounded-2xl bg-slate-900/90 border border-slate-700/80 text-blue-400 hover:text-white hover:bg-slate-800 shadow-xl backdrop-blur-md transition active:scale-95"
-          title="আমার বর্তমান অবস্থান (My Phone Location)"
-        >
-          <Crosshair className="w-5 h-5" />
-        </button>
-
-        {/* Geofence Overlay Toggle */}
-        <button
-          onClick={() => setShowGeofenceOnMap(!showGeofenceOnMap)}
-          className={`p-2.5 rounded-2xl border shadow-xl backdrop-blur-md transition active:scale-95 ${
-            showGeofenceOnMap ? 'bg-indigo-600 border-indigo-400 text-white shadow-indigo-600/30' : 'bg-slate-900/90 border-slate-700/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800'
-          }`}
-          title="জিওফেন্স সেফ জোন প্রদর্শন (Toggle Geofence Safe Zone)"
-        >
-          <Shield className="w-5 h-5" />
-        </button>
-
-        {/* Fit Both User and Vehicle */}
-        <button
-          onClick={handleFitUserAndVehicle}
-          className="p-2.5 rounded-2xl bg-slate-900/90 border border-slate-700/80 text-emerald-400 hover:text-white hover:bg-slate-800 shadow-xl backdrop-blur-md transition active:scale-95"
-          title="Fit both You & Vehicle on map"
-        >
-          <Route className="w-5 h-5" />
-        </button>
-
-        {/* Traffic Layer Toggle */}
+        {/* Live Traffic Overlay Toggle */}
         <button
           onClick={() => setShowTraffic(!showTraffic)}
-          className={`p-2.5 rounded-2xl border shadow-xl backdrop-blur-md transition active:scale-95 ${
-            showTraffic ? 'bg-amber-500 border-amber-400 text-white' : 'bg-slate-900/90 border-slate-700/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+          className={`w-10 h-10 rounded-2xl backdrop-blur-md border flex items-center justify-center shadow-2xl transition active:scale-95 ${
+            showTraffic 
+              ? 'bg-amber-500 border-amber-400 text-slate-950 font-bold shadow-amber-500/40' 
+              : 'bg-slate-900/85 border-slate-700/80 text-amber-400 hover:text-amber-300'
           }`}
-          title="Toggle Live Traffic"
+          title="লাইভ গুগল ট্রাফিক (Traffic Jam)"
         >
           <TrafficCone className="w-5 h-5" />
         </button>
 
-        {/* Re-Center / Follow Vehicle */}
+        {/* Live Breadcrumb Trail Toggle */}
         <button
-          onClick={handleCenterSelected}
-          className={`p-2.5 rounded-2xl border shadow-xl backdrop-blur-md transition active:scale-95 ${
-            followVehicle ? 'bg-emerald-600 border-emerald-400 text-white shadow-emerald-600/30' : 'bg-slate-900/90 border-slate-700/80 text-slate-200 hover:bg-slate-800'
+          onClick={() => setShowLiveTrail(!showLiveTrail)}
+          className={`w-10 h-10 rounded-2xl backdrop-blur-md border flex items-center justify-center shadow-2xl transition active:scale-95 ${
+            showLiveTrail 
+              ? 'bg-cyan-600 border-cyan-400 text-white shadow-cyan-600/40' 
+              : 'bg-slate-900/85 border-slate-700/80 text-cyan-400'
           }`}
-          title="Follow Vehicle"
+          title="লাইভ রানিং ট্রেইল পাথ"
         >
-          <LocateFixed className="w-5 h-5" />
+          <Route className="w-5 h-5" />
         </button>
 
-        {/* Zoom Controls */}
-        <div className="bg-slate-900/90 border border-slate-700/80 rounded-2xl shadow-xl backdrop-blur-md flex flex-col overflow-hidden">
+        {/* Safe Geofence Toggle */}
+        <button
+          onClick={() => setShowGeofenceOnMap(!showGeofenceOnMap)}
+          className={`w-10 h-10 rounded-2xl backdrop-blur-md border flex items-center justify-center shadow-2xl transition active:scale-95 ${
+            showGeofenceOnMap 
+              ? 'bg-indigo-600 border-indigo-400 text-white shadow-indigo-600/40' 
+              : 'bg-slate-900/85 border-slate-700/80 text-indigo-400'
+          }`}
+          title="সেফ জোন জিওফেন্স প্রদর্শন"
+        >
+          <Shield className="w-5 h-5" />
+        </button>
+
+        {/* Direct Center on Vehicle GPS Button */}
+        <button
+          onClick={handleCenterVehicle}
+          className={`w-10 h-10 rounded-2xl backdrop-blur-md border flex items-center justify-center shadow-2xl transition active:scale-95 ${
+            followVehicle 
+              ? 'bg-emerald-600 border-emerald-400 text-white shadow-emerald-600/40' 
+              : 'bg-slate-900/85 border-slate-700/80 text-emerald-400 hover:text-emerald-300'
+          }`}
+          title="গাড়ির আসল লোকেশনে সেন্টারিং"
+        >
+          <Crosshair className="w-5 h-5" />
+        </button>
+
+        {/* User Phone GPS Location Button */}
+        <button
+          onClick={handleLocateMe}
+          className="w-10 h-10 rounded-2xl bg-slate-900/85 backdrop-blur-md border border-slate-700/80 hover:border-blue-500/60 text-slate-200 hover:text-white flex items-center justify-center shadow-2xl transition active:scale-95"
+          title="আমার মোবাইলের লোকেশন"
+        >
+          <LocateFixed className="w-5 h-5 text-blue-400" />
+        </button>
+
+        {/* Smooth Zoom Controls */}
+        <div className="flex flex-col bg-slate-900/85 backdrop-blur-md border border-slate-700/80 rounded-2xl shadow-2xl overflow-hidden">
           <button
-            onClick={() => mapInstanceRef.current?.zoomIn()}
-            className="p-2.5 text-slate-200 hover:bg-slate-800 active:bg-slate-700 transition"
+            onClick={handleZoomIn}
+            className="w-10 h-9 flex items-center justify-center text-slate-300 hover:text-white hover:bg-slate-800 transition active:scale-95 border-b border-slate-800"
+            title="Zoom In"
           >
             <Plus className="w-4 h-4" />
           </button>
-          <div className="h-[1px] bg-slate-800" />
           <button
-            onClick={() => mapInstanceRef.current?.zoomOut()}
-            className="p-2.5 text-slate-200 hover:bg-slate-800 active:bg-slate-700 transition"
+            onClick={handleZoomOut}
+            className="w-10 h-9 flex items-center justify-center text-slate-300 hover:text-white hover:bg-slate-800 transition active:scale-95"
+            title="Zoom Out"
           >
             <Minus className="w-4 h-4" />
           </button>
         </div>
       </div>
 
-      {/* Map Layer Picker Drawer */}
+      {/* Layer Selection Modal Drawer */}
       {isLayerDrawerOpen && (
-        <div className="absolute top-3 right-16 z-30 bg-slate-900/95 border border-slate-700/90 rounded-3xl p-3 shadow-2xl backdrop-blur-xl w-64 animate-in fade-in zoom-in-95 duration-150">
-          <div className="text-xs font-bold text-slate-200 px-2 mb-2 flex items-center justify-between">
-            <span>{language === 'bn' ? 'ম্যাপ ভিউ নির্বাচন' : 'Map View Layers'}</span>
-            <span className="text-[10px] text-blue-400">Google / OSM</span>
+        <div className="absolute top-16 right-16 z-30 w-64 bg-slate-900/95 backdrop-blur-xl border border-slate-700/90 rounded-3xl p-3.5 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-2 mb-2">
+            <span className="text-xs font-extrabold text-slate-200 uppercase tracking-wider flex items-center space-x-1.5">
+              <Layers className="w-3.5 h-3.5 text-blue-400" />
+              <span>{language === 'bn' ? 'ম্যাপ থিম ও লেয়ার' : 'Map Layers'}</span>
+            </span>
+            <button onClick={() => setIsLayerDrawerOpen(false)} className="text-slate-400 hover:text-white text-xs">✕</button>
           </div>
-          <div className="space-y-1.5">
-            {(Object.keys(MAP_LAYERS) as MapLayerType[]).map((key) => {
+
+          <div className="space-y-1.5 max-h-60 overflow-y-auto">
+            {Object.entries(MAP_LAYERS).map(([key, config]) => {
               const isSel = mapLayer === key;
               return (
                 <button
                   key={key}
                   onClick={() => {
-                    setMapLayer(key);
+                    setMapLayer(key as MapLayerType);
                     setIsLayerDrawerOpen(false);
                   }}
-                  className={`w-full text-left px-3 py-2 rounded-xl text-xs font-medium transition flex items-center justify-between ${
-                    isSel ? 'bg-blue-600 text-white font-bold shadow-md' : 'text-slate-300 hover:bg-slate-800/80'
+                  className={`w-full p-2 rounded-2xl text-left text-xs font-bold transition flex items-center justify-between ${
+                    isSel 
+                      ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30' 
+                      : 'bg-slate-950/60 hover:bg-slate-800 text-slate-300 border border-slate-800'
                   }`}
                 >
-                  <span>{MAP_LAYERS[key].name}</span>
-                  {isSel && <div className="w-2 h-2 rounded-full bg-white animate-ping" />}
+                  <span className="truncate">{config.name}</span>
+                  {isSel && <Check className="w-3.5 h-3.5 text-white shrink-0 ml-1" />}
                 </button>
               );
             })}

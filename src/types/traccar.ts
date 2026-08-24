@@ -214,7 +214,7 @@ export interface UserSession {
   serverUrl: string;
 }
 
-export type MapLayerType = 'google_roadmap' | 'google_satellite' | 'google_hybrid' | 'google_terrain' | 'osm' | 'baidu_dark';
+export type MapLayerType = 'carto_positron' | 'google_roadmap' | 'google_satellite' | 'google_hybrid' | 'google_terrain' | 'osm' | 'baidu_dark';
 
 export type SaasRole = 'customer' | 'super_admin' | 'sales' | 'technician' | 'support' | 'rescue';
 
