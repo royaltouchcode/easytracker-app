@@ -52,6 +52,24 @@ export const PlaybackView: React.FC = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState<number>(1); // 1x, 2x, 5x, 10x
 
+  // Check for Target Trip Session sent from Report Section
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('gps_playback_target_session');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed.dateFilter && (parsed.dateFilter === 'today' || parsed.dateFilter === 'yesterday' || parsed.dateFilter === 'week')) {
+          setDateFilter(parsed.dateFilter);
+        }
+        if (parsed.tripId) {
+          setSelectedSessionId(parsed.tripId);
+          setIsSessionListOpen(true);
+        }
+        localStorage.removeItem('gps_playback_target_session');
+      }
+    } catch (e) {}
+  }, []);
+
   // Fetch Historical Route Points
   useEffect(() => {
     if (!selectedDevice) return;

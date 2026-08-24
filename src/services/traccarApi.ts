@@ -250,6 +250,42 @@ class TraccarApiService {
     } catch (e) {}
     return [];
   }
+
+  async getReportsTrips(deviceId: number, from: string, to: string): Promise<any[]> {
+    try {
+      const res = await fetch(`/api/reports/trips?deviceId=${deviceId}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`, {
+        headers: this.getHeaders()
+      });
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch (e) {}
+    return [];
+  }
+
+  async getReportsStops(deviceId: number, from: string, to: string): Promise<any[]> {
+    try {
+      const res = await fetch(`/api/reports/stops?deviceId=${deviceId}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`, {
+        headers: this.getHeaders()
+      });
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch (e) {}
+    return [];
+  }
+
+  async getReportsSummary(deviceId: number, from: string, to: string): Promise<any[]> {
+    try {
+      const res = await fetch(`/api/reports/summary?deviceId=${deviceId}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`, {
+        headers: this.getHeaders()
+      });
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch (e) {}
+    return [];
+  }
 }
 
 export const traccarApi = new TraccarApiService();
