@@ -97,6 +97,51 @@ export const getVehicleMarkerSvg = (type?: VehicleType, color: string = '#ef4444
         <rect x="11" y="17" width="18" height="19" rx="2" fill="#d97706" stroke="#b45309" stroke-width="1" />
       </svg>`;
 
+    case 'bus':
+      return `<svg viewBox="0 0 40 40" width="34" height="34" class="drop-shadow-md">
+        <rect x="8" y="7" width="3" height="8" rx="1" fill="#0f172a" />
+        <rect x="29" y="7" width="3" height="8" rx="1" fill="#0f172a" />
+        <rect x="8" y="26" width="3" height="8" rx="1" fill="#0f172a" />
+        <rect x="29" y="26" width="3" height="8" rx="1" fill="#0f172a" />
+        <!-- Long Coach Body -->
+        <rect x="10" y="3" width="20" height="34" rx="3" fill="${color}" stroke="#ffffff" stroke-width="1.2" />
+        <path d="M12 5 L28 5 L27 9 L13 9 Z" fill="#38bdf8" opacity="0.9" />
+        <!-- Passenger Windows & AC Roof -->
+        <rect x="12" y="11" width="16" height="19" rx="1" fill="#0f172a" opacity="0.6" />
+        <rect x="15" y="14" width="10" height="12" rx="1" fill="#cbd5e1" opacity="0.8" />
+        <circle cx="12" cy="4" r="1.5" fill="#fef08a" />
+        <circle cx="28" cy="4" r="1.5" fill="#fef08a" />
+      </svg>`;
+
+    case 'tractor':
+      return `<svg viewBox="0 0 40 40" width="34" height="34" class="drop-shadow-md">
+        <!-- Giant Rear Tread Wheels -->
+        <rect x="7" y="22" width="5.5" height="15" rx="2" fill="#0f172a" stroke="#475569" stroke-width="1.5" />
+        <rect x="27.5" y="22" width="5.5" height="15" rx="2" fill="#0f172a" stroke="#475569" stroke-width="1.5" />
+        <!-- Small Front Wheels -->
+        <rect x="10" y="5" width="3.5" height="7" rx="1" fill="#0f172a" stroke="#64748b" stroke-width="1" />
+        <rect x="26.5" y="5" width="3.5" height="7" rx="1" fill="#0f172a" stroke="#64748b" stroke-width="1" />
+        <!-- Bonnet / Engine Block -->
+        <rect x="14" y="4" width="12" height="18" rx="2" fill="${color}" stroke="#ffffff" stroke-width="1" />
+        <!-- Exhaust Silencer Chimney -->
+        <circle cx="16" cy="10" r="1.8" fill="#0f172a" stroke="#94a3b8" stroke-width="0.8" />
+        <!-- Driver Seat & Roll Cage -->
+        <rect x="13" y="23" width="14" height="9" rx="2" fill="#1e293b" stroke="#f59e0b" stroke-width="1.2" />
+        <circle cx="15" cy="5" r="1.5" fill="#fef08a" />
+        <circle cx="25" cy="5" r="1.5" fill="#fef08a" />
+      </svg>`;
+
+    case 'bicycle':
+      return `<svg viewBox="0 0 40 40" width="34" height="34" class="drop-shadow-md">
+        <rect x="19" y="29" width="2" height="9" rx="1" fill="#0f172a" />
+        <rect x="19" y="2" width="2" height="9" rx="1" fill="#0f172a" />
+        <line x1="20" y1="8" x2="20" y2="32" stroke="${color}" stroke-width="2.5" stroke-linecap="round" />
+        <!-- Handlebar -->
+        <line x1="12" y1="9" x2="28" y2="9" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" />
+        <!-- Saddle -->
+        <ellipse cx="20" cy="22" rx="3" ry="4" fill="#0f172a" stroke="#ffffff" stroke-width="0.8" />
+      </svg>`;
+
     case 'car':
     default:
       return `<svg viewBox="0 0 40 40" width="34" height="34" class="drop-shadow-md">

@@ -17,7 +17,6 @@ import {
 } from 'lucide-react';
 import { MapLayerType, VehicleType } from '../../types/traccar';
 import { getVehicleMarkerSvg } from '../../utils/vehicleIcons';
-import { VehicleLocationCalibratorModal } from './VehicleLocationCalibratorModal';
 
 const MAP_LAYERS: Record<MapLayerType, { name: string; url: string; subdomains?: string[]; maxZoom: number }> = {
   carto_positron: {
@@ -99,7 +98,6 @@ export const LiveTrackingMap: React.FC = () => {
   const geofenceCirclesRef = useRef<L.Circle[]>([]);
 
   const [isLayerDrawerOpen, setIsLayerDrawerOpen] = useState(false);
-  const [isCalibratorOpen, setIsCalibratorOpen] = useState(false);
   const [followVehicle, setFollowVehicle] = useState(true);
   const [showLiveTrail, setShowLiveTrail] = useState(true);
   const [trailCoordinates, setTrailCoordinates] = useState<[number, number][]>([]);
@@ -481,15 +479,6 @@ export const LiveTrackingMap: React.FC = () => {
           <Crosshair className="w-5 h-5" />
         </button>
 
-        {/* Calibrate / Fix Location Button */}
-        <button
-          onClick={() => setIsCalibratorOpen(true)}
-          className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-700 to-blue-600 hover:from-indigo-600 hover:to-blue-500 text-white flex items-center justify-center shadow-2xl shadow-indigo-600/40 border border-indigo-400/50 transition active:scale-95 animate-pulse"
-          title="বাইকের অবস্থান ক্যালিব্রেশন ও সেট করুন"
-        >
-          <MapPin className="w-5 h-5 text-amber-300" />
-        </button>
-
         {/* User Phone GPS Location Button */}
         <button
           onClick={handleLocateMe}
@@ -553,12 +542,6 @@ export const LiveTrackingMap: React.FC = () => {
           </div>
         </div>
       )}
-
-      {/* Vehicle Location Calibrator & Server Fix Modal */}
-      <VehicleLocationCalibratorModal
-        isOpen={isCalibratorOpen}
-        onClose={() => setIsCalibratorOpen(false)}
-      />
     </div>
   );
 };

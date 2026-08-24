@@ -39,7 +39,6 @@ import { RefundPolicyModal } from '../compliance/RefundPolicyModal';
 import { DataDeletionModal } from '../compliance/DataDeletionModal';
 import { VehicleSpecSelectorModal } from './VehicleSpecSelectorModal';
 import { PinVerificationModal } from '../commands/PinVerificationModal';
-import { VehicleLocationCalibratorModal } from '../map/VehicleLocationCalibratorModal';
 import { APP_CONFIG } from '../../config/appConfig';
 import { VehicleIcon } from '../../utils/vehicleIcons';
 
@@ -111,7 +110,6 @@ export const DeviceSettingsView: React.FC = () => {
 
   // Vehicle AI Spec Selector Modal State
   const [isSpecModalOpen, setIsSpecModalOpen] = useState(false);
-  const [isCalibratorOpen, setIsCalibratorOpen] = useState(false);
   const [vehicleSpec, setVehicleSpec] = useState<any>(selectedDevice?.attributes?.vehicleSpec || null);
 
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -829,12 +827,6 @@ export const DeviceSettingsView: React.FC = () => {
           ? (language === 'bn' ? `ট্র্যাকার হার্ডওয়্যারে প্রাইমারি SOS নম্বর (${sos1}) সিঙ্ক করতে ৪-ডিজিট মাস্টার পিন দিন।` : `Enter 4-digit PIN to sync primary SOS phone (${sos1}) to tracker hardware.`)
           : (language === 'bn' ? 'গাড়ির নম্বর, চালক ও ডিভাইস সেটিংস সংরক্ষণ করতে ৪-ডিজিট মাস্টার পিন দিন।' : 'Enter 4-digit Master PIN to save vehicle and profile settings.')}
         isDangerous={false}
-      />
-
-      {/* Vehicle Location Calibrator & Real GPS Fix Modal */}
-      <VehicleLocationCalibratorModal
-        isOpen={isCalibratorOpen}
-        onClose={() => setIsCalibratorOpen(false)}
       />
     </div>
   );

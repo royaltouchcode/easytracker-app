@@ -28,7 +28,6 @@ import {
 } from 'lucide-react';
 import { PinVerificationModal } from '../commands/PinVerificationModal';
 import { CustomCommandModal } from '../commands/CustomCommandModal';
-import { VehicleLocationCalibratorModal } from '../map/VehicleLocationCalibratorModal';
 import { resolveWakeupCommand } from '../../utils/protocolCommands';
 import { resolveDeviceCapabilities } from '../../utils/deviceCapabilities';
 
@@ -51,7 +50,6 @@ export const DeviceSlidingSheet: React.FC = () => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
   const [isCustomCmdModalOpen, setIsCustomCmdModalOpen] = useState(false);
-  const [isCalibratorOpen, setIsCalibratorOpen] = useState(false);
   const [pinAction, setPinAction] = useState<'cut' | 'resume'>('cut');
 
   // Command Pending / Interlock State (Prevents duplicate/opposite commands until acknowledged)
@@ -396,22 +394,20 @@ export const DeviceSlidingSheet: React.FC = () => {
             </button>
           </div>
 
-          {/* Location Address & 1-Tap Calibrate Button */}
+          {/* Location Address & Last Known Marker */}
           <div className="flex items-center justify-between bg-slate-800/40 border border-slate-800/80 rounded-lg px-2 py-0.5 mb-1">
-            <div className="flex items-center space-x-1 text-slate-300 text-[9.5px] truncate mr-1 min-w-0">
+            <div className="flex items-center space-x-1 text-slate-300 text-[9.5px] truncate min-w-0">
               <MapPin className="w-2.5 h-2.5 text-rose-400 shrink-0" />
               <span className="truncate">
                 {address}
                 {selectedPosition?.attributes?.isLastKnown ? ` (🅿️ শেষ পরিচিত অবস্থান)` : ''}
               </span>
             </div>
-            <button
-              onClick={() => setIsCalibratorOpen(true)}
-              className="px-1.5 py-0.5 rounded-md bg-blue-600/30 hover:bg-blue-600 border border-blue-500/40 text-blue-300 hover:text-white text-[8.5px] font-extrabold shrink-0 transition active:scale-95 flex items-center space-x-0.5"
-              title="বাইকের অবস্থান ঠিক বা ক্যালিব্রেট করুন"
-            >
-              <span>📍 ঠিক করুন</span>
-            </button>
+            {selectedPosition?.attributes?.isLastKnown && (
+              <span className="text-[8px] font-bold text-amber-400 bg-amber-950/60 border border-amber-500/40 px-1 rounded shrink-0">
+                Last Known
+              </span>
+            )}
           </div>
 
           {/* On-Demand Wakeup Status Banner */}
@@ -729,12 +725,6 @@ export const DeviceSlidingSheet: React.FC = () => {
       <CustomCommandModal
         isOpen={isCustomCmdModalOpen}
         onClose={() => setIsCustomCmdModalOpen(false)}
-      />
-
-      {/* Vehicle Location Calibrator & Real GPS Fix Modal */}
-      <VehicleLocationCalibratorModal
-        isOpen={isCalibratorOpen}
-        onClose={() => setIsCalibratorOpen(false)}
       />
     </>
   );

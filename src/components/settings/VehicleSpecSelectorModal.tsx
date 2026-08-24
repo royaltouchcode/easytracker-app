@@ -12,14 +12,22 @@ import {
   Save, 
   Bot,
   ChevronRight,
-  ShieldCheck
+  ShieldCheck,
+  BookOpen,
+  FileText,
+  HelpCircle
 } from 'lucide-react';
 import { VehicleType } from '../../types/traccar';
 import { 
   VEHICLE_CATALOG, 
   VehicleCatalogItem, 
+  getCatalogByCategory,
   getManufacturersByCategory, 
-  getModelsByManufacturer 
+  getModelsByManufacturer,
+  generateAiVehicleSpec,
+  generateAiVehicleManual,
+  saveCustomVehicleSpec,
+  AiVehicleManual
 } from '../../utils/vehicleCatalogDatabase';
 import { VehicleIcon } from '../../utils/vehicleIcons';
 
@@ -58,6 +66,31 @@ export const VehicleSpecSelectorModal: React.FC<VehicleSpecSelectorModalProps> =
   const [customTankCapacity, setCustomTankCapacity] = useState(initialSpec?.fuelTankCapacityLiters?.toString() || '13');
   const [customTireFront, setCustomTireFront] = useState(initialSpec?.tirePressureFrontPsi?.toString() || '21');
   const [customTireRear, setCustomTireRear] = useState(initialSpec?.tirePressureRearPsi?.toString() || '28');
+
+  // AI Manual View Modal State
+  const [showManualModal, setShowManualModal] = useState(false);
+  const [aiNotice, setAiNotice] = useState('');
+
+  const handleAiInfer = () => {
+    if (!customBrand && !customModel) {
+      setAiNotice('⚠️ অনুগ্রহ করে ম্যানুফ্যাকচারার ও মডেলের নাম লিখুন (যেমন: Yamaha FZ-X বা Toyota Harrier)');
+      return;
+    }
+
+    const aiSpec = generateAiVehicleSpec(customBrand || 'Vehicle', customModel || 'Standard', selectedCategory);
+    setCustomOilGrade(aiSpec.engineOilGrade);
+    setCustomOilCapacity(aiSpec.engineOilCapacityLiters.toString());
+    setCustomServiceInterval(aiSpec.oilChangeIntervalKm.toString());
+    setCustomTankCapacity(aiSpec.fuelTankCapacityLiters.toString());
+    setCustomTireFront(aiSpec.tirePressureFrontPsi.toString());
+    setCustomTireRear(aiSpec.tirePressureRearPsi.toString());
+    
+    // Save to persistent database
+    saveCustomVehicleSpec(aiSpec);
+
+    setAiNotice(`✨ AI সফলভাবে ${aiSpec.manufacturer} ${aiSpec.model}-এর ইঞ্জিন স্পেসিফিকেশন জেনারেট করেছে!`);
+    setTimeout(() => setAiNotice(''), 4000);
+  };
 
   if (!isOpen) return null;
 
@@ -247,6 +280,28 @@ export const VehicleSpecSelectorModal: React.FC<VehicleSpecSelectorModalProps> =
           ) : (
             /* Manual Custom Input Form */
             <div className="space-y-2.5 bg-slate-950/60 p-3 rounded-2xl border border-slate-800">
+              {/* AI Auto-Infer Trigger */}
+              <div className="flex items-center justify-between bg-purple-950/40 border border-purple-500/40 p-2 rounded-xl">
+                <div className="flex items-center space-x-1.5 text-purple-300 text-[10.5px] font-bold">
+                  <Bot className="w-3.5 h-3.5 text-purple-400" />
+                  <span>যেকোনো মডেল লিখে AI দিয়ে স্পেক্স অটো-ফিল:</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleAiInfer}
+                  className="px-2.5 py-1 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-extrabold text-[10.5px] shadow flex items-center space-x-1 transition active:scale-95"
+                >
+                  <Sparkles className="w-3 h-3" />
+                  <span>🧠 AI অটো-ফিল</span>
+                </button>
+              </div>
+
+              {aiNotice && (
+                <div className="p-2 rounded-xl bg-purple-900/40 border border-purple-500/50 text-purple-200 text-[10.5px] font-bold animate-in fade-in">
+                  {aiNotice}
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="text-[10px] font-bold text-slate-400 block mb-0.5">ব্র্যান্ড / কোম্পানি:</label>
@@ -255,8 +310,8 @@ export const VehicleSpecSelectorModal: React.FC<VehicleSpecSelectorModalProps> =
                     required
                     value={customBrand}
                     onChange={(e) => setCustomBrand(e.target.value)}
-                    placeholder="e.g. Bajaj / Lifan / Keeway"
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white focus:border-purple-500 focus:outline-none"
+                    placeholder="e.g. Bajaj / Yamaha / Keeway"
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white focus:border-purple-500 focus:outline-none font-bold"
                   />
                 </div>
                 <div>
@@ -266,8 +321,8 @@ export const VehicleSpecSelectorModal: React.FC<VehicleSpecSelectorModalProps> =
                     required
                     value={customModel}
                     onChange={(e) => setCustomModel(e.target.value)}
-                    placeholder="e.g. KPR 165 / V16"
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white focus:border-purple-500 focus:outline-none"
+                    placeholder="e.g. FZ-X / Harrier / KPR 165"
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white focus:border-purple-500 focus:outline-none font-bold"
                   />
                 </div>
               </div>
@@ -378,8 +433,18 @@ export const VehicleSpecSelectorModal: React.FC<VehicleSpecSelectorModalProps> =
             </div>
           </div>
 
+          {/* 1-Tap AI User Manual Button */}
+          <button
+            type="button"
+            onClick={() => setShowManualModal(true)}
+            className="w-full py-2.5 rounded-2xl bg-indigo-950/70 hover:bg-indigo-900/80 border border-indigo-500/40 text-indigo-300 hover:text-white font-extrabold text-xs flex items-center justify-center space-x-1.5 transition active:scale-95"
+          >
+            <BookOpen className="w-4 h-4 text-indigo-400" />
+            <span>📄 AI ওনার্স সার্ভিস ম্যানুয়াল ও মেইনটেন্যান্স গাইড দেখুন</span>
+          </button>
+
           {/* Action Buttons */}
-          <div className="flex space-x-2 pt-2">
+          <div className="flex space-x-2 pt-1">
             <button
               type="button"
               onClick={onClose}
@@ -389,13 +454,113 @@ export const VehicleSpecSelectorModal: React.FC<VehicleSpecSelectorModalProps> =
             </button>
             <button
               type="submit"
-              className="flex-1 py-2.5 rounded-2xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-lg shadow-purple-600/30 flex items-center justify-center space-x-1.5 transition active:scale-95"
+              className="flex-1 py-2.5 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs shadow-lg shadow-purple-600/30 flex items-center justify-center space-x-1.5 transition active:scale-95"
             >
               <Save className="w-4 h-4" />
               <span>{language === 'bn' ? 'স্পেক্স কনফার্ম ও সেভ করুন' : 'Confirm & Save Specs'}</span>
             </button>
           </div>
         </form>
+
+        {/* AI User Manual Modal Drawer */}
+        {showManualModal && (() => {
+          const currentSpec = {
+            category: selectedCategory,
+            manufacturer: isCustomMode ? customBrand : activeCatalogItem?.manufacturer || customBrand,
+            modelName: isCustomMode ? customModel : activeCatalogItem?.model || customModel,
+            engineOilGrade: isCustomMode ? customOilGrade : activeCatalogItem?.engineOilGrade || customOilGrade,
+            engineOilCapacityLiters: parseFloat(isCustomMode ? customOilCapacity : activeCatalogItem?.engineOilCapacityLiters.toString() || '1.15'),
+            oilChangeIntervalKm: parseInt(isCustomMode ? customServiceInterval : activeCatalogItem?.oilChangeIntervalKm.toString() || '2500', 10),
+            fuelTankCapacityLiters: parseFloat(isCustomMode ? customTankCapacity : activeCatalogItem?.fuelTankCapacityLiters.toString() || '13'),
+            tirePressureFrontPsi: parseInt(isCustomMode ? customTireFront : activeCatalogItem?.tirePressureFrontPsi.toString() || '21', 10),
+            tirePressureRearPsi: parseInt(isCustomMode ? customTireRear : activeCatalogItem?.tirePressureRearPsi.toString() || '28', 10)
+          };
+          const manual = generateAiVehicleManual(currentSpec);
+
+          return (
+            <div className="absolute inset-0 z-50 bg-slate-950/95 backdrop-blur-xl p-4 flex flex-col animate-in fade-in zoom-in-95 duration-150 overflow-y-auto">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-3 shrink-0">
+                <div className="flex items-center space-x-2">
+                  <div className="w-8 h-8 rounded-xl bg-indigo-600/30 border border-indigo-500/40 flex items-center justify-center text-indigo-300">
+                    <BookOpen className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="font-black text-sm text-white">{manual.vehicleName} AI ওনার্স ম্যানুয়াল</h4>
+                    <p className="text-[10px] text-slate-400 font-mono">{manual.engineSpec}</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowManualModal(false)}
+                  className="p-1.5 rounded-full hover:bg-slate-800 text-slate-400 hover:text-white"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-3.5 flex-1 text-xs text-slate-300">
+                {/* Fact Sheet */}
+                <div className="grid grid-cols-2 gap-2 bg-slate-900 p-3 rounded-2xl border border-slate-800 font-mono text-[11px]">
+                  <div>🛢️ মবিল গ্রেড: <strong className="text-amber-300">{manual.recommendedOil}</strong></div>
+                  <div>📏 ক্যাপাসিটি: <strong className="text-blue-300">{manual.oilCapacityLiters} L</strong></div>
+                  <div>⏱️ সার্ভিসিং: <strong className="text-purple-300">প্রতি {manual.serviceIntervalKm} কি.মি.</strong></div>
+                  <div>⛽ ফুয়েল ট্যাংক: <strong className="text-emerald-300">{manual.fuelTankLiters} L</strong></div>
+                  <div>🛞 সামনের টায়ার: <strong className="text-cyan-300">{manual.tirePressureFront} PSI</strong></div>
+                  <div>🛞 পেছনের টায়ার: <strong className="text-cyan-300">{manual.tirePressureRear} PSI</strong></div>
+                </div>
+
+                {/* Service Checklist */}
+                <div>
+                  <h5 className="font-extrabold text-white text-xs mb-2 flex items-center space-x-1.5">
+                    <Wrench className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>নিয়মিত মেইনটেন্যান্স ও সার্ভিস শিডিউল:</span>
+                  </h5>
+                  <div className="space-y-2">
+                    {manual.checklist.map((c, i) => (
+                      <div key={i} className="p-2.5 bg-slate-900/90 border border-slate-800 rounded-xl space-y-0.5">
+                        <div className="flex items-center justify-between font-bold text-slate-200">
+                          <span>{i + 1}. {c.title}</span>
+                          <span className="text-[10px] font-mono text-purple-400 bg-purple-950/60 px-1.5 py-0.2 rounded border border-purple-800/40">{c.interval}</span>
+                        </div>
+                        <p className="text-[10.5px] text-slate-400">{c.descriptionBn}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Driving Tips */}
+                <div className="p-3 bg-emerald-950/20 border border-emerald-500/30 rounded-2xl space-y-1.5">
+                  <h5 className="font-extrabold text-emerald-300 text-xs">💡 মাইলেজ ও ইঞ্জিন লাইফ বাড়ানোর টিপস:</h5>
+                  <ul className="list-disc list-inside text-[11px] text-slate-300 space-y-1">
+                    {manual.drivingTipsBn.map((tip, idx) => (
+                      <li key={idx}>{tip}</li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Emergency Tips */}
+                <div className="p-3 bg-rose-950/20 border border-rose-500/30 rounded-2xl space-y-1.5">
+                  <h5 className="font-extrabold text-rose-300 text-xs">🚨 জরুরি নিরাপত্তা ও এন্টি-থেফট গাইড:</h5>
+                  <ul className="list-disc list-inside text-[11px] text-slate-300 space-y-1">
+                    {manual.emergencyGuideBn.map((tip, idx) => (
+                      <li key={idx}>{tip}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-slate-800 mt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowManualModal(false)}
+                  className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition"
+                >
+                  ম্যানুয়াল বন্ধ করুন
+                </button>
+              </div>
+            </div>
+          );
+        })()}
       </div>
     </div>
   );

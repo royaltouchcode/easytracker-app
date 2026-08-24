@@ -500,9 +500,29 @@ export const VEHICLE_CATALOG: VehicleCatalogItem[] = [
   }
 ];
 
-// Helper to lookup catalog items by category
+// Helper to lookup catalog items by category with custom models merged
 export const getCatalogByCategory = (category: VehicleType): VehicleCatalogItem[] => {
-  return VEHICLE_CATALOG.filter(v => v.category === category);
+  const customSpecs = getCustomVehicleSpecs();
+  const all = [...VEHICLE_CATALOG, ...customSpecs];
+  return all.filter(v => v.category === category);
+};
+
+// Helper to get custom user/admin saved vehicle models
+export const getCustomVehicleSpecs = (): VehicleCatalogItem[] => {
+  try {
+    const raw = localStorage.getItem('gps_custom_vehicle_specs');
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return [];
+};
+
+// Save a new vehicle model (Added by Admin or User)
+export const saveCustomVehicleSpec = (item: VehicleCatalogItem): void => {
+  try {
+    const existing = getCustomVehicleSpecs();
+    const updated = [item, ...existing.filter(x => x.id !== item.id)];
+    localStorage.setItem('gps_custom_vehicle_specs', JSON.stringify(updated));
+  } catch (e) {}
 };
 
 // Helper to get all distinct manufacturers for a category
@@ -515,5 +535,224 @@ export const getManufacturersByCategory = (category: VehicleType): string[] => {
 
 // Helper to get models for a manufacturer and category
 export const getModelsByManufacturer = (category: VehicleType, manufacturer: string): VehicleCatalogItem[] => {
-  return VEHICLE_CATALOG.filter(v => v.category === category && v.manufacturer === manufacturer);
+  return getCatalogByCategory(category).filter(v => v.manufacturer.toLowerCase() === manufacturer.toLowerCase());
+};
+
+// =========================================================================
+// 🧠 AI VEHICLE SPECIFICATION GENERATOR (Past, Present & Future Models)
+// =========================================================================
+export const generateAiVehicleSpec = (
+  manufacturer: string,
+  modelName: string,
+  category: VehicleType = 'motorcycle'
+): VehicleCatalogItem => {
+  const brand = (manufacturer || 'Vehicle').trim();
+  const model = (modelName || 'Standard').trim();
+  const nameCombined = `${brand} ${model}`.toLowerCase();
+
+  const id = `ai_${brand.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${model.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${Date.now().toString().slice(-4)}`;
+
+  // 1. Motorcycle & Scooter AI Inference
+  if (category === 'motorcycle' || category === 'scooter') {
+    const isScooter = category === 'scooter' || nameCombined.includes('scoot') || nameCombined.includes('activa') || nameCombined.includes('access') || nameCombined.includes('vespa') || nameCombined.includes('dio') || nameCombined.includes('ntorq') || nameCombined.includes('fascino');
+    const isHighCc = nameCombined.includes('250') || nameCombined.includes('300') || nameCombined.includes('350') || nameCombined.includes('400') || nameCombined.includes('500') || nameCombined.includes('650') || nameCombined.includes('duke') || nameCombined.includes('ninja') || nameCombined.includes('bullet') || nameCombined.includes('classic') || nameCombined.includes('hunter') || nameCombined.includes('interceptor');
+    const isLiquidCooled = nameCombined.includes('r15') || nameCombined.includes('mt15') || nameCombined.includes('cbr') || nameCombined.includes('duke') || nameCombined.includes('rc200') || nameCombined.includes('ns200') || nameCombined.includes('gixxer sf 250');
+    const isSynthetic = isHighCc || isLiquidCooled || nameCombined.includes('4v') || nameCombined.includes('fi') || nameCombined.includes('abs');
+
+    return {
+      id,
+      category: isScooter ? 'scooter' : 'motorcycle',
+      manufacturer: brand,
+      model: model,
+      versionCc: isHighCc ? '250cc-400cc DOHC/EFI' : isScooter ? '110cc-125cc CVT' : '150cc-165cc Single Cylinder',
+      engineOilGrade: isScooter ? '10W-30 MB JASO Scooter' : isLiquidCooled ? '10W-40 JASO MA2 Full Synthetic' : isSynthetic ? '20W-50 Synthetic 4T' : '20W-50 4T Mineral',
+      engineOilCapacityLiters: isHighCc ? 1.5 : isLiquidCooled ? 1.05 : isScooter ? 0.8 : 1.15,
+      oilChangeIntervalKm: isLiquidCooled ? 3000 : isSynthetic ? 2500 : isScooter ? 2000 : 2000,
+      fuelTankCapacityLiters: isScooter ? 5.5 : isHighCc ? 14.0 : 13.0,
+      fuelType: 'octane',
+      expectedMileageKmL: isScooter ? 45.0 : isHighCc ? 30.0 : 42.0,
+      tirePressureFrontPsi: isScooter ? 22 : 25,
+      tirePressureRearPsi: isScooter ? 29 : 29
+    };
+  }
+
+  // 2. Private Cars, Sedan, SUV, Microbus
+  if (category === 'car' || category === 'pickup') {
+    const isDiesel = nameCombined.includes('diesel') || nameCombined.includes('d-4d') || nameCombined.includes('crdi') || nameCombined.includes('turbo') || nameCombined.includes('hilux') || nameCombined.includes('hiace') || nameCombined.includes('prado') || nameCombined.includes('fortuner');
+    const isHybrid = nameCombined.includes('hybrid') || nameCombined.includes('aqua') || nameCombined.includes('prius') || nameCombined.includes('cross') || nameCombined.includes('vezel') || nameCombined.includes('ch-r') || nameCombined.includes('fit');
+    const isSuv = nameCombined.includes('suv') || nameCombined.includes('harrier') || nameCombined.includes('prado') || nameCombined.includes('scorpio') || nameCombined.includes('xuv') || nameCombined.includes('creta') || nameCombined.includes('outlander');
+
+    return {
+      id,
+      category: 'car',
+      manufacturer: brand,
+      model: model,
+      versionCc: isHybrid ? '1.5L / 1.8L VVTi Hybrid Engine' : isDiesel ? '2.4L-2.8L Turbo Diesel Common Rail' : isSuv ? '2.0L-2.5L DOHC 16-Valve' : '1.5L 4-Cylinder DOHC VVTi',
+      engineOilGrade: isHybrid ? '0W-20 / 0W-16 Ultra Synthetic' : isDiesel ? '15W-40 CI-4 Diesel Turbo' : '5W-30 Full Synthetic API SP',
+      engineOilCapacityLiters: isDiesel ? 6.5 : isSuv ? 4.5 : isHybrid ? 3.7 : 3.7,
+      oilChangeIntervalKm: isHybrid ? 6000 : isDiesel ? 5000 : 5000,
+      fuelTankCapacityLiters: isDiesel ? 70.0 : isSuv ? 60.0 : isHybrid ? 40.0 : 50.0,
+      fuelType: isDiesel ? 'diesel' : 'octane',
+      expectedMileageKmL: isHybrid ? 22.0 : isDiesel ? 11.0 : isSuv ? 10.0 : 13.5,
+      tirePressureFrontPsi: 32,
+      tirePressureRearPsi: 32
+    };
+  }
+
+  // 3. Commercial Trucks & Pickups
+  if (category === 'truck') {
+    return {
+      id,
+      category: 'truck',
+      manufacturer: brand,
+      model: model,
+      versionCc: '3.8L-6.0L Turbocharged Diesel Engine',
+      engineOilGrade: '15W-40 Heavy Duty CI-4 / CH-4',
+      engineOilCapacityLiters: 14.0,
+      oilChangeIntervalKm: 10000,
+      fuelTankCapacityLiters: 200.0,
+      fuelType: 'diesel',
+      expectedMileageKmL: 4.5,
+      tirePressureFrontPsi: 105,
+      tirePressureRearPsi: 110
+    };
+  }
+
+  // 4. Passenger Buses
+  if (category === 'bus') {
+    return {
+      id,
+      category: 'bus',
+      manufacturer: brand,
+      model: model,
+      versionCc: '6.0L-7.8L 6-Cylinder Heavy Diesel Engine',
+      engineOilGrade: '15W-40 Heavy Duty Turbo Diesel',
+      engineOilCapacityLiters: 16.0,
+      oilChangeIntervalKm: 10000,
+      fuelTankCapacityLiters: 250.0,
+      fuelType: 'diesel',
+      expectedMileageKmL: 4.2,
+      tirePressureFrontPsi: 110,
+      tirePressureRearPsi: 115
+    };
+  }
+
+  // 5. CNG / Auto Rickshaw
+  if (category === 'cng' || category === 'auto') {
+    return {
+      id,
+      category: 'cng',
+      manufacturer: brand,
+      model: model,
+      versionCc: '198.8cc 4-Stroke CNG / LPG Engine',
+      engineOilGrade: '20W-50 Dedicated CNG Gas Engine Oil',
+      engineOilCapacityLiters: 1.25,
+      oilChangeIntervalKm: 2500,
+      fuelTankCapacityLiters: 8.0,
+      fuelType: 'cng',
+      expectedMileageKmL: 32.0,
+      tirePressureFrontPsi: 28,
+      tirePressureRearPsi: 34
+    };
+  }
+
+  // 6. Default Fallback
+  return {
+    id,
+    category,
+    manufacturer: brand,
+    model: model,
+    versionCc: 'Standard OEM Engine',
+    engineOilGrade: '10W-40 / 20W-50 Recommended',
+    engineOilCapacityLiters: 1.2,
+    oilChangeIntervalKm: 2500,
+    fuelTankCapacityLiters: 15.0,
+    fuelType: 'octane',
+    expectedMileageKmL: 38.0,
+    tirePressureFrontPsi: 25,
+    tirePressureRearPsi: 29
+  };
+};
+
+// =========================================================================
+// 📄 AI USER MANUAL & MAINTENANCE GUIDE GENERATOR
+// =========================================================================
+export interface AiVehicleManual {
+  vehicleName: string;
+  category: string;
+  manufacturer: string;
+  model: string;
+  engineSpec: string;
+  recommendedOil: string;
+  oilCapacityLiters: number;
+  serviceIntervalKm: number;
+  fuelTankLiters: number;
+  tirePressureFront: number;
+  tirePressureRear: number;
+  checklist: { title: string; interval: string; descriptionBn: string }[];
+  drivingTipsBn: string[];
+  emergencyGuideBn: string[];
+}
+
+export const generateAiVehicleManual = (spec: any): AiVehicleManual => {
+  const brand = spec?.manufacturer || 'Bajaj';
+  const model = spec?.modelName || spec?.model || 'Avenger 160 Street';
+  const cat = spec?.category || 'motorcycle';
+  const oilGrade = spec?.engineOilGrade || '20W-50 DTS-i 4T';
+  const oilCap = spec?.engineOilCapacityLiters || 1.15;
+  const interval = spec?.oilChangeIntervalKm || 2500;
+  const tank = spec?.fuelTankCapacityLiters || 13;
+  const frontPsi = spec?.tirePressureFrontPsi || 21;
+  const rearPsi = spec?.tirePressureRearPsi || 28;
+
+  return {
+    vehicleName: `${brand} ${model}`,
+    category: cat,
+    manufacturer: brand,
+    model: model,
+    engineSpec: spec?.versionCc || 'DTS-i / Fuel Injected 4-Stroke Engine',
+    recommendedOil: oilGrade,
+    oilCapacityLiters: oilCap,
+    serviceIntervalKm: interval,
+    fuelTankLiters: tank,
+    tirePressureFront: frontPsi,
+    tirePressureRear: rearPsi,
+    checklist: [
+      {
+        title: 'ইঞ্জিন অয়েল ও ফিল্টার পরিবর্তন',
+        interval: `প্রতি ${interval} কি.মি. পর পর`,
+        descriptionBn: `প্রস্তাবিত গ্রেড ${oilGrade} ব্যবহার করুন। ড্রেন করে সঠিক মাপে ঠিক ${oilCap} লিটার ঢালুন। ওভারফিল বা কম অয়েল ইঞ্জিনের ক্ষতি করে।`
+      },
+      {
+        title: 'টায়ার প্রেশার ও গ্রিপ চেক',
+        interval: 'প্রতি ৭ দিন পর পর (ঠান্ডা অবস্থায়)',
+        descriptionBn: `সামনের চাকায় ${frontPsi} PSI এবং পেছনের চাকায় ${rearPsi} PSI প্রেশার বজায় রাখুন। এতে মাইলেজ ও ব্যালেন্স সর্বোচ্চ থাকবে।`
+      },
+      {
+        title: 'ড্রাইভ চেইন লুব্রিকেশন ও স্ল্যাক এডজাস্ট',
+        interval: 'প্রতি ৫০০ - ৭০০ কি.মি.',
+        descriptionBn: 'চেইন পরিষ্কার করে ডেডিকেটেড চেইন লুব স্প্রে করুন। চেইনের ২৫-৩০ মিমি ফ্রি প্লে থাকতে হবে।'
+      },
+      {
+        title: 'স্পার্ক প্লাগ ও এয়ার ফিল্টার ক্লিনিং',
+        interval: 'প্রতি ৫,০০০ কি.মি.',
+        descriptionBn: 'এয়ার ফিল্টার ডাস্ট ব্লোয়ার দিয়ে পরিষ্কার করুন। প্লাগ গ্যাপ ০.৭ - ০.৮ মিমি রাখুন।'
+      },
+      {
+        title: 'ব্রেক প্যাড ও ফ্লুইড ইনস্পেকশন',
+        interval: 'প্রতি ৩,০০০ কি.মি.',
+        descriptionBn: 'DOT4 ব্রেক ফ্লুইড লেভেল ও ডিস্ক প্যাডের পুরুত্ব ন্যূনতম ২ মিমি নিশ্চিত করুন।'
+      }
+    ],
+    drivingTipsBn: [
+      'সকালে ইঞ্জিন স্টার্ট দিয়ে ৩০-৪৫ সেকেন্ড আইডল রাখুন যাতে পুরো চেম্বারে ইঞ্জিন অয়েল সঞ্চালিত হতে পারে।',
+      'ঘন ঘন হার্ড এক্সিলারেশন ও হার্ড ব্রেকিং এড়িয়ে চলুন, এতে ১০-১৫% জ্বালানি সাশ্রয় হবে।',
+      `জ্বালানি ট্যাংক ধারণক্ষমতা ${tank} লিটার—ট্যাংক সম্পূর্ণ শুকিয়ে ফেলার আগেই রিফুয়েলিং করুন।`
+    ],
+    emergencyGuideBn: [
+      'হঠাৎ ইঞ্জিন বন্ধ হয়ে গেলে: EasyTracker অ্যাপে গিয়ে ইঞ্জিন কাটঅফ স্ট্যাটাস (Relay Lock) ও মূল ব্যাটারি ভোল্টেজ চেক করুন।',
+      'ব্যাটারি লো ভোল্টেজ অ্যালার্ট আসলে: ১২V-এর নিচে নামলে ব্যাটারি চার্জার বা ডায়নামো ওয়্যারিং টেস্ট করুন।',
+      'বাইক চুরি বা ছিনতাই হলে: সাথে সাথে অ্যাপের ৩-ডট মেনু থেকে [ইঞ্জিন লক ও ফুয়েল কাট] চাপুন।'
+    ]
+  };
 };
