@@ -17,7 +17,8 @@ import {
   X,
   Send,
   Sparkles,
-  ChevronDown
+  ChevronDown,
+  Wrench
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { APP_CONFIG } from '../../config/appConfig';
@@ -38,7 +39,9 @@ interface SupportTicket {
 }
 
 export const SupportPortalView: React.FC = () => {
-  const { language, setActiveTab, setCurrentRole, devices } = useApp();
+  const { language, setActiveTab, setCurrentRole, user } = useApp();
+
+  const isSuperAdmin = user?.administrator || user?.role === 'super_admin';
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
@@ -117,6 +120,40 @@ export const SupportPortalView: React.FC = () => {
     setTickets(prev => prev.map(t => t.id === id ? { ...t, status: newStatus } : t));
   };
 
+  const handleDispatchToTechnician = (ticket: SupportTicket) => {
+    const saved = localStorage.getItem('gps_tech_work_orders');
+    let orders: any[] = [];
+    if (saved) {
+      try { orders = JSON.parse(saved); } catch (e) {}
+    }
+
+    const newOrder = {
+      id: 'SRV-' + Date.now().toString().slice(-4),
+      type: 'servicing_repair',
+      customerName: ticket.customer,
+      customerPhone: ticket.phone,
+      vehicleName: ticket.vehicle,
+      plateNumber: 'TKT REF ' + ticket.id,
+      trackerImei: '864720058291035',
+      simNumber: '01711223344',
+      feeBdt: 300,
+      status: 'in_progress',
+      assignedDate: '24 Aug 2026'
+    };
+
+    const updatedOrders = [newOrder, ...orders];
+    localStorage.setItem('gps_tech_work_orders', JSON.stringify(updatedOrders));
+
+    setTickets(prev => prev.map(t => t.id === ticket.id ? { 
+      ...t, 
+      status: 'In Progress', 
+      agentNotes: (t.agentNotes ? t.agentNotes + ' | ' : '') + `টেকনিশিয়ানকে ফিল্ড সার্ভিসিং পাঠানো হয়েছে (${newOrder.id})`
+    } : t));
+
+    alert(`✅ টেকনিশিয়ান পোর্টালে কাজের টিকিট ও সাময়িক ডায়াগনস্টিক উইন্ডো পাঠানো হয়েছে! (Work Order: ${newOrder.id})`);
+    setSelectedTicket(null);
+  };
+
   const filteredTickets = tickets.filter(t => 
     t.customer.toLowerCase().includes(searchQuery.toLowerCase()) ||
     t.phone.includes(searchQuery) ||
@@ -129,23 +166,25 @@ export const SupportPortalView: React.FC = () => {
       {/* Top Header */}
       <div className="flex items-center justify-between bg-slate-900/90 border border-slate-800 p-3 rounded-2xl shadow-md">
         <div className="flex items-center space-x-2.5">
-          <button
-            onClick={() => {
-              setCurrentRole('customer');
-              setActiveTab('map');
-            }}
-            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-200 border border-slate-700 transition active:scale-95 flex items-center space-x-1"
-          >
-            <ArrowLeft className="w-4 h-4 text-sky-400" />
-            <span className="text-xs font-bold">{language === 'bn' ? 'কাস্টমার ভিউ' : 'Customer View'}</span>
-          </button>
+          {isSuperAdmin && (
+            <button
+              onClick={() => {
+                setCurrentRole('customer');
+                setActiveTab('map');
+              }}
+              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-200 border border-slate-700 transition active:scale-95 flex items-center space-x-1"
+            >
+              <ArrowLeft className="w-4 h-4 text-sky-400" />
+              <span className="text-xs font-bold">{language === 'bn' ? 'কাস্টমার ভিউ' : 'Customer View'}</span>
+            </button>
+          )}
           <div>
             <h2 className="text-sm font-extrabold flex items-center space-x-1.5 text-sky-300">
               <Headphones className="w-4 h-4 text-sky-400" />
               <span>{language === 'bn' ? 'কাস্টমার সাপোর্ট ও হেল্পডেস্ক হাব' : 'Customer Support & Helpdesk'}</span>
             </h2>
             <p className="text-[10px] text-slate-400">
-              {language === 'bn' ? 'টিকেট স্ট্যাটাস আপডেট, রিফান্ড ম্যানেজমেন্ট ও নোটস' : 'Ticket status update, refund desk & agent notes'}
+              {language === 'bn' ? 'টিকেট স্ট্যাটাস আপডেট, রিফান্ড ম্যানেজমেন্ট ও টেকনিশিয়ান সার্ভিস ডিসপ্যাচ' : 'Ticket management & tech dispatch'}
             </p>
           </div>
         </div>
@@ -217,7 +256,6 @@ export const SupportPortalView: React.FC = () => {
                   <span className="text-slate-400 font-mono text-[10.5px]">({t.phone})</span>
                 </div>
 
-                {/* Priority Tag */}
                 <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase ${
                   t.priority === 'Urgent' ? 'bg-rose-600 text-white' :
                   t.priority === 'High' ? 'bg-amber-600/30 text-amber-300 border border-amber-500/40' :
@@ -241,7 +279,6 @@ export const SupportPortalView: React.FC = () => {
               <div className="flex items-center justify-between pt-1 border-t border-slate-800/80 text-[10px] text-slate-400">
                 <span>গাড়ি: <strong className="text-slate-300">{t.vehicle}</strong> • সময়: {t.time}</span>
 
-                {/* Interactive Status Changer Dropdown */}
                 <div className="flex items-center space-x-1.5">
                   <select
                     value={t.status}
@@ -264,7 +301,7 @@ export const SupportPortalView: React.FC = () => {
                     type="button"
                     onClick={() => handleOpenTicketModal(t)}
                     className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition"
-                    title="নোট ও বিস্তারিত আপডেট"
+                    title="নোট ও টেকনিশিয়ান সার্ভিস অ্যাসাইন"
                   >
                     <Edit3 className="w-3.5 h-3.5 text-sky-400" />
                   </button>
@@ -275,7 +312,7 @@ export const SupportPortalView: React.FC = () => {
         </div>
       </div>
 
-      {/* Ticket Details & Agent Notes Modal */}
+      {/* Ticket Details & Tech Dispatch Modal */}
       {selectedTicket && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-3 animate-in fade-in select-none">
           <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-md w-full shadow-2xl overflow-hidden flex flex-col">
@@ -284,7 +321,7 @@ export const SupportPortalView: React.FC = () => {
                 <span className="font-mono text-xs font-bold text-sky-300 bg-sky-950 px-2 py-0.5 rounded border border-sky-800">
                   {selectedTicket.id}
                 </span>
-                <span className="font-extrabold text-sm text-slate-100">টিকেট আপডেট ও ইন্টারনাল নোট</span>
+                <span className="font-extrabold text-sm text-slate-100">টিকেট ম্যানেজমেন্ট ও টেকনিশিয়ান সার্ভিস</span>
               </div>
               <button onClick={() => setSelectedTicket(null)} className="text-slate-400 hover:text-white">
                 <X className="w-5 h-5" />
@@ -298,6 +335,27 @@ export const SupportPortalView: React.FC = () => {
                   <div className="font-bold text-slate-100">{selectedTicket.customer} ({selectedTicket.phone})</div>
                   <div className="text-[11px] text-slate-400 mt-0.5">{selectedTicket.issue}</div>
                 </div>
+              </div>
+
+              {/* Action: Dispatch to Field Technician */}
+              <div className="p-3 rounded-2xl bg-purple-950/40 border border-purple-500/40 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-purple-300 text-xs flex items-center space-x-1">
+                    <Wrench className="w-3.5 h-3.5 text-purple-400" />
+                    <span>ফিল্ড টেকনিশিয়ান ডায়াগনস্টিক সার্ভিস</span>
+                  </span>
+                </div>
+                <p className="text-[10.5px] text-slate-400 leading-snug">
+                  কাস্টমারের রিলে তার বা হার্ডওয়্যার চেক করার জন্য টেকনিশিয়ানকে টিকিট পাঠালে তার পোর্টালে সাময়িক ডায়াগনস্টিক অ্যাক্সেস চালু হবে।
+                </p>
+                <button
+                  type="button"
+                  onClick={() => handleDispatchToTechnician(selectedTicket)}
+                  className="w-full py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-md shadow-purple-600/30 flex items-center justify-center space-x-1.5 transition active:scale-95"
+                >
+                  <Wrench className="w-3.5 h-3.5" />
+                  <span>🔧 টেকনিশিয়ানকে সার্ভিসিং টিকিট পাঠান</span>
+                </button>
               </div>
 
               <div className="grid grid-cols-2 gap-2">

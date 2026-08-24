@@ -952,8 +952,50 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const login = async (emailOrUser: string, pass: string) => {
     const res = await traccarApi.login(emailOrUser, pass);
     if (res.success && res.user) {
-      setUser(res.user);
-      localStorage.setItem('gps_user_session', JSON.stringify(res.user));
+      const lower = emailOrUser.toLowerCase();
+      let determinedRole: SaasRole = 'customer';
+      let defaultTab: TabType = 'map';
+
+      let approvedRoles: SaasRole[] = ['customer'];
+
+      if (lower.startsWith('admin') || res.user.administrator) {
+        determinedRole = 'super_admin';
+        defaultTab = 'saas_admin';
+        approvedRoles = ['super_admin', 'sales', 'technician', 'support', 'rescue', 'customer'];
+      } else if (lower.startsWith('sales')) {
+        determinedRole = 'sales';
+        defaultTab = 'saas_sales';
+        approvedRoles = ['sales', 'technician', 'customer']; // Sales + Field Tech + Customer
+      } else if (lower.startsWith('tech')) {
+        determinedRole = 'technician';
+        defaultTab = 'saas_technician';
+        approvedRoles = ['technician', 'customer'];
+      } else if (lower.startsWith('support')) {
+        determinedRole = 'support';
+        defaultTab = 'saas_support';
+        approvedRoles = ['support', 'rescue', 'customer'];
+      } else if (lower.startsWith('rescue')) {
+        determinedRole = 'rescue';
+        defaultTab = 'saas_rescue';
+        approvedRoles = ['rescue', 'customer'];
+      } else {
+        determinedRole = 'customer';
+        defaultTab = 'map';
+        approvedRoles = ['customer'];
+      }
+
+      const userWithRole: UserSession = { 
+        ...res.user, 
+        role: determinedRole,
+        approvedRoles: approvedRoles,
+        administrator: determinedRole === 'super_admin' || res.user.administrator
+      };
+
+      setUser(userWithRole);
+      setCurrentRole(determinedRole);
+      setActiveTab(defaultTab);
+      localStorage.setItem('gps_user_session', JSON.stringify(userWithRole));
+      localStorage.setItem('gps_saas_current_role', determinedRole);
       await syncServerData();
     }
     return res;
@@ -961,7 +1003,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const logout = () => {
     setUser(null);
+    setCurrentRole('customer');
+    setActiveTab('map');
     localStorage.removeItem('gps_user_session');
+    localStorage.removeItem('gps_saas_current_role');
     traccarApi.clearAuth();
   };
 

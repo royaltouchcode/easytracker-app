@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { Header } from './components/common/Header';
-import { BottomNav } from './components/common/BottomNav';
 import { LiveTrackingMap } from './components/map/LiveTrackingMap';
 import { DeviceSlidingSheet } from './components/dashboard/DeviceSlidingSheet';
 import { ReportsHubView } from './components/reports/ReportsHubView';
@@ -22,7 +21,7 @@ import { SupportPortalView } from './components/saas/SupportPortalView';
 import { RescuePortalView } from './components/saas/RescuePortalView';
 
 const MainAppContent: React.FC = () => {
-  const { user, activeTab } = useApp();
+  const { user, activeTab, currentRole } = useApp();
   const [isInitialPinModalOpen, setIsInitialPinModalOpen] = useState(false);
 
   useEffect(() => {
@@ -41,31 +40,65 @@ const MainAppContent: React.FC = () => {
 
   return (
     <div className="flex flex-col h-[100dvh] w-screen bg-slate-950 text-slate-100 overflow-hidden font-sans select-none">
-      {/* Top Header with Role Switcher & Vehicle Selector */}
+      {/* Top Header with Role-Tailored Controls */}
       <Header />
 
-      {/* Main View Area */}
+      {/* Main View Area with Strict Role Isolation */}
       <main className="flex-1 relative overflow-hidden flex flex-col">
-        {activeTab === 'map' && (
+        {/* Sales Role: STRICTLY Sales Portal Only */}
+        {currentRole === 'sales' && <SalesPortalView />}
+
+        {/* Technician Role: STRICTLY Technician Portal Only */}
+        {currentRole === 'technician' && <TechnicianPortalView />}
+
+        {/* Support Role: STRICTLY Helpdesk Portal Only */}
+        {currentRole === 'support' && <SupportPortalView />}
+
+        {/* Rescue Role: STRICTLY SOS Distress Radar Only */}
+        {currentRole === 'rescue' && <RescuePortalView />}
+
+        {/* Super Admin Role: Admin Hub or Audited Tab */}
+        {currentRole === 'super_admin' && (
           <>
-            <LiveTrackingMap />
-            <DeviceSlidingSheet />
+            {activeTab === 'saas_admin' && <AdminDashboardView />}
+            {activeTab === 'saas_sales' && <SalesPortalView />}
+            {activeTab === 'saas_technician' && <TechnicianPortalView />}
+            {activeTab === 'saas_support' && <SupportPortalView />}
+            {activeTab === 'saas_rescue' && <RescuePortalView />}
+            {activeTab === 'map' && (
+              <>
+                <LiveTrackingMap />
+                <DeviceSlidingSheet />
+              </>
+            )}
+            {activeTab === 'reports' && <ReportsHubView />}
+            {activeTab === 'playback' && <PlaybackView />}
+            {activeTab === 'commands' && <CommandCenterView />}
+            {activeTab === 'surveillance' && <SurveillanceView />}
+            {activeTab === 'geofence' && <GeofenceView />}
+            {activeTab === 'alerts' && <AlertHistoryView />}
+            {activeTab === 'settings' && <DeviceSettingsView />}
           </>
         )}
-        {activeTab === 'reports' && <ReportsHubView />}
-        {activeTab === 'playback' && <PlaybackView />}
-        {activeTab === 'commands' && <CommandCenterView />}
-        {activeTab === 'surveillance' && <SurveillanceView />}
-        {activeTab === 'geofence' && <GeofenceView />}
-        {activeTab === 'alerts' && <AlertHistoryView />}
-        {activeTab === 'settings' && <DeviceSettingsView />}
 
-        {/* Enterprise Multi-Role SaaS Portals */}
-        {activeTab === 'saas_admin' && <AdminDashboardView />}
-        {activeTab === 'saas_sales' && <SalesPortalView />}
-        {activeTab === 'saas_technician' && <TechnicianPortalView />}
-        {activeTab === 'saas_support' && <SupportPortalView />}
-        {activeTab === 'saas_rescue' && <RescuePortalView />}
+        {/* Customer Role: Standard Telematics Map & Menus */}
+        {currentRole === 'customer' && (
+          <>
+            {activeTab === 'map' && (
+              <>
+                <LiveTrackingMap />
+                <DeviceSlidingSheet />
+              </>
+            )}
+            {activeTab === 'reports' && <ReportsHubView />}
+            {activeTab === 'playback' && <PlaybackView />}
+            {activeTab === 'commands' && <CommandCenterView />}
+            {activeTab === 'surveillance' && <SurveillanceView />}
+            {activeTab === 'geofence' && <GeofenceView />}
+            {activeTab === 'alerts' && <AlertHistoryView />}
+            {activeTab === 'settings' && <DeviceSettingsView />}
+          </>
+        )}
       </main>
 
       {/* Mandatory First-Time PIN Setup Gate */}

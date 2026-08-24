@@ -1,22 +1,164 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   Briefcase, 
   ArrowLeft, 
-  Plus, 
-  UserCheck, 
-  Smartphone, 
-  CreditCard, 
+  UserPlus, 
   CheckCircle2, 
-  TrendingUp, 
   DollarSign, 
-  Award,
-  Scan,
-  ShieldCheck,
-  Clock,
-  Send
+  Search, 
+  Clock, 
+  ShieldCheck, 
+  Plus, 
+  Phone, 
+  Tag, 
+  Layers, 
+  Scan, 
+  Camera, 
+  X, 
+  ChevronRight, 
+  Sparkles, 
+  Info,
+  Car,
+  Bike,
+  Truck
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { VehicleType } from '../../types/traccar';
+
+// Popular Vehicle Catalogs for Bangladesh Market
+const VEHICLE_CATALOG: Record<string, {
+  brands: {
+    brand: string;
+    models: {
+      name: string;
+      versions: string[];
+    }[];
+  }[];
+}> = {
+  motorcycle: {
+    brands: [
+      {
+        brand: 'Bajaj',
+        models: [
+          { name: 'Avenger 160', versions: ['160 Street ABS', '220 Cruise'] },
+          { name: 'Pulsar 150', versions: ['Single Disc', 'Twin Disc ABS', 'Neon Edition'] },
+          { name: 'Pulsar NS160', versions: ['Dual Channel ABS Fi', 'Single Disc Carb'] },
+          { name: 'Discover 125', versions: ['Disc CBS', 'Drum Edition'] },
+          { name: 'Platina 110', versions: ['H-Gear Disc', '100 ES Comfortec'] }
+        ]
+      },
+      {
+        brand: 'Yamaha',
+        models: [
+          { name: 'FZ-S Fi', versions: ['V3 Deluxe Bluetooth', 'V4 Fi Hybrid', 'V2 FI DD'] },
+          { name: 'R15', versions: ['V4 Racing Blue ABS', 'V3 Dual ABS', 'R15M Edition'] },
+          { name: 'MT-15', versions: ['V2 Dual Channel ABS', 'V1 Matte Black'] },
+          { name: 'Ray ZR', versions: ['125 Fi Hybrid Scooter', 'Street Rally'] }
+        ]
+      },
+      {
+        brand: 'Honda',
+        models: [
+          { name: 'CB Shine', versions: ['125 SP Disc', 'Drum Edition'] },
+          { name: 'XBlade 160', versions: ['Single Disc', 'Dual Disc ABS'] },
+          { name: 'Hornet', versions: ['2.0 Dual Disc', '160R CBS'] },
+          { name: 'CBR 150R', versions: ['MotoGP Edition ABS', 'Tricolor ABS'] }
+        ]
+      },
+      {
+        brand: 'Suzuki',
+        models: [
+          { name: 'Gixxer 155', versions: ['Carb Dual Disc', 'Fi ABS Single Disc'] },
+          { name: 'Gixxer SF 155', versions: ['Fi ABS Special Edition', 'MotoGP Blue'] },
+          { name: 'GSX-R 150', versions: ['Keyless Fi ABS', 'BOSCH Dual ABS'] },
+          { name: 'Access 125', versions: ['Bluetooth Special Edition', 'Drum Alloy'] }
+        ]
+      },
+      {
+        brand: 'TVS',
+        models: [
+          { name: 'Apache RTR 160 4V', versions: ['SmartXonnect Dual Disc', 'Single Disc ABS', 'Special Edition'] },
+          { name: 'Apache RTR 160 2V', versions: ['Single Disc', 'Race Edition 2V'] },
+          { name: 'Metro Plus', versions: ['110 Drum', '110 Disc CBS'] }
+        ]
+      }
+    ]
+  },
+  car: {
+    brands: [
+      {
+        brand: 'Toyota',
+        models: [
+          { name: 'Corolla Axio', versions: ['1.5 G-Grade', 'Hybrid X', 'WXB Aerotourer'] },
+          { name: 'Premio', versions: ['F-Grade Package', 'FL Package 1.5'] },
+          { name: 'Allion', versions: ['A15 G-Plus', 'A18 Edition'] },
+          { name: 'Corolla Fielder', versions: ['Hybrid G-WXB', 'X-Grade'] },
+          { name: 'Aqua', versions: ['S-Package Hybrid', 'G-Grade'] },
+          { name: 'Noah', versions: ['Si WXB', 'X-Package 8 Seater'] }
+        ]
+      },
+      {
+        brand: 'Honda',
+        models: [
+          { name: 'Vezel', versions: ['RS Hybrid Sensing', 'Z-Grade Luxury'] },
+          { name: 'Grace', versions: ['EX Hybrid Dual Clutch', 'DX Sedan'] },
+          { name: 'Civic', versions: ['1.5 VTEC Turbo', 'EX Sedan'] }
+        ]
+      },
+      {
+        brand: 'Nissan',
+        models: [
+          { name: 'X-Trail', versions: ['Hybrid 4WD Sensing', '20X Package'] },
+          { name: 'Bluebird Sylphy', versions: ['1.5 Classic', '2.0 G'] }
+        ]
+      }
+    ]
+  },
+  cng: {
+    brands: [
+      {
+        brand: 'Bajaj',
+        models: [
+          { name: 'RE 4S CNG Auto', versions: ['4-Stroke Digital Meter', 'Commercial 200cc'] },
+          { name: 'Maxima Z', versions: ['CNG Passenger Van', 'Cargo Hauler'] }
+        ]
+      },
+      {
+        brand: 'Piaggio',
+        models: [
+          { name: 'Ape City', versions: ['CNG Passenger', 'Ape Xtra Dlx'] }
+        ]
+      }
+    ]
+  },
+  truck: {
+    brands: [
+      {
+        brand: 'Tata',
+        models: [
+          { name: '1615 Ex', versions: ['Turbo Heavy Hauler', 'Chassis Cowl'] },
+          { name: 'LPT 407', versions: ['Ex Pickup Truck', 'Semi High Deck'] },
+          { name: 'Ace Mega (দিওয়ালা)', versions: ['1 Ton Mini Hauler', 'Ace Gold'] }
+        ]
+      },
+      {
+        brand: 'Mahindra',
+        models: [
+          { name: 'Bolero Maxi Truck', versions: ['Plus Power Steering', 'City Pickup'] },
+          { name: 'Maxximo HD', versions: ['8 Wheeler Cargo', 'Mini Van'] }
+        ]
+      }
+    ]
+  }
+};
+
+const POPULAR_TRACKERS = [
+  { model: 'Concox GT06N', protocol: 'gt06', port: '5023', type: '2G/3G ACC Wire + Relay' },
+  { model: 'SinoTrack ST-901', protocol: 'sinotrack', port: '5013', type: 'Waterproof Built-in Battery' },
+  { model: 'Jimi IoT VL02 (4G)', protocol: 'jimi', port: '5023', type: '4G LTE Ultra Fast' },
+  { model: 'Teltonika FMB920', protocol: 'teltonika', port: '5027', type: 'European Quality Precision' },
+  { model: 'Coban TK303', protocol: 'coban', port: '5001', type: 'Standard GPS/GSM' }
+];
 
 export interface SalesLeadEntry {
   id: string;
@@ -25,6 +167,10 @@ export interface SalesLeadEntry {
   vehicle: string;
   plate: string;
   category: VehicleType;
+  brand: string;
+  model: string;
+  version: string;
+  trackerModel: string;
   imei: string;
   sim: string;
   plan: string;
@@ -34,300 +180,537 @@ export interface SalesLeadEntry {
 }
 
 export const SalesPortalView: React.FC = () => {
-  const { language, setActiveTab, setCurrentRole } = useApp();
+  const { language, setActiveTab, setCurrentRole, user } = useApp();
 
+  const isSuperAdmin = user?.administrator || user?.role === 'super_admin';
+  const hasMultipleRoles = isSuperAdmin || (user?.approvedRoles && user.approvedRoles.length > 1);
+
+  // Form State
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
-  const [vehicleName, setVehicleName] = useState('');
   const [plateNumber, setPlateNumber] = useState('');
+  
+  // Cascading Vehicle State
   const [vehicleCategory, setVehicleCategory] = useState<VehicleType>('motorcycle');
-  const [trackerImei, setTrackerImei] = useState('');
-  const [simNumber, setSimNumber] = useState('');
-  const [selectedPlan, setSelectedPlan] = useState('12_months');
-  const [onboardSuccess, setOnboardSuccess] = useState(false);
+  const [selectedBrand, setSelectedBrand] = useState('Bajaj');
+  const [selectedModel, setSelectedModel] = useState('Avenger 160');
+  const [selectedVersion, setSelectedVersion] = useState('160 Street ABS');
+  const [isCustomVehicle, setIsCustomVehicle] = useState(false);
+  const [customVehicleName, setCustomVehicleName] = useState('');
 
-  const [salesLeads, setSalesLeads] = useState<SalesLeadEntry[]>(() => {
+  // Tracker & SIM State
+  const [trackerModel, setTrackerModel] = useState('Concox GT06N');
+  const [imeiInput, setImeiInput] = useState('');
+  const [simNumberInput, setSimNumberInput] = useState('');
+  const [subscriptionPlan, setSubscriptionPlan] = useState('স্ট্যান্ডার্ড প্ল্যান (৳৪৫০/মাস)');
+
+  // Barcode Scanner Modal State
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [isScanningActive, setIsScanningActive] = useState(false);
+  const [submittedSuccess, setSubmittedSuccess] = useState(false);
+
+  // Leads Queue State
+  const [leads, setLeads] = useState<SalesLeadEntry[]>(() => {
     const saved = localStorage.getItem('gps_sales_leads_queue');
     if (saved) {
       try { return JSON.parse(saved); } catch (e) {}
     }
     return [
-      { id: 'lead-1', customer: 'Tanvir Hossain', phone: '01712-345678', vehicle: 'Yamaha FZ-S V3', plate: 'DHAKA METRO-LA 22-3344', category: 'motorcycle', imei: '864720058291090', sim: '01711223344', plan: '1 Year', commission: 500, date: '24 Aug 2026', status: 'approved_pushed' },
-      { id: 'lead-2', customer: 'Kazi Mahbub', phone: '01819-876543', vehicle: 'Toyota Axio', plate: 'DHAKA METRO-GA 33-4455', category: 'car', imei: '864720058291091', sim: '01811223344', plan: '6 Months', commission: 350, date: '24 Aug 2026', status: 'pending_admin_approval' },
-      { id: 'lead-3', customer: 'Shohel Rana', phone: '01911-223344', vehicle: 'Bajaj Pulsar 150', plate: 'DHAKA METRO-HA 44-5566', category: 'motorcycle', imei: '864720058291092', sim: '01911223344', plan: '1 Year', commission: 500, date: '23 Aug 2026', status: 'approved_pushed' }
+      { 
+        id: 'LEAD-901', 
+        customer: 'Mohammad Azhar', 
+        phone: '01700-000000', 
+        vehicle: 'Bajaj Avenger 160 (160 Street ABS)', 
+        plate: 'DHAKA METRO-LA 11-2233', 
+        category: 'motorcycle', 
+        brand: 'Bajaj',
+        model: 'Avenger 160',
+        version: '160 Street ABS',
+        trackerModel: 'Concox GT06N',
+        imei: '864720058291034', 
+        sim: '01700000000',
+        plan: 'স্ট্যান্ডার্ড প্ল্যান (৳৪৫০/মাস)', 
+        commission: 500, 
+        date: '24 Aug 2026', 
+        status: 'approved_pushed' 
+      }
     ];
   });
 
-  const handleOnboardSubmit = (e: React.FormEvent) => {
+  // Current category brands
+  const currentCategoryData = VEHICLE_CATALOG[vehicleCategory] || VEHICLE_CATALOG.motorcycle;
+  const currentBrandData = currentCategoryData.brands.find(b => b.brand === selectedBrand) || currentCategoryData.brands[0];
+  const currentModelData = currentBrandData?.models.find(m => m.name === selectedModel) || currentBrandData?.models[0];
+
+  const handleCategoryChange = (cat: VehicleType) => {
+    setVehicleCategory(cat);
+    const catData = VEHICLE_CATALOG[cat];
+    if (catData && catData.brands.length > 0) {
+      setIsCustomVehicle(false);
+      setSelectedBrand(catData.brands[0].brand);
+      setSelectedModel(catData.brands[0].models[0].name);
+      setSelectedVersion(catData.brands[0].models[0].versions[0] || 'Standard');
+    } else {
+      setIsCustomVehicle(true);
+    }
+  };
+
+  const handleBrandChange = (brand: string) => {
+    setSelectedBrand(brand);
+    const bData = currentCategoryData.brands.find(b => b.brand === brand);
+    if (bData && bData.models.length > 0) {
+      setSelectedModel(bData.models[0].name);
+      setSelectedVersion(bData.models[0].versions[0] || 'Standard');
+    }
+  };
+
+  const handleModelChange = (modelName: string) => {
+    setSelectedModel(modelName);
+    const mData = currentBrandData?.models.find(m => m.name === modelName);
+    if (mData && mData.versions.length > 0) {
+      setSelectedVersion(mData.versions[0]);
+    }
+  };
+
+  // Simulated Camera Barcode Scanner
+  const handleOpenScanner = () => {
+    setIsScannerOpen(true);
+    setIsScanningActive(true);
+  };
+
+  const handleSimulateScan = (scannedImei: string) => {
+    setImeiInput(scannedImei);
+    setIsScanningActive(false);
+    setIsScannerOpen(false);
+  };
+
+  // Form Submit Handler
+  const handleLeadSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!customerName || !customerPhone || !imeiInput) {
+      alert('অনুগ্রহ করে কাস্টমারের নাম, ফোন ও ডিভাইসের IMEI পূরণ করুন!');
+      return;
+    }
+
+    const fullVehicleName = isCustomVehicle 
+      ? (customVehicleName || 'Custom Vehicle') 
+      : `${selectedBrand} ${selectedModel} (${selectedVersion})`;
+
     const newLead: SalesLeadEntry = {
-      id: 'lead-' + Date.now(),
-      customer: customerName,
-      phone: customerPhone,
-      vehicle: vehicleName,
-      plate: plateNumber,
+      id: `LEAD-${Date.now().toString().slice(-4)}`,
+      customer: customerName.trim(),
+      phone: customerPhone.trim(),
+      vehicle: fullVehicleName,
+      plate: plateNumber.trim() || 'রেজিস্ট্রেশন প্রক্রিয়াধীন',
       category: vehicleCategory,
-      imei: trackerImei,
-      sim: simNumber,
-      plan: selectedPlan === '12_months' ? '1 Year' : selectedPlan === '6_months' ? '6 Months' : '3 Months',
-      commission: selectedPlan === '12_months' ? 500 : 350,
-      date: new Date().toLocaleDateString('en-GB'),
+      brand: isCustomVehicle ? 'Custom' : selectedBrand,
+      model: isCustomVehicle ? customVehicleName : selectedModel,
+      version: isCustomVehicle ? 'Custom' : selectedVersion,
+      trackerModel: trackerModel,
+      imei: imeiInput.trim(),
+      sim: simNumberInput.trim() || 'N/A',
+      plan: subscriptionPlan,
+      commission: 500,
+      date: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
       status: 'pending_admin_approval'
     };
 
-    const updated = [newLead, ...salesLeads];
-    setSalesLeads(updated);
+    const updated = [newLead, ...leads];
+    setLeads(updated);
     localStorage.setItem('gps_sales_leads_queue', JSON.stringify(updated));
 
-    setOnboardSuccess(true);
+    setSubmittedSuccess(true);
     setTimeout(() => {
-      setOnboardSuccess(false);
+      setSubmittedSuccess(false);
       setCustomerName('');
       setCustomerPhone('');
-      setVehicleName('');
       setPlateNumber('');
-      setTrackerImei('');
-      setSimNumber('');
+      setImeiInput('');
+      setSimNumberInput('');
     }, 2500);
   };
 
-  const totalCommission = salesLeads
+  const totalEarnedCommission = leads
     .filter(l => l.status === 'approved_pushed')
     .reduce((sum, l) => sum + l.commission, 0);
 
-  const pendingCommission = salesLeads
-    .filter(l => l.status === 'pending_admin_approval')
-    .reduce((sum, l) => sum + l.commission, 0);
+  const pendingApprovalCount = leads.filter(l => l.status === 'pending_admin_approval').length;
 
   return (
     <div className="w-full h-full flex flex-col bg-slate-950 text-slate-100 overflow-y-auto p-4 space-y-4 pb-24 select-none">
       {/* Top Header */}
       <div className="flex items-center justify-between bg-slate-900/90 border border-slate-800 p-3 rounded-2xl shadow-md">
         <div className="flex items-center space-x-2.5">
-          <button
-            onClick={() => {
-              setCurrentRole('customer');
-              setActiveTab('map');
-            }}
-            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-200 border border-slate-700 transition active:scale-95 flex items-center space-x-1"
-          >
-            <ArrowLeft className="w-4 h-4 text-emerald-400" />
-            <span className="text-xs font-bold">{language === 'bn' ? 'কাস্টমার ভিউ' : 'Customer View'}</span>
-          </button>
+          {hasMultipleRoles && (
+            <button
+              onClick={() => {
+                setCurrentRole('customer');
+                setActiveTab('map');
+              }}
+              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-200 border border-slate-700 transition active:scale-95 flex items-center space-x-1"
+            >
+              <ArrowLeft className="w-4 h-4 text-emerald-400" />
+              <span className="text-xs font-bold">{language === 'bn' ? 'কাস্টমার ভিউ' : 'Customer View'}</span>
+            </button>
+          )}
           <div>
             <h2 className="text-sm font-extrabold flex items-center space-x-1.5 text-emerald-300">
               <Briefcase className="w-4 h-4 text-emerald-400" />
-              <span>{language === 'bn' ? 'সেলস ও কাস্টমার অনবোর্ডিং পোর্টাল' : 'Sales & Onboarding Portal'}</span>
+              <span>{language === 'bn' ? 'সেলস পোর্টাল ও কাস্টমার অনবোর্ডিং' : 'Sales & Onboarding Hub'}</span>
             </h2>
             <p className="text-[10px] text-slate-400">
-              {language === 'bn' ? 'নতুন ট্র্যাকার রিকোয়েস্ট তৈরি ➔ অ্যাডমিন ভেরিফিকেশন ও কমিশন' : 'Sales lead submission & admin approval workflow'}
+              {language === 'bn' ? 'ক্যাসকেডিং গাড়ি মডেল ও বারকোড দিয়ে দ্রুত এন্ট্রি' : 'Fast onboarding with barcode scan & model selector'}
             </p>
           </div>
         </div>
 
         <div className="text-right">
-          <span className="text-[9px] text-slate-400 block">অনুমোদিত কমিশন</span>
-          <span className="text-xs font-mono font-black text-emerald-300">৳{totalCommission.toLocaleString()}</span>
-          {pendingCommission > 0 && (
-            <span className="text-[8.5px] text-amber-400 block font-mono">পেন্ডিং: ৳{pendingCommission.toLocaleString()}</span>
+          <span className="text-[9px] text-slate-400 block">অনুমোদিত মোট কমিশন</span>
+          <span className="text-xs font-mono font-black text-emerald-400">৳{totalEarnedCommission.toLocaleString()}</span>
+          {pendingApprovalCount > 0 && (
+            <span className="text-[8.5px] text-amber-400 block font-bold">পেন্ডিং: {pendingApprovalCount} টি</span>
           )}
         </div>
       </div>
 
-      {/* Target & Performance Banner */}
-      <div className="bg-gradient-to-r from-emerald-950/40 via-slate-900 to-slate-900 border border-emerald-500/40 rounded-3xl p-4 shadow-xl space-y-2.5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <Award className="w-4 h-4 text-emerald-400" />
-            <span className="text-xs font-bold text-slate-200">চলতি মাসের সেলস টার্গেট (আগস্ট ২০২৬)</span>
-          </div>
-          <span className="text-xs font-mono font-bold text-emerald-300">{salesLeads.filter(l => l.status === 'approved_pushed').length} / ১৫ টি সম্পন্ন</span>
-        </div>
-
-        <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden">
-          <div 
-            className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-500" 
-            style={{ width: `${Math.min(100, (salesLeads.filter(l => l.status === 'approved_pushed').length / 15) * 100)}%` }} 
-          />
-        </div>
-      </div>
-
-      {/* New Customer Onboarding Wizard (Submits to Admin Queue) */}
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl space-y-3">
+      {/* Main Onboarding Form */}
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl space-y-3.5">
         <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-          <div className="flex items-center space-x-2">
-            <UserCheck className="w-4 h-4 text-emerald-400" />
-            <span className="text-xs font-bold uppercase tracking-wider text-emerald-300">
-              {language === 'bn' ? '১. নতুন কাস্টমার অনবোর্ডিং ফর্ম (Submit for Approval)' : 'Onboard Customer'}
-            </span>
-          </div>
-          {onboardSuccess && (
-            <span className="text-[10px] text-amber-300 bg-amber-950/60 px-2 py-0.5 rounded-full border border-amber-500/40 font-bold flex items-center space-x-1 animate-pulse">
-              <Clock className="w-3.5 h-3.5" />
-              <span>অ্যাডমিন অ্যাপ্রুভালের জন্য জমা হয়েছে!</span>
-            </span>
-          )}
+          <span className="text-xs font-bold uppercase tracking-wider text-emerald-300 flex items-center space-x-1.5">
+            <UserPlus className="w-4 h-4 text-emerald-400" />
+            <span>নতুন কাস্টমার ও ট্র্যাকার অনবোর্ডিং ফর্ম</span>
+          </span>
+          <span className="text-[10px] bg-emerald-950 text-emerald-300 font-bold px-2 py-0.5 rounded-full border border-emerald-800">
+            কমিশন: ৳৫০০/গাড়ি
+          </span>
         </div>
 
-        <p className="text-[11px] text-slate-400">
-          💡 <strong>নিরাপত্তা নীতি:</strong> সেলস থেকে সাবমিট করার পর রিকোয়েস্টটি সুপার অ্যাডমিনের প্যানেলে যাবে। অ্যাডমিন ভেরিফাই করে অ্যাপ্রুভ দিলেই ডিভাইসটি স্বয়ংক্রিয়ভাবে জিপিএস সার্ভারে লাইভ হবে।
-        </p>
-
-        <form onSubmit={handleOnboardSubmit} className="space-y-3 text-xs">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+        <form onSubmit={handleLeadSubmit} className="space-y-3 text-xs">
+          {/* Step 1: Customer Contacts */}
+          <div className="grid grid-cols-2 gap-2.5">
             <div>
-              <label className="text-[10.5px] font-bold text-slate-400 block mb-1">কাস্টমারের পুরো নাম:</label>
+              <label className="text-[10.5px] font-bold text-slate-300 block mb-1">কাস্টমারের পুরো নাম *</label>
               <input
                 type="text"
                 required
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
-                placeholder="e.g. মো: রফিকুল ইসলাম"
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white focus:border-emerald-500 focus:outline-none"
+                placeholder="যেমন: তানভীর আহমেদ"
+                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-medium focus:border-emerald-500 focus:outline-none"
               />
             </div>
 
             <div>
-              <label className="text-[10.5px] font-bold text-slate-400 block mb-1">কাস্টমার মোবাইল নম্বর (লগইন আইডি):</label>
+              <label className="text-[10.5px] font-bold text-slate-300 block mb-1">কাস্টমারের মোবাইল নম্বর *</label>
               <input
                 type="tel"
                 required
                 value={customerPhone}
                 onChange={(e) => setCustomerPhone(e.target.value)}
                 placeholder="017XXXXXXXX"
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono focus:border-emerald-500 focus:outline-none"
+                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-medium focus:border-emerald-500 focus:outline-none"
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
-            <div>
-              <label className="text-[10.5px] font-bold text-slate-400 block mb-1">গাড়ির নাম ও মডেল:</label>
-              <input
-                type="text"
-                required
-                value={vehicleName}
-                onChange={(e) => setVehicleName(e.target.value)}
-                placeholder="e.g. Bajaj Avenger 160"
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white focus:border-emerald-500 focus:outline-none"
-              />
+          {/* Step 2: Cascading Vehicle Selector */}
+          <div className="p-3 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-2.5">
+            <span className="text-[11px] font-bold text-slate-300 flex items-center space-x-1">
+              <Car className="w-3.5 h-3.5 text-blue-400" />
+              <span>গাড়ির ধরন, ব্র্যান্ড, মডেল ও ভার্সন নির্বাচন</span>
+            </span>
+
+            {/* Category Pills */}
+            <div className="flex flex-wrap gap-1.5">
+              {[
+                { id: 'motorcycle', label: '🏍️ বাইক', icon: Bike },
+                { id: 'car', label: '🚗 কার / সিডান', icon: Car },
+                { id: 'cng', label: '🛺 সিএনজি', icon: Car },
+                { id: 'truck', label: '🚚 ট্রাক / পিকআপ', icon: Truck }
+              ].map(cat => (
+                <button
+                  type="button"
+                  key={cat.id}
+                  onClick={() => handleCategoryChange(cat.id as VehicleType)}
+                  className={`px-2.5 py-1 rounded-xl text-xs font-bold transition ${
+                    vehicleCategory === cat.id 
+                      ? 'bg-blue-600 text-white shadow-md' 
+                      : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  {cat.label}
+                </button>
+              ))}
             </div>
 
-            <div>
-              <label className="text-[10.5px] font-bold text-slate-400 block mb-1">গাড়ির নাম্বার প্লেট:</label>
-              <input
-                type="text"
-                required
-                value={plateNumber}
-                onChange={(e) => setPlateNumber(e.target.value)}
-                placeholder="ঢাকা মেট্রো-ল ১১-২২৩৩"
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white focus:border-emerald-500 focus:outline-none"
-              />
-            </div>
+            {/* Cascading Dropdowns */}
+            {!isCustomVehicle ? (
+              <div className="grid grid-cols-3 gap-2 pt-1">
+                {/* Brand */}
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 block mb-1">ব্র্যান্ড / প্রস্তুতকারক:</label>
+                  <select
+                    value={selectedBrand}
+                    onChange={(e) => handleBrandChange(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2 py-1.5 text-white font-bold focus:outline-none cursor-pointer"
+                  >
+                    {currentCategoryData.brands.map(b => (
+                      <option key={b.brand} value={b.brand}>{b.brand}</option>
+                    ))}
+                  </select>
+                </div>
 
-            <div>
-              <label className="text-[10.5px] font-bold text-slate-400 block mb-1">যানবাহনের ধরণ:</label>
-              <select
-                value={vehicleCategory}
-                onChange={(e) => setVehicleCategory(e.target.value as VehicleType)}
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none"
+                {/* Model */}
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 block mb-1">মডেল:</label>
+                  <select
+                    value={selectedModel}
+                    onChange={(e) => handleModelChange(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2 py-1.5 text-white font-bold focus:outline-none cursor-pointer"
+                  >
+                    {currentBrandData?.models.map(m => (
+                      <option key={m.name} value={m.name}>{m.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Version / Trim */}
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 block mb-1">এডিশন / ভার্সন:</label>
+                  <select
+                    value={selectedVersion}
+                    onChange={(e) => setSelectedVersion(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2 py-1.5 text-white font-bold focus:outline-none cursor-pointer"
+                  >
+                    {currentModelData?.versions.map(v => (
+                      <option key={v} value={v}>{v}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            ) : (
+              <div className="pt-1">
+                <label className="text-[10px] font-bold text-slate-400 block mb-1">কাস্টম গাড়ির পুরো নাম ও মডেল লিখুন:</label>
+                <input
+                  type="text"
+                  value={customVehicleName}
+                  onChange={(e) => setCustomVehicleName(e.target.value)}
+                  placeholder="যেমন: Mahindra XUV700 AX7 Luxury"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white font-medium focus:border-blue-500 focus:outline-none"
+                />
+              </div>
+            )}
+
+            <div className="flex items-center justify-between pt-1">
+              <button
+                type="button"
+                onClick={() => setIsCustomVehicle(!isCustomVehicle)}
+                className="text-[10px] text-blue-400 hover:underline font-semibold"
               >
-                <option value="motorcycle">মোটরসাইকেল (Bike)</option>
-                <option value="scooter">স্কুটার (Scooty)</option>
-                <option value="car">প্রাইভেট কার (Car)</option>
-                <option value="cng">সিএনজি (CNG 3-Wheeler)</option>
-                <option value="pickup">পিকআপ ভ্যান (Pickup)</option>
-                <option value="truck">ভারী ট্রাক (Heavy Truck)</option>
-                <option value="ambulance">অ্যাম্বুলেন্স (Ambulance)</option>
-                <option value="bus">বাস (Bus)</option>
-              </select>
+                {isCustomVehicle ? '➔ তালিকাভুক্ত ড্রপডাউন থেকে নির্বাচন করুন' : '➕ তালিকায় নেই? কাস্টম নাম লিখুন (Others)'}
+              </button>
+
+              <div className="w-1/2">
+                <input
+                  type="text"
+                  value={plateNumber}
+                  onChange={(e) => setPlateNumber(e.target.value)}
+                  placeholder="নাম্বার প্লেট (যেমন: ঢাকা মেট্রো-ল ১১-২২৩৩)"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-[11px] text-white font-medium focus:outline-none"
+                />
+              </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
-            <div>
-              <label className="text-[10.5px] font-bold text-slate-400 block mb-1">ট্র্যাকার ১৫-ডিজিট IMEI নম্বর:</label>
-              <input
-                type="text"
-                required
-                value={trackerImei}
-                onChange={(e) => setTrackerImei(e.target.value)}
-                placeholder="864720058291034"
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-amber-300 font-mono font-bold focus:border-emerald-500 focus:outline-none"
-              />
-            </div>
+          {/* Step 3: Tracker Device & Camera Barcode Scanner */}
+          <div className="p-3 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-slate-300 flex items-center space-x-1">
+                <Tag className="w-3.5 h-3.5 text-emerald-400" />
+                <span>ট্র্যাকার ডিভাইস মডেল ও ১৫-ডিজিট IMEI</span>
+              </span>
 
-            <div>
-              <label className="text-[10.5px] font-bold text-slate-400 block mb-1">ডিভাইসে ইনস্টলকৃত সিম নম্বর:</label>
-              <input
-                type="tel"
-                required
-                value={simNumber}
-                onChange={(e) => setSimNumber(e.target.value)}
-                placeholder="018XXXXXXXX"
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono focus:border-emerald-500 focus:outline-none"
-              />
-            </div>
-
-            <div>
-              <label className="text-[10.5px] font-bold text-slate-400 block mb-1">সাবস্ক্রিপশন প্যাকেজ:</label>
-              <select
-                value={selectedPlan}
-                onChange={(e) => setSelectedPlan(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-emerald-300 font-bold focus:outline-none"
+              {/* Live Camera Barcode Scanner Trigger Button */}
+              <button
+                type="button"
+                onClick={handleOpenScanner}
+                className="px-2.5 py-1 rounded-xl bg-emerald-600/30 hover:bg-emerald-600/50 border border-emerald-500/50 text-emerald-300 font-bold text-[10px] flex items-center space-x-1 shadow-sm transition active:scale-95"
               >
-                <option value="12_months">১ বছর (১২ মাস) - ৳৩,৫০০ (কমিশন ৳৫০০)</option>
-                <option value="6_months">৬ মাস - ৳১,৯৫০ (কমিশন ৳৩৫০)</option>
-                <option value="3_months">৩ মাস - ৳১,০৫০ (কমিশন ৳২০০)</option>
-              </select>
+                <Camera className="w-3.5 h-3.5 text-emerald-400" />
+                <span>📷 বারকোড স্ক্যানার</span>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 block mb-1">ট্র্যাকার ডিভাইস মডেল:</label>
+                <select
+                  value={trackerModel}
+                  onChange={(e) => setTrackerModel(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2 py-1.5 text-white font-bold focus:outline-none cursor-pointer"
+                >
+                  {POPULAR_TRACKERS.map(t => (
+                    <option key={t.model} value={t.model}>{t.model} ({t.type})</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 block mb-1">১৫-ডিজিট ডিভাইস IMEI *</label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    required
+                    maxLength={15}
+                    value={imeiInput}
+                    onChange={(e) => setImeiInput(e.target.value)}
+                    placeholder="86472005829XXXX"
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-2.5 pr-8 py-1.5 text-white font-mono font-bold focus:border-emerald-500 focus:outline-none"
+                  />
+                  <Scan className="w-4 h-4 absolute right-2.5 top-2 text-slate-400" />
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 block mb-1">ট্র্যাকারের ভেতরে থাকা সিম নম্বর:</label>
+                <input
+                  type="tel"
+                  value={simNumberInput}
+                  onChange={(e) => setSimNumberInput(e.target.value)}
+                  placeholder="017XXXXXXXX"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-white font-mono font-medium focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 block mb-1">সাবস্ক্রিপশন প্ল্যান:</label>
+                <select
+                  value={subscriptionPlan}
+                  onChange={(e) => setSubscriptionPlan(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2 py-1.5 text-white font-bold focus:outline-none cursor-pointer"
+                >
+                  <option value="বেসিক প্ল্যান (৳৩০০/মাস)">বেসিক প্ল্যান (৳৩০০/মাস)</option>
+                  <option value="স্ট্যান্ডার্ড প্ল্যান (৳৪৫০/মাস)">স্ট্যান্ডার্ড প্ল্যান (৳৪৫০/মাস)</option>
+                  <option value="এন্টারপ্রাইজ ফ্লীট (৳৭৫০/মাস)">এন্টারপ্রাইজ ফ্লীট (৳৭৫০/মাস)</option>
+                </select>
+              </div>
             </div>
           </div>
 
           <button
             type="submit"
-            className="w-full py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/30 transition active:scale-95 flex items-center justify-center space-x-1.5"
+            className="w-full py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs shadow-xl shadow-emerald-600/40 flex items-center justify-center space-x-2 transition active:scale-95 border border-emerald-400"
           >
-            <Send className="w-4 h-4" />
-            <span>{language === 'bn' ? 'অ্যাডমিন ভেরিফিকেশন ও অ্যাপ্রুভালের জন্য পাঠান' : 'Submit to Admin for Server Push'}</span>
+            <CheckCircle2 className="w-4 h-4" />
+            <span>{submittedSuccess ? 'অনবোর্ডিং সফল! অ্যাডমিন অনুমোদনের অপেক্ষায়...' : 'অনবোর্ডিং সাবমিট করুন (অ্যাডমিন অনুমোদনের কিউতে যাবে)'}</span>
           </button>
         </form>
       </div>
 
-      {/* Agent Sales Log & Status Tracker */}
+      {/* Sales Leads Queue */}
       <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl space-y-3">
         <span className="text-xs font-bold uppercase tracking-wider text-slate-300 block">
-          ২. সেলস হিস্ট্রি ও অ্যাডমিন অ্যাপ্রুভাল স্ট্যাটাস ({salesLeads.length})
+          আমার সাবমিটকৃত কাস্টমার তালিকা ({leads.length})
         </span>
 
         <div className="space-y-2">
-          {salesLeads.map((lead) => (
-            <div key={lead.id} className="p-3 bg-slate-950/80 border border-slate-800 rounded-2xl flex items-center justify-between text-xs">
+          {leads.map((lead) => (
+            <div key={lead.id} className="p-3 bg-slate-950/80 border border-slate-800 rounded-2xl flex items-center justify-between text-xs hover:border-slate-700 transition">
               <div>
                 <div className="font-extrabold text-slate-100 flex items-center space-x-2">
                   <span>{lead.customer}</span>
-                  <span className="text-[9.5px] text-slate-400 font-mono">{lead.phone}</span>
+                  <span className="text-slate-400 font-mono text-[10px]">({lead.phone})</span>
                 </div>
-                <div className="text-[10px] text-slate-400 mt-0.5">
-                  গাড়ি: <strong className="text-slate-300">{lead.vehicle}</strong> • IMEI: {lead.imei} • প্যাকেজ: {lead.plan}
+                <div className="text-[10.5px] text-slate-300 mt-0.5 font-medium">
+                  {lead.vehicle} • প্লেট: {lead.plate}
+                </div>
+                <div className="text-[9.5px] text-slate-400 font-mono mt-0.5">
+                  IMEI: {lead.imei} • {lead.plan}
                 </div>
               </div>
 
-              <div className="text-right">
-                <div className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+              <div className="text-right shrink-0">
+                <span className={`text-[9.5px] font-bold px-2 py-0.5 rounded-full border ${
                   lead.status === 'approved_pushed' ? 'bg-emerald-950 text-emerald-300 border-emerald-700' :
-                  lead.status === 'rejected' ? 'bg-rose-950 text-rose-300 border-rose-700' :
-                  'bg-amber-950 text-amber-300 border-amber-700 animate-pulse'
+                  lead.status === 'pending_admin_approval' ? 'bg-amber-950 text-amber-300 border-amber-700 animate-pulse' :
+                  'bg-rose-950 text-rose-300 border-rose-700'
                 }`}>
-                  {lead.status === 'approved_pushed' ? '🟢 সার্ভারে লাইভ' :
-                   lead.status === 'rejected' ? '🔴 বাতিলকৃত' :
-                   '🟡 পেন্ডিং অ্যাপ্রুভাল'}
-                </div>
-                <div className="text-emerald-400 font-mono font-extrabold text-xs mt-1">+৳{lead.commission}</div>
+                  {lead.status === 'approved_pushed' ? '🟢 সার্ভারে লাইভ (৳৫০০)' :
+                   lead.status === 'pending_admin_approval' ? '🟡 পেন্ডিং অ্যাডমিন অনুমোদন' :
+                   '🔴 বাতিলকৃত'}
+                </span>
+                <div className="text-[9px] text-slate-500 mt-1">{lead.date}</div>
               </div>
             </div>
           ))}
         </div>
       </div>
+
+      {/* ========================================================================= */}
+      {/* 📷 CAMERA BARCODE / QR CODE SCANNER MODAL                                  */}
+      {/* ========================================================================= */}
+      {isScannerOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-4 animate-in fade-in select-none">
+          <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-sm w-full p-4 shadow-2xl space-y-3">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+              <span className="font-extrabold text-xs text-slate-100 flex items-center space-x-1.5">
+                <Camera className="w-4 h-4 text-emerald-400" />
+                <span>📷 জিপিএস ট্র্যাকার IMEI বারকোড স্ক্যানার</span>
+              </span>
+              <button onClick={() => setIsScannerOpen(false)} className="text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Viewfinder Reticle */}
+            <div className="relative w-full h-48 bg-slate-950 rounded-2xl border-2 border-dashed border-emerald-500/60 flex flex-col items-center justify-center overflow-hidden">
+              {/* Laser Scan Line Animation */}
+              <div className="absolute w-full h-0.5 bg-rose-500 shadow-lg shadow-rose-500/80 animate-bounce top-1/2"></div>
+              
+              <Scan className="w-12 h-12 text-emerald-400/40 animate-pulse" />
+              <span className="text-[11px] text-slate-300 font-bold mt-2">বক্সের বারকোড ক্যামেরার সামনে রাখুন</span>
+              <span className="text-[9px] text-slate-500">Auto-Detecting 15-Digit IMEI</span>
+            </div>
+
+            {/* Quick One-Tap IMEI Simulation Buttons for Test */}
+            <div className="space-y-1.5">
+              <span className="text-[10px] text-slate-400 font-bold block">বা দ্রুত টেস্ট করার জন্য নিচের IMEI স্ক্যান করুন:</span>
+              <div className="grid grid-cols-2 gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => handleSimulateScan('864720058291034')}
+                  className="p-2 rounded-xl bg-slate-800 hover:bg-slate-750 border border-slate-700 text-[10.5px] font-mono text-emerald-300 text-left font-bold"
+                >
+                  864720058291034 (Avenger)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSimulateScan('864720058291035')}
+                  className="p-2 rounded-xl bg-slate-800 hover:bg-slate-750 border border-slate-700 text-[10.5px] font-mono text-blue-300 text-left font-bold"
+                >
+                  864720058291035 (Axio)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSimulateScan('864720058291036')}
+                  className="p-2 rounded-xl bg-slate-800 hover:bg-slate-750 border border-slate-700 text-[10.5px] font-mono text-amber-300 text-left font-bold"
+                >
+                  864720058291036 (Tata Truck)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSimulateScan('864720058291037')}
+                  className="p-2 rounded-xl bg-slate-800 hover:bg-slate-750 border border-slate-700 text-[10.5px] font-mono text-purple-300 text-left font-bold"
+                >
+                  864720058291037 (CNG Auto)
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -212,6 +212,8 @@ export interface UserSession {
   readonly: boolean;
   administrator: boolean;
   serverUrl: string;
+  role?: SaasRole;
+  approvedRoles?: SaasRole[];
 }
 
 export type MapLayerType = 'carto_positron' | 'google_roadmap' | 'google_satellite' | 'google_hybrid' | 'google_terrain' | 'osm' | 'baidu_dark';
