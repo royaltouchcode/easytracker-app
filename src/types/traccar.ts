@@ -292,3 +292,23 @@ export interface PartnerRegistrationEntry {
   adminReviewNotes?: string;
 }
 
+// Customer Support & Helpdesk Ticket Types
+export type TicketStatus = 'Pending' | 'In Progress' | 'Customer Feedback' | 'Resolved' | 'Closed';
+export type TicketPriority = 'Low' | 'Medium' | 'High' | 'Urgent';
+
+export interface SupportTicket {
+  id: string;
+  customer: string;
+  phone: string;
+  vehicle: string;
+  issue: string;
+  priority: TicketPriority;
+  status: TicketStatus;
+  time: string;
+  preferredLocation?: string;
+  agentNotes?: string;
+  deviceId?: number;
+  userId?: number | string;
+  issueCategory?: 'engine_cutoff' | 'location_update' | 'offline_device' | 'sim_balance' | 'wiring_check' | 'other';
+}
+

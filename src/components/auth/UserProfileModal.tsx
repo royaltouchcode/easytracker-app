@@ -24,6 +24,8 @@ import { ResetPinModal } from '../commands/ResetPinModal';
 import { PrivacyPolicyModal } from '../compliance/PrivacyPolicyModal';
 import { RefundPolicyModal } from '../compliance/RefundPolicyModal';
 import { CustomerWarrantyModal } from '../warranty/CustomerWarrantyModal';
+import { CustomerSupportModal } from '../support/CustomerSupportModal';
+import { Headphones } from 'lucide-react';
 
 interface UserProfileModalProps {
   isOpen: boolean;
@@ -40,6 +42,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
   const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
   const [isRefundOpen, setIsRefundOpen] = useState(false);
   const [isWarrantyOpen, setIsWarrantyOpen] = useState(false);
+  const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
 
   const [isCancelled, setIsCancelled] = useState(() => {
     return localStorage.getItem(`gps_subscription_cancelled_${selectedDevice?.id}`) === 'true';
@@ -175,6 +178,32 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
               </button>
             </div>
           )}
+
+          {/* Customer Support & Helpdesk Tickets Card */}
+          {isCustomerUser && (
+            <div className="bg-slate-800/60 border border-sky-500/40 rounded-2xl p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-1.5 text-sky-300">
+                  <Headphones className="w-4 h-4 text-sky-400" />
+                  <span className="text-xs font-bold">
+                    {language === 'bn' ? 'কাস্টমার সাপোর্ট ও হেল্পডেস্ক হাব' : 'Customer Support & Helpdesk'}
+                  </span>
+                </div>
+                <span className="text-[9.5px] font-bold text-sky-300 bg-sky-950 px-2 py-0.5 rounded-full border border-sky-700">
+                  ২৪/৭ সাপোর্ট
+                </span>
+              </div>
+
+              <button
+                onClick={() => setIsSupportModalOpen(true)}
+                className="w-full py-2 px-3 rounded-xl bg-sky-600/30 hover:bg-sky-600/50 border border-sky-500/50 text-sky-300 font-bold text-[11px] flex items-center justify-center space-x-1.5 transition active:scale-95 shadow-sm"
+              >
+                <Headphones className="w-3.5 h-3.5" />
+                <span>{language === 'bn' ? 'সাপোর্ট টিকিট খুলুন বা স্ট্যাটাস দেখুন' : 'Open Ticket / View Status'}</span>
+              </button>
+            </div>
+          )}
+
           <div className="bg-slate-800/60 border border-slate-700/80 rounded-2xl p-3 space-y-2">
             <div className="flex items-center space-x-1.5 text-slate-300">
               <KeyRound className="w-4 h-4 text-amber-400" />
@@ -191,8 +220,6 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
               <span>{language === 'bn' ? 'পিন পরিবর্তন বা রিসেট করুন' : 'Change or Reset PIN'}</span>
             </button>
           </div>
-
-
 
           {/* Direct Support Contacts */}
           <div className="space-y-1.5 pt-1">
@@ -263,6 +290,11 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
       <CustomerWarrantyModal
         isOpen={isWarrantyOpen}
         onClose={() => setIsWarrantyOpen(false)}
+      />
+
+      <CustomerSupportModal
+        isOpen={isSupportModalOpen}
+        onClose={() => setIsSupportModalOpen(false)}
       />
     </div>
   );

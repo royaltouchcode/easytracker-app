@@ -18,7 +18,10 @@ import {
   DeviceWarrantyInfo,
   WarrantyClaimTicket,
   PartnerRegistrationEntry,
-  PartnerServiceTier
+  PartnerServiceTier,
+  SupportTicket,
+  TicketStatus,
+  TicketPriority
 } from '../types/traccar';
 import { traccarApi } from '../services/traccarApi';
 import { traccarSocket } from '../services/traccarSocket';
@@ -172,6 +175,11 @@ interface AppContextType {
   submitWarrantyClaim: (claim: Omit<WarrantyClaimTicket, 'id' | 'claimDate' | 'status'>) => Promise<WarrantyClaimTicket>;
   assignTechnicianToClaim: (claimId: string, techName: string, techPhone: string, techNotes?: string) => void;
   completeWarrantyClaim: (claimId: string, replacementImei?: string, techNotes?: string) => void;
+
+  // Customer Support & Complaint Tickets Lifecycle
+  supportTickets: SupportTicket[];
+  submitSupportTicket: (ticket: Omit<SupportTicket, 'id' | 'time' | 'status'>) => Promise<SupportTicket>;
+  updateSupportTicketStatus: (ticketId: string, status: TicketStatus, agentNotes?: string) => void;
 
   // B2B Multi-Tenant Partner & Whitelabel Ecosystem
   partnerRegistrations: PartnerRegistrationEntry[];
@@ -958,6 +966,95 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     );
   };
 
+  // Customer Support & Complaint Tickets Lifecycle Queue
+  const [supportTickets, setSupportTickets] = useState<SupportTicket[]>(() => {
+    const saved = localStorage.getItem('gps_support_tickets_list');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return [
+      { 
+        id: 'TKT-1082', 
+        customer: 'Rakib Hasan', 
+        phone: '01719-887766', 
+        vehicle: 'Bajaj Pulsar 150', 
+        issue: 'ইঞ্জিন কাটঅফ কমান্ড কাজ করছে না (রিলে তার চেক রিকোয়েস্ট)', 
+        priority: 'High', 
+        status: 'Pending', 
+        time: '10 min ago',
+        preferredLocation: 'মিরপুর সার্ভিস সেন্টার (মিরপুর ১০, ঢাকা)',
+        agentNotes: 'কাস্টমারের সাথে কথা বলা হয়েছে, টেকনিশিয়ান ভিজিট শিডিউল করা দরকার।'
+      },
+      { 
+        id: 'TKT-1081', 
+        customer: 'Jahangir Alam', 
+        phone: '01822-112233', 
+        vehicle: 'Toyota Axio', 
+        issue: 'অ্যাপে লাইভ লোকেশন আপডেট হচ্ছে না (সিম ব্যালেন্স চেক)', 
+        priority: 'Medium', 
+        status: 'In Progress', 
+        time: '25 min ago',
+        preferredLocation: 'গুলশান সার্ভিস সেন্টার (রোড ১১, গুলশান-২, ঢাকা)',
+        agentNotes: 'সিম কার্ড রিচার্জ ভেরিফাই করা হয়েছে, ট্র্যাকার এখন লাইভ ডেটা পাঠাচ্ছে।'
+      },
+      { 
+        id: 'TKT-1080', 
+        customer: 'Shahadat Hossain', 
+        phone: '01933-445566', 
+        vehicle: 'Honda CB Hornet', 
+        issue: 'পার্কিং অ্যালার্ট সাউন্ড কাজ করছে না', 
+        priority: 'Low', 
+        status: 'Pending', 
+        time: '1 hour ago',
+        preferredLocation: 'উত্তরা সার্ভিস সেন্টার (সেক্টর ৭, ঢাকা)',
+        agentNotes: 'অ্যাপ নোটিফিকেশন পারমিশন রিবুট করতে পরামর্শ দেওয়া হয়েছে।'
+      }
+    ];
+  });
+
+  const submitSupportTicket = async (ticket: Omit<SupportTicket, 'id' | 'time' | 'status'>): Promise<SupportTicket> => {
+    const newTicket: SupportTicket = {
+      ...ticket,
+      id: `TKT-${Math.floor(1085 + Math.random() * 900)}`,
+      time: 'Just now',
+      status: 'Pending'
+    };
+    setSupportTickets(prev => {
+      const next = [newTicket, ...prev];
+      localStorage.setItem('gps_support_tickets_list', JSON.stringify(next));
+      return next;
+    });
+
+    triggerManualAlert(
+      'service_reminder',
+      `🎧 সাপোর্ট টিকিট গৃহীত (ID: ${newTicket.id})! সমস্যা: ${newTicket.issue}। আমাদের কাস্টমার কেয়ার টিম দ্রুত যোগাযোগ করবে।`
+    );
+
+    return newTicket;
+  };
+
+  const updateSupportTicketStatus = (ticketId: string, status: TicketStatus, agentNotes?: string) => {
+    setSupportTickets(prev => {
+      const next = prev.map(t => {
+        if (t.id === ticketId) {
+          return {
+            ...t,
+            status,
+            agentNotes: agentNotes !== undefined ? agentNotes : t.agentNotes
+          };
+        }
+        return t;
+      });
+      localStorage.setItem('gps_support_tickets_list', JSON.stringify(next));
+      return next;
+    });
+
+    triggerManualAlert(
+      'service_reminder',
+      `🔔 টিকিট আপডেট (ID: ${ticketId}): স্ট্যাটাস পরিবর্তিত হয়েছে [${status}]`
+    );
+  };
+
   // B2B Multi-Tenant Partner & Whitelabel Registrations Queue
   const [partnerRegistrations, setPartnerRegistrations] = useState<PartnerRegistrationEntry[]>(() => {
     const saved = localStorage.getItem('gps_partner_registrations_queue');
@@ -1669,6 +1766,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         registerPartner,
         approvePartner,
         rejectPartner,
+        supportTickets,
+        submitSupportTicket,
+        updateSupportTicketStatus,
         language,
         setLanguage,
         t,

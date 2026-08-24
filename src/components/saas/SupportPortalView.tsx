@@ -57,7 +57,9 @@ export const SupportPortalView: React.FC = () => {
     setCurrentRole, 
     user,
     warrantyClaims,
-    assignTechnicianToClaim
+    assignTechnicianToClaim,
+    supportTickets,
+    updateSupportTicketStatus
   } = useApp();
 
   const isSuperAdmin = user?.administrator || user?.role === 'super_admin';
@@ -78,41 +80,7 @@ export const SupportPortalView: React.FC = () => {
   const [techAppointmentNote, setTechAppointmentNote] = useState('');
   const [dispatchSuccess, setDispatchSuccess] = useState(false);
 
-  const [tickets, setTickets] = useState<SupportTicket[]>([
-    { 
-      id: 'TKT-1082', 
-      customer: 'Rakib Hasan', 
-      phone: '01719-887766', 
-      vehicle: 'Bajaj Pulsar 150', 
-      issue: 'ইঞ্জিন কাটঅফ কমান্ড কাজ করছে না (রিলে তার চেক রিকোয়েস্ট)', 
-      priority: 'High', 
-      status: 'Pending', 
-      time: '10 min ago',
-      agentNotes: 'কাস্টমারের সাথে কথা বলা হয়েছে, টেকনিশিয়ান ভিজিট শিডিউল করা দরকার।'
-    },
-    { 
-      id: 'TKT-1081', 
-      customer: 'Jahangir Alam', 
-      phone: '01822-112233', 
-      vehicle: 'Toyota Axio', 
-      issue: 'অ্যাপে লাইভ লোকেশন আপডেট হচ্ছে না (সিম ব্যালেন্স চেক)', 
-      priority: 'Medium', 
-      status: 'In Progress', 
-      time: '25 min ago',
-      agentNotes: 'সিমের ডাটা প্যাকেজ রিনিউ করা হয়েছে, সিগন্যাল মনিটরিং চলছে।'
-    },
-    { 
-      id: 'TKT-1080', 
-      customer: 'Shahadat Hossain', 
-      phone: '01933-445566', 
-      vehicle: 'Tata 1615 Truck', 
-      issue: 'রিফান্ড আবেদন (ডিভাইস আনইনস্টল রিকোয়েস্ট)', 
-      priority: 'Urgent', 
-      status: 'Pending', 
-      time: '1 hour ago',
-      agentNotes: 'রিফান্ড পলিসি অনুযায়ী ৩ দিনের ভেরিফিকেশন চলছে।'
-    }
-  ]);
+  const tickets = supportTickets;
 
   const handleOpenTicketModal = (ticket: SupportTicket) => {
     setSelectedTicket(ticket);
@@ -125,17 +93,7 @@ export const SupportPortalView: React.FC = () => {
     e.preventDefault();
     if (!selectedTicket) return;
 
-    setTickets(prev => prev.map(t => {
-      if (t.id === selectedTicket.id) {
-        return {
-          ...t,
-          status: editStatus,
-          priority: editPriority,
-          agentNotes: agentNoteInput
-        };
-      }
-      return t;
-    }));
+    updateSupportTicketStatus(selectedTicket.id, editStatus, agentNoteInput);
 
     setStatusUpdateSuccess(true);
     setTimeout(() => {
