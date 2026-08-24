@@ -604,7 +604,52 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   });
 
   const [evidenceList, setEvidenceList] = useState<MediaEvidence[]>([]);
-  const [alerts, setAlerts] = useState<EventLog[]>([]);
+  const [alerts, setAlerts] = useState<EventLog[]>(() => {
+    const saved = localStorage.getItem('gps_saved_alerts_list');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return [
+      {
+        id: 991,
+        deviceId: 1,
+        type: 'parking_violation',
+        serverTime: new Date(Date.now() - 1100000).toISOString(),
+        attributes: {
+          alarm: 'parking_violation',
+          message: 'এআই অবৈধ পার্কিং সনাক্তকরণ: বিমানবন্দর ভিআইপি করিডোর ও ফ্লাইওভার সংযোগস্থলে গাড়ি পার্ক করা হয়েছে।',
+          location: 'Airport VIP Road, Near Kuril Flyover, Dhaka',
+          parkedStartTime: Date.now() - 1100000,
+          speed: 0
+        }
+      },
+      {
+        id: 992,
+        deviceId: 1,
+        type: 'traffic_signal',
+        serverTime: new Date(Date.now() - 3600000).toISOString(),
+        attributes: {
+          alarm: 'traffic_signal',
+          message: '৩৬০° ক্যামেরা ও ADAS অ্যালার্ট: লাল বাতি সিগন্যাল অতিক্রম করা হয়েছে। ৫ সেকেন্ডের ভিডিও রেকর্ড সংরক্ষিত।',
+          location: 'Bijoy Sarani Traffic Intersection, Dhaka',
+          speed: 38,
+          hasVideoEvidence: true
+        }
+      },
+      {
+        id: 993,
+        deviceId: 1,
+        type: 'overspeed',
+        serverTime: new Date(Date.now() - 7200000).toISOString(),
+        attributes: {
+          alarm: 'overspeed',
+          message: 'ওভার-স্পিড অতিক্রম: নির্ধারিত ৬০ কিমি/ঘণ্টা স্পিড লিমিট অতিক্রম করে ৭৪ কিমি/ঘণ্টা গতি রেকর্ড হয়েছে।',
+          speed: 74,
+          location: 'Mohakhali Flyover, Dhaka'
+        }
+      }
+    ];
+  });
 
   // Alert Feedback Mode (Sound + Vibration, Only Sound, Only Vibration, SMS, Full Alarm, Silent)
   const [alertFeedbackMode, setAlertFeedbackModeState] = useState<AlertFeedbackMode>(() => {
@@ -1115,9 +1160,29 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const triggerManualAlert = (alarmType: string, msg: string) => {
     if (!selectedDevice) return;
-    setAlerts(prev => [{ id: Date.now(), deviceId: selectedDevice.id, type: 'alarm', serverTime: new Date().toISOString(), attributes: { alarm: alarmType, message: msg } }, ...prev]);
+    const currentLoc = selectedPosition?.address || 'Gulshan-2, Dhaka, Bangladesh';
+    const newAlert: EventLog = {
+      id: Date.now(),
+      deviceId: selectedDevice.id,
+      type: alarmType,
+      serverTime: new Date().toISOString(),
+      attributes: {
+        alarm: alarmType,
+        message: msg,
+        location: currentLoc,
+        parkedStartTime: Date.now(),
+        speed: selectedPosition ? Math.round(selectedPosition.speed || 0) : 0,
+        hasVideoEvidence: alarmType === 'traffic_signal'
+      }
+    };
+    setAlerts(prev => {
+      const next = [newAlert, ...prev];
+      localStorage.setItem('gps_saved_alerts_list', JSON.stringify(next));
+      return next;
+    });
     triggerAlertFeedback(alarmType, msg);
   };
+
 
   const handleSetCurrentRole = (role: SaasRole) => {
     // BUG #2 FIX: Validate role switch is within user's approvedRoles before allowing
