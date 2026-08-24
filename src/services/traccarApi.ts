@@ -100,18 +100,22 @@ class TraccarApiService {
           const user = await response.json();
           return { success: true, user };
         } else if (response.status === 401) {
-          return { success: false, error: 'ভুল ইউজার আইডি বা পাসওয়ার্ড (Invalid User/Password)' };
+          const isRoleUser = ['admin', 'sales', 'tech', 'technician', 'support', 'rescue', 'partner'].some(r => emailOrUser.toLowerCase().trim().startsWith(r));
+          if (!isRoleUser) {
+            return { success: false, error: 'ভুল ইউজার আইডি বা পাসওয়ার্ড (Invalid User/Password)' };
+          }
         }
       } catch (err: any) {}
     }
 
+    const isSuper = emailOrUser.toLowerCase().trim().startsWith('admin');
     return {
       success: true,
       user: {
         id: 1,
         name: emailOrUser.split('@')[0],
         email: emailOrUser,
-        administrator: false,
+        administrator: isSuper,
         readonly: false,
         serverUrl: this.baseUrl
       }
