@@ -23,6 +23,7 @@ import { CancelSubscriptionModal } from '../subscription/CancelSubscriptionModal
 import { ResetPinModal } from '../commands/ResetPinModal';
 import { PrivacyPolicyModal } from '../compliance/PrivacyPolicyModal';
 import { RefundPolicyModal } from '../compliance/RefundPolicyModal';
+import { CustomerWarrantyModal } from '../warranty/CustomerWarrantyModal';
 
 interface UserProfileModalProps {
   isOpen: boolean;
@@ -38,6 +39,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
   const [isResetPinOpen, setIsResetPinOpen] = useState(false);
   const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
   const [isRefundOpen, setIsRefundOpen] = useState(false);
+  const [isWarrantyOpen, setIsWarrantyOpen] = useState(false);
 
   const [isCancelled, setIsCancelled] = useState(() => {
     return localStorage.getItem(`gps_subscription_cancelled_${selectedDevice?.id}`) === 'true';
@@ -149,7 +151,30 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
             </div>
           )}
 
-          {/* Security PIN Management */}
+          {/* Device Warranty & RMA Claims Card (For Tracked Vehicle Customers) */}
+          {isCustomerUser && selectedDevice && (
+            <div className="bg-slate-800/60 border border-emerald-500/40 rounded-2xl p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-1.5 text-emerald-300">
+                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                  <span className="text-xs font-bold">
+                    {language === 'bn' ? 'ডিভাইস ওয়ারেন্টি ও ক্লেইম হাব' : 'Device Warranty & RMA'}
+                  </span>
+                </div>
+                <span className="text-[9.5px] font-bold text-emerald-300 bg-emerald-950 px-2 py-0.5 rounded-full border border-emerald-700">
+                  ১ বছর কাভারেজ
+                </span>
+              </div>
+
+              <button
+                onClick={() => setIsWarrantyOpen(true)}
+                className="w-full py-2 px-3 rounded-xl bg-emerald-600/30 hover:bg-emerald-600/50 border border-emerald-500/50 text-emerald-300 font-bold text-[11px] flex items-center justify-center space-x-1.5 transition active:scale-95 shadow-sm"
+              >
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span>{language === 'bn' ? 'ওয়ারেন্টি স্ট্যাটাস ও ক্লেইম করুন' : 'View Warranty & Claim RMA'}</span>
+              </button>
+            </div>
+          )}
           <div className="bg-slate-800/60 border border-slate-700/80 rounded-2xl p-3 space-y-2">
             <div className="flex items-center space-x-1.5 text-slate-300">
               <KeyRound className="w-4 h-4 text-amber-400" />
@@ -233,6 +258,11 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
         isOpen={isRefundOpen}
         onClose={() => setIsRefundOpen(false)}
         language={language}
+      />
+
+      <CustomerWarrantyModal
+        isOpen={isWarrantyOpen}
+        onClose={() => setIsWarrantyOpen(false)}
       />
     </div>
   );

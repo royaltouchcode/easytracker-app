@@ -14,7 +14,9 @@ import {
   SensorLog,
   FuelRefillLog,
   AlertFeedbackMode,
-  SaasRole
+  SaasRole,
+  DeviceWarrantyInfo,
+  WarrantyClaimTicket
 } from '../types/traccar';
 import { traccarApi } from '../services/traccarApi';
 import { traccarSocket } from '../services/traccarSocket';
@@ -158,6 +160,14 @@ interface AppContextType {
 
   alertFeedbackMode: AlertFeedbackMode;
   setAlertFeedbackMode: (mode: AlertFeedbackMode) => void;
+
+  // Device-wise Warranty Management & Claims Engine
+  deviceWarranties: Record<number, DeviceWarrantyInfo>;
+  warrantyClaims: WarrantyClaimTicket[];
+  setDeviceWarranty: (deviceId: number, warranty: Partial<DeviceWarrantyInfo>) => void;
+  submitWarrantyClaim: (claim: Omit<WarrantyClaimTicket, 'id' | 'claimDate' | 'status'>) => Promise<WarrantyClaimTicket>;
+  assignTechnicianToClaim: (claimId: string, techName: string, techPhone: string, techNotes?: string) => void;
+  completeWarrantyClaim: (claimId: string, replacementImei?: string, techNotes?: string) => void;
 
   language: Language;
   setLanguage: (lang: Language) => void;
@@ -780,7 +790,162 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     });
   };
 
-  // Unified Unread Counter across Alerts, Engine Logs, and Sensor Events
+  // Device-wise Warranty Management State
+  const [deviceWarranties, setDeviceWarranties] = useState<Record<number, DeviceWarrantyInfo>>(() => {
+    const saved = localStorage.getItem('gps_device_warranties');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return {
+      1: {
+        deviceId: 1,
+        imei: '864720058291034',
+        policyType: 'replacement_1yr',
+        policyTitleBn: '১ বছর আনলিমিটেড রিপ্লেসমেন্ট ওয়ারেন্টি',
+        activationDate: '01 Jan 2026',
+        durationMonths: 12,
+        expiryDate: '31 Dec 2026',
+        status: 'active',
+        coveredTerms: [
+          'জিপিএস ট্র্যাকার মাদারবোর্ড ত্রুটি',
+          'ইন্টারনাল পাওয়ার আইসি বা রিবুট লুপ সমস্যা',
+          'রিলে ও ইঞ্জিন কাটঅফ ওয়্যারিং ফল্ট',
+          'ফ্রি হার্ডওয়্যার সোয়াপ ও অন-সাইট সাপোর্ট'
+        ]
+      }
+    };
+  });
+
+  // Warranty Claim Tickets Lifecycle Queue
+  const [warrantyClaims, setWarrantyClaims] = useState<WarrantyClaimTicket[]>(() => {
+    const saved = localStorage.getItem('gps_warranty_claims');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return [
+      {
+        id: 'WCLAIM-101',
+        deviceId: 1,
+        vehicleName: 'Bajaj Avenger 160 Street',
+        plateNumber: 'DHAKA METRO-LA 11-2233',
+        imei: '864720058291034',
+        customerName: 'Mohammad Azhar',
+        customerPhone: '01700-000000',
+        issueType: 'no_gps_signal',
+        issueTitleBn: 'স্যাটেলাইট সিগন্যাল বারবার ড্রপ ও অফলাইন সমস্যা',
+        issueDetails: 'ইঞ্জিন চালু থাকলেও ট্র্যাকার মাঝেমধ্যে স্যাটেলাইট ফিক্স হারাচ্ছে। হার্ডওয়্যার ওয়্যারিং চেক প্রয়োজন।',
+        preferredLocation: 'গুলশান সার্ভিস সেন্টার (রোড ১১, গুলশান-২, ঢাকা)',
+        servicePointAddress: 'প্লট ৪২, রোড ১১, গুলশান-২, ঢাকা',
+        claimDate: '24 Aug 2026',
+        status: 'tech_assigned',
+        assignedTechName: 'আব্দুল করিম (সিনিয়র ফিল্ড ইঞ্জিনিয়ার)',
+        assignedTechPhone: '01711-223344',
+        technicianNotes: 'আজ বিকেল ০৪:৩০ এ গুলশান সার্ভিস পয়েন্টে ডায়াগনস্টিক অ্যাপয়েন্টমেন্ট নির্ধারিত।'
+      }
+    ];
+  });
+
+  const setDeviceWarranty = (deviceId: number, warranty: Partial<DeviceWarrantyInfo>) => {
+    setDeviceWarranties(prev => {
+      const existing = prev[deviceId] || {
+        deviceId,
+        imei: '864720058291034',
+        policyType: 'replacement_1yr',
+        policyTitleBn: '১ বছর আনলিমিটেড রিপ্লেসমেন্ট ওয়ারেন্টি',
+        activationDate: '01 Jan 2026',
+        durationMonths: 12,
+        expiryDate: '31 Dec 2026',
+        status: 'active',
+        coveredTerms: [
+          'জিপিএস ট্র্যাকার মাদারবোর্ড ত্রুটি',
+          'পাওয়ার আইসি ও রিলে সমস্যা',
+          'ফ্রি হার্ডওয়্যার সোয়াপ'
+        ]
+      };
+      const updated = {
+        ...prev,
+        [deviceId]: { ...existing, ...warranty }
+      };
+      localStorage.setItem('gps_device_warranties', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const submitWarrantyClaim = async (claim: Omit<WarrantyClaimTicket, 'id' | 'claimDate' | 'status'>): Promise<WarrantyClaimTicket> => {
+    const newClaim: WarrantyClaimTicket = {
+      ...claim,
+      id: `WCLAIM-${Date.now().toString().slice(-4)}`,
+      claimDate: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
+      status: 'pending_support'
+    };
+    setWarrantyClaims(prev => {
+      const next = [newClaim, ...prev];
+      localStorage.setItem('gps_warranty_claims', JSON.stringify(next));
+      return next;
+    });
+
+    triggerManualAlert(
+      'service_reminder',
+      `🛡️ ওয়ারেন্টি ক্লেইম সাবমিট সফল (ID: ${newClaim.id})! নির্বাচিত সার্ভিস পয়েন্ট: ${newClaim.preferredLocation}। সাপোর্ট টিম শীঘ্রই যাচাই করে টেকনিশিয়ান অ্যাসাইন করবে।`
+    );
+
+    return newClaim;
+  };
+
+  const assignTechnicianToClaim = (claimId: string, techName: string, techPhone: string, techNotes?: string) => {
+    setWarrantyClaims(prev => {
+      const next = prev.map(c => {
+        if (c.id === claimId) {
+          return {
+            ...c,
+            status: 'tech_assigned' as const,
+            assignedTechName: techName,
+            assignedTechPhone: techPhone,
+            technicianNotes: techNotes || c.technicianNotes
+          };
+        }
+        return c;
+      });
+      localStorage.setItem('gps_warranty_claims', JSON.stringify(next));
+      return next;
+    });
+
+    const targetClaim = warrantyClaims.find(c => c.id === claimId);
+    if (targetClaim) {
+      triggerManualAlert(
+        'service_reminder',
+        `🔔 ওয়ারেন্টি আপডেট (ID: ${claimId}): টেকনিশিয়ান ${techName} (${techPhone}) অ্যাসাইন হয়েছেন। সার্ভিস পয়েন্ট: ${targetClaim.preferredLocation}।`
+      );
+    }
+  };
+
+  const completeWarrantyClaim = (claimId: string, replacementImei?: string, techNotes?: string) => {
+    setWarrantyClaims(prev => {
+      const next = prev.map(c => {
+        if (c.id === claimId) {
+          return {
+            ...c,
+            status: 'completed' as const,
+            replacementImei: replacementImei || c.replacementImei,
+            technicianNotes: techNotes || c.technicianNotes,
+            completedDate: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+          };
+        }
+        return c;
+      });
+      localStorage.setItem('gps_warranty_claims', JSON.stringify(next));
+      return next;
+    });
+
+    if (replacementImei && selectedDevice) {
+      updateDeviceProfile(selectedDevice.id, { uniqueId: replacementImei });
+    }
+
+    triggerManualAlert(
+      'geofenceEnter',
+      `✅ ওয়ারেন্টি সার্ভিস সম্পন্ন (ID: ${claimId})! ডিভাইস পুরোপুরি ডায়াগনস্টিক টেস্টে উত্তীর্ণ হয়েছে।`
+    );
+  };
   const [lastReadTimestamp, setLastReadTimestamp] = useState<number>(() => {
     const saved = localStorage.getItem('gps_last_read_alerts_ts');
     return saved ? Number(saved) : Date.now() - 86400000;
@@ -1277,6 +1442,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         deleteFuelRefillLog,
         alertFeedbackMode,
         setAlertFeedbackMode,
+        deviceWarranties,
+        warrantyClaims,
+        setDeviceWarranty,
+        submitWarrantyClaim,
+        assignTechnicianToClaim,
+        completeWarrantyClaim,
         language,
         setLanguage,
         t,

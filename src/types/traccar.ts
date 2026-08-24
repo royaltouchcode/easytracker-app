@@ -221,3 +221,42 @@ export type MapLayerType = 'carto_positron' | 'google_roadmap' | 'google_satelli
 
 export type SaasRole = 'customer' | 'super_admin' | 'sales' | 'technician' | 'support' | 'rescue';
 
+export type WarrantyPolicyType = 'replacement_1yr' | 'service_2yr' | 'extended_3yr' | 'lifetime_service';
+export type WarrantyStatus = 'active' | 'expiring_soon' | 'expired' | 'void';
+
+export interface DeviceWarrantyInfo {
+  deviceId: number;
+  imei: string;
+  policyType: WarrantyPolicyType;
+  policyTitleBn: string;
+  activationDate: string;
+  durationMonths: number;
+  expiryDate: string;
+  status: WarrantyStatus;
+  coveredTerms: string[];
+}
+
+export type WarrantyClaimStatus = 'pending_support' | 'tech_assigned' | 'in_repair' | 'completed' | 'rejected';
+
+export interface WarrantyClaimTicket {
+  id: string;
+  deviceId: number;
+  vehicleName: string;
+  plateNumber: string;
+  imei: string;
+  customerName: string;
+  customerPhone: string;
+  issueType: 'hardware_fault' | 'no_gps_signal' | 'battery_drain' | 'relay_fault' | 'water_damage' | 'other';
+  issueTitleBn: string;
+  issueDetails: string;
+  preferredLocation: string;
+  servicePointAddress: string;
+  claimDate: string;
+  status: WarrantyClaimStatus;
+  assignedTechName?: string;
+  assignedTechPhone?: string;
+  technicianNotes?: string;
+  replacementImei?: string;
+  completedDate?: string;
+}
+

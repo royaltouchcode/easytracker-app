@@ -27,6 +27,7 @@ import { DEFAULT_SUBSCRIPTION_CONFIG } from '../../config/subscriptionPlans';
 import { APP_CONFIG } from '../../config/appConfig';
 import { SalesLeadEntry } from './SalesPortalView';
 import { VehicleCatalogManager } from './VehicleCatalogManager';
+import { WarrantyAdminManager } from './WarrantyAdminManager';
 
 
 export const AdminDashboardView: React.FC = () => {
@@ -520,6 +521,9 @@ export const AdminDashboardView: React.FC = () => {
 
       {/* ===== Vehicle Catalog Manager (Admin / Super Admin Only) ===== */}
       <VehicleCatalogManager />
+
+      {/* ===== Device-wise Warranty Policy & Claims RMA Manager ===== */}
+      <WarrantyAdminManager />
 
     </div>
   );

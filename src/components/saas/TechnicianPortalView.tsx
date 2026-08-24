@@ -39,7 +39,15 @@ export interface TechWorkOrder {
 }
 
 export const TechnicianPortalView: React.FC = () => {
-  const { language, setActiveTab, setCurrentRole, selectedDevice, user } = useApp();
+  const { 
+    language, 
+    setActiveTab, 
+    setCurrentRole, 
+    selectedDevice, 
+    user,
+    warrantyClaims,
+    completeWarrantyClaim
+  } = useApp();
 
   const isSuperAdmin = user?.administrator || user?.role === 'super_admin';
 
@@ -52,7 +60,7 @@ export const TechnicianPortalView: React.FC = () => {
     return [
       {
         id: 'JOB-801',
-        type: 'new_installation',
+        type: 'servicing_repair',
         customerName: 'Mohammad Azhar',
         customerPhone: '01700-000000',
         vehicleName: 'Bajaj Avenger 160 Street',
@@ -81,6 +89,8 @@ export const TechnicianPortalView: React.FC = () => {
   // App & Device Settings by Technician
   const [inputInitialOdo, setInputInitialOdo] = useState('12450');
   const [inputSpeedLimit, setInputSpeedLimit] = useState('60');
+  const [replacementImeiInput, setReplacementImeiInput] = useState('');
+  const [techReportNotes, setTechReportNotes] = useState('');
 
   const [checklist, setChecklist] = useState({
     hiddenPlace: true,
@@ -104,12 +114,23 @@ export const TechnicianPortalView: React.FC = () => {
     setWorkOrders(updated);
     localStorage.setItem('gps_tech_work_orders', JSON.stringify(updated));
 
+    // Also match any active warranty claim and mark it complete
+    const matchingClaim = warrantyClaims.find(c => c.status === 'tech_assigned' || c.vehicleName.includes(activeJob.vehicleName));
+    if (matchingClaim) {
+      completeWarrantyClaim(
+        matchingClaim.id,
+        replacementImeiInput.trim() || undefined,
+        techReportNotes || 'ফিল্ড টেকনিশিয়ান কর্তৃক হার্ডওয়্যার ওয়্যারিং ও ডায়াগনস্টিক সফলভাবে সম্পন্ন হয়েছে।'
+      );
+    }
+
     setCompleteSuccess(true);
     setTimeout(() => {
       setCompleteSuccess(false);
       setActiveJobId('');
     }, 2000);
   };
+
 
   const earnedFees = workOrders
     .filter(j => j.status === 'approved_paid')
@@ -353,6 +374,28 @@ export const TechnicianPortalView: React.FC = () => {
                   <span className="text-slate-300">{label}</span>
                 </label>
               ))}
+            </div>
+
+            {/* Optional Hardware Replacement Box if Tracker was Swapped */}
+            <div className="p-3 bg-slate-950 rounded-2xl border border-purple-500/30 space-y-2">
+              <span className="text-[10.5px] font-bold text-purple-300 block">
+                🔄 হার্ডওয়্যার সোয়াপ / নতুন রিপ্লেসমেন্ট ট্র্যাকার IMEI (প্রযোজ্য হলে):
+              </span>
+              <input
+                type="text"
+                maxLength={15}
+                value={replacementImeiInput}
+                onChange={(e) => setReplacementImeiInput(e.target.value)}
+                placeholder="নতুন ১৫-ডিজিট IMEI (যেমন: 864720058299999)"
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white font-mono font-bold focus:border-purple-500 focus:outline-none"
+              />
+              <textarea
+                rows={2}
+                value={techReportNotes}
+                onChange={(e) => setTechReportNotes(e.target.value)}
+                placeholder="সার্ভিস রিপোর্ট ও ডায়াগনস্টিক নোট..."
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-xs text-white focus:outline-none"
+              />
             </div>
 
             <button
