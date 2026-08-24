@@ -128,6 +128,7 @@ interface AppContextType {
   positions: Record<number, Position>;
   selectedPosition: Position | undefined;
   updateDeviceProfile: (id: number, partial: Partial<Device>) => void;
+  calibrateVehicleLocation: (deviceId: number, lat: number, lon: number, address?: string) => void;
   syncServerData: () => Promise<void>;
 
   userLocation: UserLocation | null;
@@ -2312,6 +2313,60 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     });
   };
 
+  const calibrateVehicleLocation = (deviceId: number, lat: number, lon: number, address?: string) => {
+    const currentPos = positions[deviceId] || {
+      id: 101,
+      deviceId,
+      protocol: 'osmand',
+      serverTime: new Date().toISOString(),
+      deviceTime: new Date().toISOString(),
+      fixTime: new Date().toISOString(),
+      outdated: false,
+      valid: true,
+      altitude: 12,
+      speed: 0,
+      course: 0,
+      accuracy: 5,
+      attributes: {
+        ignition: false,
+        motion: false,
+        batteryLevel: 100,
+        satellites: 14,
+        power: 12.6,
+        isLastKnown: true
+      }
+    };
+
+    const updatedPos: Position = {
+      ...currentPos,
+      latitude: lat,
+      longitude: lon,
+      address: address || `${lat.toFixed(5)}, ${lon.toFixed(5)}`,
+      attributes: {
+        ...currentPos.attributes,
+        isLastKnown: true
+      }
+    };
+
+    setPositions(prev => {
+      const next = { ...prev, [deviceId]: updatedPos };
+      localStorage.setItem('gps_last_known_positions', JSON.stringify(next));
+      return next;
+    });
+
+    // Also update geofence safe zone around the vehicle's calibrated location
+    setGeofences(prev => {
+      if (prev.length > 0) {
+        const updated = prev.map((g, idx) => idx === 0 ? { ...g, latitude: lat, longitude: lon } : g);
+        localStorage.setItem('gps_saved_geofences', JSON.stringify(updated));
+        return updated;
+      }
+      return prev;
+    });
+
+    triggerManualAlert('geofenceEnter', `📍 বাইকের অবস্থান সফলভাবে আপডেট ও পিন করা হয়েছে (${lat.toFixed(4)}, ${lon.toFixed(4)})`);
+  };
+
   const sendCommand = async (type: string, rawCmd?: string, data?: any) => {
     if (!selectedDevice) return { success: false, message: 'No vehicle selected' };
     const cmdId = 'cmd-' + Date.now();
@@ -2482,6 +2537,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         positions,
         selectedPosition,
         updateDeviceProfile,
+        calibrateVehicleLocation,
         syncServerData,
         userLocation,
         requestUserLocation,
