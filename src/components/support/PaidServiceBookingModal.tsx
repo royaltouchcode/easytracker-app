@@ -425,24 +425,42 @@ export const PaidServiceBookingModal: React.FC<PaidServiceBookingModalProps> = (
                         <div className="bg-gradient-to-br from-emerald-950/90 to-slate-900 border border-emerald-500/50 p-3 rounded-2xl space-y-2">
                           <div className="flex items-center space-x-1.5 text-emerald-300 font-bold text-[11px]">
                             <Sparkles className="w-4 h-4 text-emerald-400 shrink-0" />
-                            <span>টেকনিশিয়ান কাজ শেষ করেছেন! বিল যাচাই করুন ও কনফার্ম করুন:</span>
+                            <span>টেকনিশিয়ান কাজ শেষ করেছেন! বিল যাচাই করুন ও পেমেন্ট সিলেক্ট করুন:</span>
+                          </div>
+
+                          {/* Cashless Special Incentive Banner */}
+                          <div className="p-2 bg-pink-950/50 border border-pink-500/40 rounded-xl text-[10.5px] text-pink-200 flex items-center justify-between">
+                            <span className="flex items-center space-x-1 font-bold">
+                              <span>🎁 bKash / বাংলা কিউআর অফার:</span>
+                            </span>
+                            <span className="font-bold text-emerald-300 font-mono">
+                              ৳৫০ ছাড় + ১৫ দিন বাড়তি গ্যারান্টি
+                            </span>
                           </div>
 
                           <div className="grid grid-cols-2 gap-2 pt-1">
                             <button
                               onClick={() => confirmJobCardByCustomer(jc.id, 'cash_at_center')}
-                              className="py-2.5 px-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-[10.5px] flex items-center justify-center space-x-1 shadow-md shadow-emerald-600/30 transition active:scale-95"
+                              className="py-2.5 px-2 rounded-xl bg-slate-800 hover:bg-slate-750 border border-slate-700 text-slate-300 font-bold text-[10.5px] flex flex-col items-center justify-center space-y-0.5 transition active:scale-95"
                             >
-                              <Banknote className="w-3.5 h-3.5" />
-                              <span>ক্যাশ পে করেছি (Confirm)</span>
+                              <div className="flex items-center space-x-1">
+                                <Banknote className="w-3.5 h-3.5 text-amber-400" />
+                                <span>ক্যাশ পেমেন্ট</span>
+                              </div>
+                              <span className="font-mono text-[10px] text-slate-400">৳ {jc.totalAmount} (রেগুলার)</span>
                             </button>
 
                             <button
                               onClick={() => confirmJobCardByCustomer(jc.id, 'online_bkash')}
-                              className="py-2.5 px-2 rounded-xl bg-pink-600 hover:bg-pink-500 text-white font-extrabold text-[10.5px] flex items-center justify-center space-x-1 shadow-md shadow-pink-600/30 transition active:scale-95"
+                              className="py-2.5 px-2 rounded-xl bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-500 hover:to-rose-500 text-white font-extrabold text-[10.5px] flex flex-col items-center justify-center space-y-0.5 shadow-md shadow-pink-600/30 transition active:scale-95 border border-pink-400"
                             >
-                              <CreditCard className="w-3.5 h-3.5" />
-                              <span>বিকাশ পে (bKash)</span>
+                              <div className="flex items-center space-x-1">
+                                <CreditCard className="w-3.5 h-3.5" />
+                                <span>বিকাশ / বাংলা QR</span>
+                              </div>
+                              <span className="font-mono text-[10px] text-pink-100 font-black">
+                                ৳ {Math.max(50, jc.totalAmount - 50)} (৳৫০ ছাড়)
+                              </span>
                             </button>
                           </div>
                         </div>

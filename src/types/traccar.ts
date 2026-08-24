@@ -376,3 +376,63 @@ export interface PaidJobCard {
   technicianNote?: string;
 }
 
+// 📦 Seller / Dealer IMEI Paywall Quota Management Types
+export interface SellerImeiQuota {
+  partnerId: string;
+  sellerName: string;
+  phone: string;
+  shopName?: string;
+  maxDueDeviceQuota: number; // Max allowed locked/unpaid devices in dealer's shop (e.g. 3 or 5)
+  allocatedImeis: {
+    imei: string;
+    model: string;
+    status: 'dormant_locked' | 'unlocked_paid' | 'pending_payment';
+    customerName?: string;
+    customerPhone?: string;
+    assignedDate: string;
+    unlockedDate?: string;
+    deviceCostBdt: number;
+  }[];
+  totalSold: number;
+  totalPendingDueBdt: number;
+  isQuotaLocked: boolean; // Auto-locked if pending devices >= maxDueDeviceQuota
+}
+
+// 💳 The Negative Floating Ledger Types for Technicians
+export interface TechnicianTransaction {
+  id: string;
+  type: 'install_earning' | 'warranty_fee' | 'cash_collected_cut' | 'weekly_payout' | 'due_payment';
+  titleBn: string;
+  amount: number; // Positive for tech earnings, Negative for company commission cut
+  jobId?: string;
+  customerName?: string;
+  date: string;
+  timestamp: number;
+}
+
+export interface TechnicianLedgerConfig {
+  techId: string;
+  techName: string;
+  techPhone: string;
+  area: string;
+  maxNegativeLimitBdt: number; // e.g. 1500 BDT
+  maxDueDaysLimit: number; // e.g. 7 days
+  currentFloatingBalance: number; // Positive = company owes tech, Negative = tech owes company
+  firstNegativeDate?: string;
+  daysInNegative: number;
+  isAccountLocked: boolean;
+  transactions: TechnicianTransaction[];
+}
+
+// 🎁 Customer Digital Cashless Payment Incentives (bKash / Nagad / BanglaQR)
+export interface DigitalPaymentOffer {
+  id: string;
+  titleBn: string;
+  badgeBn: string;
+  discountAmountBdt: number;
+  bonusWarrantyDays: number;
+  supportedGateways: ('bkash' | 'nagad' | 'bangla_qr' | 'card')[];
+  descriptionBn: string;
+  isActive: boolean;
+}
+

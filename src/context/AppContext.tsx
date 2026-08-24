@@ -26,7 +26,11 @@ import {
   SparePartItem,
   PaidJobCard,
   SelectedServiceItem,
-  SelectedSparePartItem
+  SelectedSparePartItem,
+  SellerImeiQuota,
+  TechnicianLedgerConfig,
+  TechnicianTransaction,
+  DigitalPaymentOffer
 } from '../types/traccar';
 import { traccarApi } from '../services/traccarApi';
 import { traccarSocket } from '../services/traccarSocket';
@@ -209,6 +213,22 @@ interface AppContextType {
   sendJobCardBill: (jobCardId: string, services: SelectedServiceItem[], parts: SelectedSparePartItem[], techNote?: string) => void;
   confirmJobCardByCustomer: (jobCardId: string, paymentMethod: 'cash_at_center' | 'online_bkash') => void;
   completeJobCard: (jobCardId: string) => void;
+
+  // 📦 Seller / Dealer IMEI Paywall Quota Management
+  sellerImeiQuotas: SellerImeiQuota[];
+  updateSellerQuota: (partnerId: string, maxQuota: number) => void;
+  allocateImeiToSeller: (partnerId: string, imei: string, model: string, costBdt: number) => void;
+  unlockImeiPaywall: (partnerId: string, imei: string, customerName: string, customerPhone: string) => void;
+
+  // 💳 The Negative Floating Ledger for Technicians
+  technicianLedgers: TechnicianLedgerConfig[];
+  updateTechnicianLimits: (techId: string, maxNegativeLimit: number, maxDueDays: number) => void;
+  recordTechTransaction: (techId: string, transaction: Omit<TechnicianTransaction, 'id' | 'date' | 'timestamp'>) => void;
+  settleWeeklyTechPayout: (techId: string) => void;
+
+  // 🎁 Customer Digital Cashless Payment Incentives (bKash / Nagad / BanglaQR)
+  digitalPaymentOffers: DigitalPaymentOffer[];
+  updatePaymentOffer: (id: string, offer: Partial<DigitalPaymentOffer>) => void;
 
   language: Language;
   setLanguage: (lang: Language) => void;
@@ -1565,6 +1585,370 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     });
   };
 
+  // =========================================================================
+  // 📦 1. SELLER / DEALER IMEI PAYWALL QUOTA ENGINE
+  // =========================================================================
+  const [sellerImeiQuotas, setSellerImeiQuotas] = useState<SellerImeiQuota[]>(() => {
+    const saved = localStorage.getItem('gps_seller_imei_quotas');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return [
+      {
+        partnerId: 'PREG-901',
+        sellerName: 'Tariqul Islam',
+        shopName: 'Green Fleet GPS Solutions (মিরপুর ১০)',
+        phone: '01811-998877',
+        maxDueDeviceQuota: 3, // Max 3 devices on credit/consignment
+        totalSold: 18,
+        totalPendingDueBdt: 3000,
+        isQuotaLocked: false,
+        allocatedImeis: [
+          {
+            imei: '864720058291034',
+            model: 'EasyTracker GT06 Heavy Duty',
+            status: 'unlocked_paid',
+            customerName: 'Mohammad Azhar',
+            customerPhone: '01700-000000',
+            assignedDate: '20 Aug 2026',
+            unlockedDate: '24 Aug 2026',
+            deviceCostBdt: 3000
+          },
+          {
+            imei: '864720058291055',
+            model: 'EasyTracker 4G Pro Bike Relay',
+            status: 'dormant_locked',
+            assignedDate: '22 Aug 2026',
+            deviceCostBdt: 3000
+          },
+          {
+            imei: '864720058291056',
+            model: 'EasyTracker 4G Pro Bike Relay',
+            status: 'dormant_locked',
+            assignedDate: '22 Aug 2026',
+            deviceCostBdt: 3000
+          }
+        ]
+      },
+      {
+        partnerId: 'PREG-902',
+        sellerName: 'Mizanur Rahman',
+        shopName: 'Chittagong GPS Point (জিইসি মোড়)',
+        phone: '01911-334455',
+        maxDueDeviceQuota: 5,
+        totalSold: 24,
+        totalPendingDueBdt: 0,
+        isQuotaLocked: false,
+        allocatedImeis: [
+          {
+            imei: '864720058291071',
+            model: 'EasyTracker GT06 Heavy Duty',
+            status: 'dormant_locked',
+            assignedDate: '23 Aug 2026',
+            deviceCostBdt: 3000
+          },
+          {
+            imei: '864720058291072',
+            model: 'EasyTracker 4G Pro Bike Relay',
+            status: 'dormant_locked',
+            assignedDate: '23 Aug 2026',
+            deviceCostBdt: 3000
+          }
+        ]
+      }
+    ];
+  });
+
+  const updateSellerQuota = (partnerId: string, maxQuota: number) => {
+    setSellerImeiQuotas(prev => {
+      const next = prev.map(s => {
+        if (s.partnerId === partnerId) {
+          const pendingCount = s.allocatedImeis.filter(d => d.status === 'dormant_locked' || d.status === 'pending_payment').length;
+          return {
+            ...s,
+            maxDueDeviceQuota: maxQuota,
+            isQuotaLocked: pendingCount >= maxQuota
+          };
+        }
+        return s;
+      });
+      localStorage.setItem('gps_seller_imei_quotas', JSON.stringify(next));
+      return next;
+    });
+    triggerManualAlert('service_reminder', `⚙️ ডিলার IMEI কোটা আপডেট: সর্বোচ্চ ${maxQuota} টি ডিভাইস অনুমোদন।`);
+  };
+
+  const allocateImeiToSeller = (partnerId: string, imei: string, model: string, costBdt: number) => {
+    setSellerImeiQuotas(prev => {
+      const next = prev.map(s => {
+        if (s.partnerId === partnerId) {
+          const newAllocated = [
+            ...s.allocatedImeis,
+            {
+              imei,
+              model: model || 'EasyTracker 4G Telematics',
+              status: 'dormant_locked' as const,
+              assignedDate: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
+              deviceCostBdt: costBdt || 3000
+            }
+          ];
+          const pendingCount = newAllocated.filter(d => d.status === 'dormant_locked' || d.status === 'pending_payment').length;
+          return {
+            ...s,
+            allocatedImeis: newAllocated,
+            isQuotaLocked: pendingCount >= s.maxDueDeviceQuota
+          };
+        }
+        return s;
+      });
+      localStorage.setItem('gps_seller_imei_quotas', JSON.stringify(next));
+      return next;
+    });
+    triggerManualAlert('service_reminder', `📦 ডিলারের দোকানে নতুন ট্র্যাকার (IMEI: ${imei}) স্টক যুক্ত হয়েছে (Status: Dormant Locked)।`);
+  };
+
+  const unlockImeiPaywall = (partnerId: string, imei: string, customerName: string, customerPhone: string) => {
+    setSellerImeiQuotas(prev => {
+      const next = prev.map(s => {
+        if (s.partnerId === partnerId) {
+          const updatedImeis = s.allocatedImeis.map(d => {
+            if (d.imei === imei) {
+              return {
+                ...d,
+                status: 'unlocked_paid' as const,
+                customerName,
+                customerPhone,
+                unlockedDate: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+              };
+            }
+            return d;
+          });
+          const pendingCount = updatedImeis.filter(d => d.status === 'dormant_locked' || d.status === 'pending_payment').length;
+          return {
+            ...s,
+            allocatedImeis: updatedImeis,
+            totalSold: s.totalSold + 1,
+            isQuotaLocked: pendingCount >= s.maxDueDeviceQuota
+          };
+        }
+        return s;
+      });
+      localStorage.setItem('gps_seller_imei_quotas', JSON.stringify(next));
+      return next;
+    });
+
+    triggerManualAlert(
+      'geofenceEnter',
+      `🔓 IMEI পে-ওয়াল আনলক সফল (IMEI: ${imei})! কাস্টমার: ${customerName}। ট্র্যাকার সার্ভারে লাইভ সক্রিয় হয়েছে।`
+    );
+  };
+
+  // =========================================================================
+  // 💳 2. THE NEGATIVE FLOATING LEDGER ENGINE FOR TECHNICIANS
+  // =========================================================================
+  const [technicianLedgers, setTechnicianLedgers] = useState<TechnicianLedgerConfig[]>(() => {
+    const saved = localStorage.getItem('gps_technician_ledgers');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return [
+      {
+        techId: 'tech_1',
+        techName: 'আব্দুল করিম (সিনিয়র ফিল্ড ইঞ্জিনিয়ার)',
+        techPhone: '01711-223344',
+        area: 'ঢাকা সেন্ট্রাল ও গুলশান জোন',
+        maxNegativeLimitBdt: 1500, // Max ৳1500 negative balance
+        maxDueDaysLimit: 7, // Max 7 days
+        currentFloatingBalance: 520, // +520 BDT (company owes tech)
+        daysInNegative: 0,
+        isAccountLocked: false,
+        transactions: [
+          {
+            id: 'TX-901',
+            type: 'install_earning',
+            titleBn: 'নতুন জিপিএস ইনস্টলেশন ফি (Bajaj Avenger)',
+            amount: 300,
+            jobId: 'JOB-801',
+            customerName: 'Mohammad Azhar',
+            date: '24 Aug 2026',
+            timestamp: Date.now() - 3600000
+          },
+          {
+            id: 'TX-902',
+            type: 'cash_collected_cut',
+            titleBn: 'কাস্টমার ক্যাশ কালেকশন থেকে কোম্পানি কমিশন ২০%',
+            amount: -80,
+            jobId: 'JC-8821',
+            customerName: 'Rakib Hasan',
+            date: '24 Aug 2026',
+            timestamp: Date.now() - 1800000
+          },
+          {
+            id: 'TX-903',
+            type: 'install_earning',
+            titleBn: 'নতুন জিপিএস ইনস্টলেশন ফি (Yamaha FZ)',
+            amount: 300,
+            jobId: 'JOB-802',
+            customerName: 'Tanvir Hossain',
+            date: '24 Aug 2026',
+            timestamp: Date.now() - 900000
+          }
+        ]
+      },
+      {
+        techId: 'tech_2',
+        techName: 'সুজন মিয়া',
+        techPhone: '01733-445566',
+        area: 'মিরপুর ও উত্তরা জোন',
+        maxNegativeLimitBdt: 1500,
+        maxDueDaysLimit: 7,
+        currentFloatingBalance: -160, // -160 BDT (Tech owes company from 2 cash repairs)
+        firstNegativeDate: '24 Aug 2026',
+        daysInNegative: 1,
+        isAccountLocked: false,
+        transactions: [
+          {
+            id: 'TX-904',
+            type: 'cash_collected_cut',
+            titleBn: 'কাস্টমার ক্যাশ কালেকশন থেকে কোম্পানি কমিশন ২০%',
+            amount: -80,
+            jobId: 'JC-8821',
+            customerName: 'Rakib Hasan',
+            date: '24 Aug 2026',
+            timestamp: Date.now() - 7200000
+          },
+          {
+            id: 'TX-905',
+            type: 'cash_collected_cut',
+            titleBn: 'কাস্টমার ক্যাশ কালেকশন থেকে কোম্পানি কমিশন ২০%',
+            amount: -80,
+            jobId: 'JC-8822',
+            customerName: 'Jahangir Alam',
+            date: '24 Aug 2026',
+            timestamp: Date.now() - 3600000
+          }
+        ]
+      }
+    ];
+  });
+
+  const updateTechnicianLimits = (techId: string, maxNegativeLimit: number, maxDueDays: number) => {
+    setTechnicianLedgers(prev => {
+      const next = prev.map(t => {
+        if (t.techId === techId) {
+          const isOverLimit = t.currentFloatingBalance < -maxNegativeLimit || t.daysInNegative > maxDueDays;
+          return {
+            ...t,
+            maxNegativeLimitBdt: maxNegativeLimit,
+            maxDueDaysLimit: maxDueDays,
+            isAccountLocked: isOverLimit
+          };
+        }
+        return t;
+      });
+      localStorage.setItem('gps_technician_ledgers', JSON.stringify(next));
+      return next;
+    });
+    triggerManualAlert('service_reminder', `⚙️ টেকনিশিয়ান লিমিট আপডেট: নেগেটিভ ব্যালেন্স ৳${maxNegativeLimit}, সময়সীমা ${maxDueDays} দিন।`);
+  };
+
+  const recordTechTransaction = (techId: string, transaction: Omit<TechnicianTransaction, 'id' | 'date' | 'timestamp'>) => {
+    const newTx: TechnicianTransaction = {
+      ...transaction,
+      id: `TX-${Math.floor(1000 + Math.random() * 9000)}`,
+      date: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
+      timestamp: Date.now()
+    };
+
+    setTechnicianLedgers(prev => {
+      const next = prev.map(t => {
+        if (t.techId === techId) {
+          const newBal = t.currentFloatingBalance + newTx.amount;
+          const isNeg = newBal < 0;
+          const isOverLimit = newBal < -t.maxNegativeLimitBdt || (isNeg && t.daysInNegative > t.maxDueDaysLimit);
+          return {
+            ...t,
+            currentFloatingBalance: newBal,
+            firstNegativeDate: isNeg ? (t.firstNegativeDate || new Date().toISOString()) : undefined,
+            daysInNegative: isNeg ? (t.daysInNegative || 1) : 0,
+            isAccountLocked: isOverLimit,
+            transactions: [newTx, ...t.transactions]
+          };
+        }
+        return t;
+      });
+      localStorage.setItem('gps_technician_ledgers', JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const settleWeeklyTechPayout = (techId: string) => {
+    setTechnicianLedgers(prev => {
+      const next = prev.map(t => {
+        if (t.techId === techId) {
+          const currentBal = t.currentFloatingBalance;
+          const settlementTx: TechnicianTransaction = {
+            id: `TX-${Math.floor(1000 + Math.random() * 9000)}`,
+            type: currentBal >= 0 ? 'weekly_payout' : 'due_payment',
+            titleBn: currentBal >= 0 
+              ? `সাপ্তাহিক বিকাশ পে-আউট ট্রান্সফার (৳${currentBal})` 
+              : `বকেয়া ব্যালেন্স ক্লিয়ার ও সেটেলমেন্ট (৳${Math.abs(currentBal)})`,
+            amount: -currentBal, // Resets to 0
+            date: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
+            timestamp: Date.now()
+          };
+
+          return {
+            ...t,
+            currentFloatingBalance: 0,
+            daysInNegative: 0,
+            firstNegativeDate: undefined,
+            isAccountLocked: false,
+            transactions: [settlementTx, ...t.transactions]
+          };
+        }
+        return t;
+      });
+      localStorage.setItem('gps_technician_ledgers', JSON.stringify(next));
+      return next;
+    });
+
+    triggerManualAlert(
+      'subscription_reminder',
+      `💰 সাপ্তাহিক সেটেলমেন্ট সম্পন্ন! টেকনিশিয়ান একাউন্ট ব্যালেন্স ৳০ এ রিসেট হয়েছে।`
+    );
+  };
+
+  // =========================================================================
+  // 🎁 3. CUSTOMER CASHLESS DIGITAL PAYMENT INCENTIVES (bKash / Nagad / BanglaQR)
+  // =========================================================================
+  const [digitalPaymentOffers, setDigitalPaymentOffers] = useState<DigitalPaymentOffer[]>(() => {
+    const saved = localStorage.getItem('gps_digital_payment_offers');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return [
+      {
+        id: 'offer_digital_50',
+        titleBn: '⚡ বিকাশ / নগদ / বাংলা কিউআর (BanglaQR) অনলাইন পেমেন্ট অফার',
+        badgeBn: '৳৫০ ডিসকাউন্ট + ১৫ দিন ফ্রি গ্যারান্টি',
+        discountAmountBdt: 50,
+        bonusWarrantyDays: 15,
+        supportedGateways: ['bkash', 'nagad', 'bangla_qr', 'card'],
+        descriptionBn: 'অনলাইন ও কিউআর দিয়ে পেমেন্ট করলে তাৎক্ষণিক ৳৫০ ছাড় এবং অতিরিক্ত ১৫ দিনের ডিজিটাল সার্ভিস কাভারেজ পাওয়া যাবে।',
+        isActive: true
+      }
+    ];
+  });
+
+  const updatePaymentOffer = (id: string, offer: Partial<DigitalPaymentOffer>) => {
+    setDigitalPaymentOffers(prev => {
+      const next = prev.map(o => o.id === id ? { ...o, ...offer } : o);
+      localStorage.setItem('gps_digital_payment_offers', JSON.stringify(next));
+      return next;
+    });
+  };
+
   const [lastReadTimestamp, setLastReadTimestamp] = useState<number>(() => {
     const saved = localStorage.getItem('gps_last_read_alerts_ts');
     return saved ? Number(saved) : Date.now() - 86400000;
@@ -2155,6 +2539,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         sendJobCardBill,
         confirmJobCardByCustomer,
         completeJobCard,
+        sellerImeiQuotas,
+        updateSellerQuota,
+        allocateImeiToSeller,
+        unlockImeiPaywall,
+        technicianLedgers,
+        updateTechnicianLimits,
+        recordTechTransaction,
+        settleWeeklyTechPayout,
+        digitalPaymentOffers,
+        updatePaymentOffer,
         language,
         setLanguage,
         t,

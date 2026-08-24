@@ -36,6 +36,7 @@ import { WarrantyAdminManager } from './WarrantyAdminManager';
 import { PartnerOnboardingManager } from './PartnerOnboardingManager';
 import { UserAccessManager } from './UserAccessManager';
 import { ServiceRateCardManager } from './ServiceRateCardManager';
+import { SellerQuotaAndLedgerManager } from './SellerQuotaAndLedgerManager';
 
 export const AdminDashboardView: React.FC = () => {
   const { 
@@ -680,6 +681,9 @@ export const AdminDashboardView: React.FC = () => {
 
       {/* ===== Out-of-Warranty Rate-Card & Spare Parts Pricing Hub ===== */}
       <ServiceRateCardManager />
+
+      {/* ===== Seller IMEI Paywall & Technician Floating Ledger Hub ===== */}
+      <SellerQuotaAndLedgerManager />
 
       {/* ===== Staff & User Access Control Hub (RBAC Permissions) ===== */}
       <UserAccessManager />

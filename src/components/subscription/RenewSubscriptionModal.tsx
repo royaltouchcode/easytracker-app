@@ -158,47 +158,73 @@ export const RenewSubscriptionModal: React.FC<RenewSubscriptionModalProps> = ({
                 </div>
               </div>
 
+              {/* Special Cashless Offer Banner */}
+              <div className="p-2.5 bg-gradient-to-r from-emerald-950/80 via-slate-900 to-pink-950/70 border border-emerald-500/40 rounded-2xl flex items-center justify-between text-xs">
+                <div className="flex items-center space-x-2">
+                  <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+                  <div>
+                    <span className="font-extrabold text-slate-100 text-[11px] block">
+                      ⚡ অনলাইন / বাংলা কিউআর অফার সক্রিয়:
+                    </span>
+                    <span className="text-[10px] text-emerald-300">
+                      ইনস্ট্যান্ট ডিজিটাল রিনিউয়াল ও ১৫ দিনের এক্সট্রা ভ্যালিডিটি
+                    </span>
+                  </div>
+                </div>
+                <span className="font-mono font-black text-amber-300 bg-amber-950 px-2 py-0.5 rounded-lg border border-amber-700 text-[10px]">
+                  ৳৫০ অফার
+                </span>
+              </div>
+
               {/* Payment Methods */}
               <div className="space-y-2 pt-1">
                 <label className="text-[11px] font-bold text-slate-400 block">
                   {language === 'bn' ? 'পেমেন্ট মাধ্যম বেছে নিন:' : 'Payment Method:'}
                 </label>
 
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-4 gap-1.5">
                   <button
                     type="button"
                     onClick={() => setPaymentMethod('bkash')}
-                    className={`py-2 px-2 rounded-xl border text-center font-bold text-xs transition ${
+                    className={`py-2 px-1 rounded-xl border text-center font-bold text-[11px] transition ${
                       paymentMethod === 'bkash' 
-                        ? 'bg-pink-600/25 border-pink-500 text-pink-300' 
+                        ? 'bg-pink-600/25 border-pink-500 text-pink-300 shadow-sm' 
                         : 'bg-slate-800 border-slate-700 text-slate-400'
                     }`}
                   >
-                    বিকাশ (bKash)
+                    বিকাশ
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setPaymentMethod('nagad')}
-                    className={`py-2 px-2 rounded-xl border text-center font-bold text-xs transition ${
+                    className={`py-2 px-1 rounded-xl border text-center font-bold text-[11px] transition ${
                       paymentMethod === 'nagad' 
-                        ? 'bg-orange-600/25 border-orange-500 text-orange-300' 
+                        ? 'bg-orange-600/25 border-orange-500 text-orange-300 shadow-sm' 
                         : 'bg-slate-800 border-slate-700 text-slate-400'
                     }`}
                   >
-                    নগদ (Nagad)
+                    নগদ
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod('bkash')}
+                    className={`py-2 px-1 rounded-xl border text-center font-bold text-[11px] transition bg-slate-800 hover:bg-emerald-950/40 border-slate-700 hover:border-emerald-500 text-emerald-300`}
+                  >
+                    বাংলা QR
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setPaymentMethod('card')}
-                    className={`py-2 px-2 rounded-xl border text-center font-bold text-xs transition ${
+                    className={`py-2 px-1 rounded-xl border text-center font-bold text-[11px] transition ${
                       paymentMethod === 'card' 
-                        ? 'bg-blue-600/25 border-blue-500 text-blue-300' 
+                        ? 'bg-blue-600/25 border-blue-500 text-blue-300 shadow-sm' 
                         : 'bg-slate-800 border-slate-700 text-slate-400'
                     }`}
                   >
-                    কার্ড / ব্যাংক
+                    কার্ড/ব্যাংক
                   </button>
                 </div>
 

@@ -55,10 +55,11 @@ export const TechnicianPortalView: React.FC = () => {
     paidJobCards,
     sendJobCardBill,
     rateCardServices,
-    sparePartsCatalog
+    sparePartsCatalog,
+    technicianLedgers
   } = useApp();
 
-  const [activeTabMode, setActiveTabMode] = useState<'install_diagnostic' | 'paid_job_cards'>('install_diagnostic');
+  const [activeTabMode, setActiveTabMode] = useState<'install_diagnostic' | 'paid_job_cards' | 'floating_ledger'>('install_diagnostic');
   const [selectedJobCardId, setSelectedJobCardId] = useState<string>('');
   const [billSentSuccessId, setBillSentSuccessId] = useState<string | null>(null);
 
@@ -218,7 +219,19 @@ export const TechnicianPortalView: React.FC = () => {
           }`}
         >
           <Receipt className="w-3.5 h-3.5" />
-          <span>পেইড সার্ভিস ও বিলিং জব-কার্ড ({paidJobCards.length})</span>
+          <span>পেইড জব-কার্ড ({paidJobCards.length})</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTabMode('floating_ledger')}
+          className={`flex-1 py-2 rounded-xl text-xs font-extrabold flex items-center justify-center space-x-1.5 transition ${
+            activeTabMode === 'floating_ledger'
+              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <DollarSign className="w-3.5 h-3.5" />
+          <span>আমার ফ্লোটিং লেজার</span>
         </button>
       </div>
 
@@ -315,6 +328,101 @@ export const TechnicianPortalView: React.FC = () => {
               })}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 💳 MY FLOATING LEDGER VIEW (TECHNICIAN BALANCE & LIMITS)                   */}
+      {/* ========================================================================= */}
+      {activeTabMode === 'floating_ledger' && (
+        <div className="space-y-3">
+          {(() => {
+            const myLedger = technicianLedgers[0];
+            if (!myLedger) return null;
+            const isPositive = myLedger.currentFloatingBalance >= 0;
+            const isOverLimit = myLedger.isAccountLocked;
+
+            return (
+              <div className="bg-gradient-to-br from-indigo-950/40 via-slate-900 to-slate-900 border border-indigo-500/40 rounded-3xl p-4 shadow-xl space-y-3.5">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+                  <div className="flex items-center space-x-2">
+                    <DollarSign className="w-5 h-5 text-indigo-400" />
+                    <div>
+                      <h3 className="font-extrabold text-xs text-indigo-300">
+                        আমার রিয়েল-টাইম ফ্লোটিং লেজার ও পে-আউট হিস্ট্রি
+                      </h3>
+                      <span className="text-[10px] text-slate-400 font-mono">
+                        {myLedger.techName} ({myLedger.area})
+                      </span>
+                    </div>
+                  </div>
+
+                  <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
+                    isPositive 
+                      ? 'bg-emerald-950 text-emerald-300 border-emerald-700' 
+                      : isOverLimit
+                        ? 'bg-rose-950 text-rose-300 border-rose-700 animate-pulse'
+                        : 'bg-amber-950 text-amber-300 border-amber-700'
+                  }`}>
+                    {isPositive ? '● কোম্পানি পাওনাদার' : isOverLimit ? '⚠️ লিমিট অতিক্রম' : `● বকেয়া ক্যাশ (${myLedger.daysInNegative} দিন)`}
+                  </span>
+                </div>
+
+                {/* Balance & Limit Indicators */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-1">
+                    <span className="text-[10.5px] text-slate-400 font-bold block">বর্তমান ফ্লোটিং ব্যালেন্স:</span>
+                    <span className={`text-xl font-mono font-black ${
+                      isPositive ? 'text-emerald-400' : isOverLimit ? 'text-rose-400' : 'text-amber-400'
+                    }`}>
+                      {isPositive ? `+৳ ${myLedger.currentFloatingBalance}` : `-৳ ${Math.abs(myLedger.currentFloatingBalance)}`}
+                    </span>
+                    <span className="text-[10px] text-slate-500 block">
+                      {isPositive ? 'শুক্রবার আপনার বিকাশে পাঠানো হবে।' : 'পরবর্তী নতুন ইনস্টলেশনের আয়ের সাথে অ্যাডজাস্ট হবে।'}
+                    </span>
+                  </div>
+
+                  <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-2">
+                    <div className="flex justify-between text-[11px] font-bold">
+                      <span className="text-slate-400">নেগেটিভ ক্যাশ লিমিট:</span>
+                      <span className="font-mono text-indigo-300">
+                        ৳{Math.abs(Math.min(0, myLedger.currentFloatingBalance))} / ৳{myLedger.maxNegativeLimitBdt}
+                      </span>
+                    </div>
+                    <div className="w-full bg-slate-900 rounded-full h-2 overflow-hidden border border-slate-800">
+                      <div 
+                        className={`h-full transition-all duration-300 ${isOverLimit ? 'bg-rose-500' : 'bg-indigo-500'}`}
+                        style={{ width: `${Math.min(100, (Math.abs(Math.min(0, myLedger.currentFloatingBalance)) / myLedger.maxNegativeLimitBdt) * 100)}%` }}
+                      />
+                    </div>
+                    <span className="text-[9.5px] text-slate-400 block font-mono">
+                      বকেয়া সময়সীমা: সর্বোচ্চ {myLedger.maxDueDaysLimit} দিন (প্রতি শুক্রবার সেটেলমেন্ট)
+                    </span>
+                  </div>
+                </div>
+
+                {/* Ledger Transactions */}
+                <div className="space-y-1.5 pt-1">
+                  <span className="text-[10.5px] font-bold text-slate-300 uppercase tracking-wider block">
+                    লেনদেন ও কমিশন ডিডাকশন বিবরণী:
+                  </span>
+                  <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                    {myLedger.transactions.map(tx => (
+                      <div key={tx.id} className="p-2.5 bg-slate-950 rounded-xl border border-slate-800/80 flex items-center justify-between text-xs">
+                        <div>
+                          <span className="font-bold text-slate-200 block text-[11px]">{tx.titleBn}</span>
+                          <span className="text-[9.5px] text-slate-500 font-mono">{tx.date} • {tx.id} {tx.customerName ? `(${tx.customerName})` : ''}</span>
+                        </div>
+                        <span className={`font-mono font-black text-xs shrink-0 ${tx.amount >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                          {tx.amount >= 0 ? `+৳${tx.amount}` : `-৳${Math.abs(tx.amount)}`}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
         </div>
       )}
 
