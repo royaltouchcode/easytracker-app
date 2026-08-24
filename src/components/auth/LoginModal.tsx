@@ -44,8 +44,8 @@ export const LoginModal: React.FC = () => {
     language 
   } = useApp();
 
-  const [emailOrUser, setEmailOrUser] = useState(user?.email || 'demo@traccar.org');
-  const [password, setPassword] = useState('123456');
+  const [emailOrUser, setEmailOrUser] = useState(user?.email || user?.username || '');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [hasAgreedPrivacy, setHasAgreedPrivacy] = useState(true);

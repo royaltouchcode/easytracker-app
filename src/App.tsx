@@ -121,6 +121,14 @@ const MainAppContent: React.FC = () => {
               )}
             </>
           )}
+
+          {/* Global Fallback for unknown/transitional roles to guarantee no blank screen */}
+          {!['sales', 'technician', 'support', 'rescue', 'super_admin', 'customer'].includes(currentRole) && (
+            <>
+              <LiveTrackingMap />
+              <DeviceSlidingSheet />
+            </>
+          )}
         </Suspense>
       </main>
 

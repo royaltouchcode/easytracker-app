@@ -332,10 +332,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return 'customer';
   });
   const [isRoleSwitcherOpen, setIsRoleSwitcherOpen] = useState(false);
-  const [isDemoPurged, setIsDemoPurged] = useState(() => localStorage.getItem('gps_demo_purged') === 'true');
+  const [isDemoPurged, setIsDemoPurged] = useState(() => localStorage.getItem('gps_demo_purged') !== 'false');
   
   const [devices, setDevices] = useState<Device[]>(() => {
-    const isPurged = localStorage.getItem('gps_demo_purged') === 'true';
+    const isPurged = localStorage.getItem('gps_demo_purged') !== 'false';
     const savedCustom = localStorage.getItem('gps_saved_device_profile');
     let customParsed: any = null;
     if (savedCustom) {
@@ -493,7 +493,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const [selectedDeviceId, setSelectedDeviceId] = useState<number>(1);
   const [positions, setPositions] = useState<Record<number, Position>>(() => {
-    const isPurged = localStorage.getItem('gps_demo_purged') === 'true';
+    const isPurged = localStorage.getItem('gps_demo_purged') !== 'false';
     try {
       const stored = localStorage.getItem('gps_last_known_positions');
       if (stored) {

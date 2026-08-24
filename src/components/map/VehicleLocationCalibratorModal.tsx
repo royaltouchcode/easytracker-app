@@ -14,9 +14,12 @@ import {
   Compass, 
   Building2,
   Lock,
-  Globe
+  Globe,
+  Zap
 } from 'lucide-react';
 import { VehicleIcon } from '../../utils/vehicleIcons';
+import { BangladeshLocationPicker, SelectedLocationData } from '../common/BangladeshLocationPicker';
+import { resolveWakeupCommand } from '../../utils/protocolCommands';
 
 interface VehicleLocationCalibratorModalProps {
   isOpen: boolean;
@@ -46,6 +49,7 @@ export const VehicleLocationCalibratorModal: React.FC<VehicleLocationCalibratorM
     serverConfig, 
     purgeDemoFleetData, 
     isDemoPurged,
+    sendCommand,
     language 
   } = useApp();
 
@@ -59,6 +63,23 @@ export const VehicleLocationCalibratorModal: React.FC<VehicleLocationCalibratorM
   const [isDetectingPhone, setIsDetectingPhone] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isWakingUp, setIsWakingUp] = useState(false);
+
+  const protocolConfig = resolveWakeupCommand(selectedDevice || { attributes: {} } as any, selectedPosition);
+
+  const handleTriggerGprsWakeup = async () => {
+    if (!selectedDevice || isWakingUp) return;
+    setIsWakingUp(true);
+    setSuccessMessage(`📡 [${protocolConfig.protocolName}] ট্র্যাকার হার্ডওয়্যারে ওয়েকআপ পিং (${protocolConfig.gprsCommand}) পাঠানো হয়েছে...`);
+    
+    await sendCommand(protocolConfig.traccarCommandType, protocolConfig.gprsCommand);
+    
+    setTimeout(() => {
+      syncServerData();
+      setIsWakingUp(false);
+      setSuccessMessage('✅ ওয়েকআপ সংকেত গৃহীত হয়েছে! সার্ভার থেকে নতুন ডাটা রিফ্রেশ করা হয়েছে।');
+    }, 3000);
+  };
 
   if (!isOpen || !selectedDevice) return null;
 
@@ -281,82 +302,29 @@ export const VehicleLocationCalibratorModal: React.FC<VehicleLocationCalibratorM
             </div>
           )}
 
-          {/* TAB 2: CUSTOM COORDS & BD PRESETS */}
+          {/* TAB 2: NESTED BANGLADESH GEO-PICKER (COURIER LEVEL) */}
           {activeTab === 'custom_coords' && (
             <div className="space-y-3">
-              <form onSubmit={handleSaveCustomCoords} className="space-y-2.5 text-xs">
-                <div>
-                  <label className="text-[10.5px] font-bold text-slate-300 block mb-1">
-                    ঠিকানা বা এলাকার নাম:
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={customAddress}
-                    onChange={(e) => setCustomAddress(e.target.value)}
-                    placeholder="যেমন: মিরপুর ১০, ঢাকা"
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-bold focus:border-blue-500 focus:outline-none"
-                  />
-                </div>
+              <BangladeshLocationPicker
+                label="জেলা, থানা ও ইউনিয়ন ভিত্তিক অবস্থান নির্ধারণ"
+                initialStreet={customAddress}
+                initialLat={parseFloat(customLat) || undefined}
+                initialLng={parseFloat(customLon) || undefined}
+                onChange={(loc: SelectedLocationData) => {
+                  setCustomAddress(loc.fullFormattedAddress);
+                  setCustomLat(String(loc.lat));
+                  setCustomLon(String(loc.lng));
+                }}
+              />
 
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="text-[10.5px] font-bold text-slate-300 block mb-1">
-                      অক্ষাংশ (Latitude) *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={customLat}
-                      onChange={(e) => setCustomLat(e.target.value)}
-                      placeholder="23.8067"
-                      className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono font-bold focus:border-blue-500 focus:outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[10.5px] font-bold text-slate-300 block mb-1">
-                      দ্রাঘিমাংশ (Longitude) *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={customLon}
-                      onChange={(e) => setCustomLon(e.target.value)}
-                      placeholder="90.3687"
-                      className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono font-bold focus:border-blue-500 focus:outline-none"
-                    />
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs shadow-md shadow-blue-600/30 flex items-center justify-center space-x-1.5 transition active:scale-95"
-                >
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>লোকেশন সেভ ও ম্যাপে আপডেট করুন</span>
-                </button>
-              </form>
-
-              {/* Quick BD Area Presets */}
-              <div className="pt-2 border-t border-slate-800 space-y-1.5">
-                <span className="text-[10px] font-bold text-slate-400 block">
-                  জনপ্রিয় এলাকা বেছে নিন (Quick Select):
-                </span>
-                <div className="grid grid-cols-2 gap-1.5 max-h-36 overflow-y-auto pr-1">
-                  {POPULAR_LOCATIONS.map((loc, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => handleSelectPreset(loc)}
-                      className="p-1.5 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-left text-[10.5px] transition flex items-center justify-between"
-                    >
-                      <span className="truncate text-slate-200 font-medium">{loc.nameBn}</span>
-                      <MapPin className="w-3 h-3 text-rose-400 shrink-0 ml-1" />
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <button
+                type="button"
+                onClick={(e) => handleSaveCustomCoords(e as any)}
+                className="w-full py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold text-xs shadow-xl shadow-blue-600/30 flex items-center justify-center space-x-1.5 transition active:scale-95"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                <span>📍 এই ঠিকানায় বাইকের অবস্থান সেট করুন</span>
+              </button>
             </div>
           )}
 
@@ -380,6 +348,32 @@ export const VehicleLocationCalibratorModal: React.FC<VehicleLocationCalibratorM
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
                   <span>{isSyncing ? 'সার্ভার থেকে সিঙ্ক হচ্ছে...' : '🔄 সার্ভার থেকে ফ্রেশ জিপিএস ডাটা রিফ্রেশ'}</span>
+                </button>
+              </div>
+
+              {/* GPRS Wakeup & Radar Ping */}
+              <div className="p-3 bg-indigo-950/40 border border-indigo-500/40 rounded-2xl space-y-2 text-xs">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-1.5 text-indigo-300 font-bold">
+                    <Zap className="w-4 h-4 text-amber-400 fill-amber-400" />
+                    <span>হার্ডওয়্যার GPRS ওয়েকআপ পিং (Wakeup Tracker)</span>
+                  </div>
+                  <span className="text-[9px] font-mono text-indigo-300 bg-indigo-900/60 px-1.5 py-0.5 rounded border border-indigo-600 font-bold">
+                    {protocolConfig.protocolName.split(' ')[0]}
+                  </span>
+                </div>
+                <p className="text-[10.5px] text-slate-300">
+                  বাইক যদি স্লিপ মোডে থাকে বা GPS মডিউল নিষ্ক্রিয় থাকে, এই বাটনে ট্যাপ করলে ট্র্যাকার হার্ডওয়্যারে সরাসরি GPRS কমান্ড ({protocolConfig.gprsCommand}) পাঠিয়ে ডিভাইসকে জাগিয়ে লাইভ অবস্থান আপডেট করা হবে।
+                </p>
+
+                <button
+                  type="button"
+                  disabled={isWakingUp}
+                  onClick={handleTriggerGprsWakeup}
+                  className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs shadow-md shadow-indigo-600/40 flex items-center justify-center space-x-1.5 transition active:scale-95 disabled:opacity-50"
+                >
+                  <Zap className={`w-3.5 h-3.5 text-amber-300 fill-amber-300 ${isWakingUp ? 'animate-bounce' : ''}`} />
+                  <span>{isWakingUp ? '📡 ওয়েকআপ সংকেত পাঠানো হচ্ছে...' : '⚡ GPRS ওয়েকআপ সিগন্যাল পাঠান'}</span>
                 </button>
               </div>
 

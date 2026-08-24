@@ -26,6 +26,7 @@ import {
   PartnerServiceTier, 
   SaasRole 
 } from '../../types/traccar';
+import { BangladeshLocationPicker, SelectedLocationData } from '../common/BangladeshLocationPicker';
 
 interface PartnerRegistrationModalProps {
   isOpen: boolean;
@@ -422,75 +423,20 @@ export const PartnerRegistrationModal: React.FC<PartnerRegistrationModalProps> =
               </div>
             </div>
 
-            <div>
-              <label className="text-[10.5px] font-bold text-slate-300 block mb-1">
-                জেলা / অঞ্চল নির্বাচন করুন *
-              </label>
-              <select
-                value={district}
-                onChange={(e) => setDistrict(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-bold focus:border-blue-500 focus:outline-none cursor-pointer"
-              >
-                {BANGLADESH_DISTRICTS.map(d => (
-                  <option key={d} value={d}>{d}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="text-[10.5px] font-bold text-slate-300 block mb-1">
-                দোকান / অফিস / বাসভবনের পূর্ণ ঠিকানা *
-              </label>
-              <textarea
-                required
-                rows={2}
-                value={fullAddress}
-                onChange={(e) => setFullAddress(e.target.value)}
-                placeholder="যেমন: প্লট ১৪, রোড ৫, মিরপুর ১০ গোলচত্বর, ঢাকা"
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white font-medium focus:border-blue-500 focus:outline-none"
-              />
-            </div>
-          </div>
-
           {/* ========================================================================= */}
-          {/* SECTION D: GOOGLE MAPS GEO-LOCATION PINNING                                */}
+          {/* SECTION D: BANGLADESH NESTED LOCATION & GOOGLE MAPS PIN                   */}
           {/* ========================================================================= */}
-          <div className="p-3 bg-slate-950 border border-emerald-500/40 rounded-2xl space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-[10.5px] font-bold text-emerald-300 flex items-center space-x-1.5">
-                <MapPin className="w-3.5 h-3.5 text-rose-400" />
-                <span>শপ / আউটলেটের গুগল ম্যাপ লোকেশন পিন</span>
-              </span>
-              {geoDetected && (
-                <span className="text-[9px] bg-emerald-950 text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-700 font-bold">
-                  ✓ জিপিএস ক্যাপচার্ড
-                </span>
-              )}
-            </div>
-
-            <p className="text-[10px] text-slate-400">
-              কাস্টমার যাতে সহজে আপনার দোকানে আসতে পারে সেজন্য আপনার বর্তমান জিপিএস লোকেশন সেভ করে নিন:
-            </p>
-
-            <div className="flex items-center space-x-2">
-              <button
-                type="button"
-                onClick={handleFetchCurrentLocation}
-                disabled={isFetchingGeo}
-                className="flex-1 py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center space-x-1.5 shadow-md shadow-emerald-600/30 transition active:scale-95"
-              >
-                <LocateFixed className="w-3.5 h-3.5" />
-                <span>{isFetchingGeo ? 'জিপিএস রিডিং নিচ্ছে...' : '📍 বর্তমান লোকেশন ক্যাপচার করুন'}</span>
-              </button>
-
-              <div className="bg-slate-900 border border-slate-800 rounded-xl px-2.5 py-1.5 font-mono text-[10px] text-slate-300 shrink-0">
-                {(geoLat !== undefined && geoLng !== undefined)
-                  ? `${geoLat}, ${geoLng}`
-                  : <span className="text-slate-500 italic">ক্যাপচার করা হয়নি</span>
-                }
-              </div>
-            </div>
-          </div>
+          <BangladeshLocationPicker
+            label="দোকান / আউটলেটের নেস্টেড লোকেশন ও গুগল ম্যাপ পিন"
+            initialStreet={fullAddress}
+            onChange={(loc: SelectedLocationData) => {
+              setDistrict(loc.districtBn);
+              setFullAddress(loc.fullFormattedAddress);
+              setGeoLat(loc.lat);
+              setGeoLng(loc.lng);
+              setGeoDetected(true);
+            }}
+          />
 
           {/* Optional Secondary Fields */}
           <div className="grid grid-cols-2 gap-2 pt-1">

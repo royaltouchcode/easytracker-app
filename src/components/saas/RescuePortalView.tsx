@@ -220,7 +220,10 @@ export const RescuePortalView: React.FC = () => {
             </a>
 
             <a
-              href={`https://www.google.com/maps/dir/?api=1&destination=${distressPos?.latitude},${distressPos?.longitude}`}
+              href={distressPos?.latitude && distressPos?.longitude 
+                ? `https://www.google.com/maps/dir/?api=1&destination=${distressPos.latitude},${distressPos.longitude}`
+                : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(distressPos?.address || 'Dhaka, Bangladesh')}`
+              }
               target="_blank"
               rel="noreferrer"
               className="py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center justify-center space-x-1.5 transition active:scale-95 shadow-md"

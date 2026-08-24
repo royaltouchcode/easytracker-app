@@ -361,7 +361,7 @@ export const AlertHistoryView: React.FC = () => {
                         <button
                           onClick={() => {
                             const q = encodeURIComponent(`Parking near ${item.attributes?.location || 'Dhaka'}`);
-                            window.open(`https://www.google.com/maps/search/${q}`, '_blank');
+                            window.open(`https://www.google.com/maps/search/?api=1&query=${q}`, '_blank');
                           }}
                           className="py-1.5 px-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] flex items-center justify-center space-x-1 shadow-sm transition active:scale-95"
                         >

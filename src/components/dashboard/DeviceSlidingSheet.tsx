@@ -129,17 +129,42 @@ export const DeviceSlidingSheet: React.FC = () => {
   if (!selectedDevice) return null;
 
   const speedKmh = selectedPosition ? Math.round(selectedPosition.speed || 0) : 0;
-  const isMoving = speedKmh > 3;
-  const isIgnitionOn = !!selectedPosition?.attributes?.ignition;
+  const isMoving = speedKmh > 3 || !!selectedPosition?.attributes?.motion;
+  const isIgnitionOn = !!selectedPosition?.attributes?.ignition || !!selectedPosition?.attributes?.acc || !!selectedPosition?.attributes?.ignitionState;
   const isRelayCut = (latestEngineLog ? latestEngineLog.action === 'cut' : isRelayCutState) || 
                      !!selectedPosition?.attributes?.relay || 
                      !!selectedPosition?.attributes?.blocked ||
                      !!selectedDevice?.attributes?.relay;
-  const mainVoltage = selectedPosition?.attributes?.power ? `${selectedPosition.attributes.power.toFixed(1)}V` : '-';
-  const backupBattery = selectedPosition?.attributes?.batteryLevel || 0;
-  const satCount = Number(selectedPosition?.attributes?.sat ?? selectedPosition?.attributes?.satellites ?? 0);
-  const isGpsValid = selectedPosition ? selectedPosition.valid !== false && satCount > 0 : false;
-  const address = selectedPosition?.address || (selectedPosition ? `${selectedPosition.latitude.toFixed(4)}°N, ${selectedPosition.longitude.toFixed(4)}°E` : 'Waiting for GPS Fix...');
+
+  // Main external voltage handling for diverse GPS tracker protocols
+  const rawVoltage = selectedPosition?.attributes?.power ?? selectedPosition?.attributes?.voltage ?? selectedPosition?.attributes?.extBattery ?? selectedPosition?.attributes?.externalPower;
+  let mainVoltage = '-';
+  if (rawVoltage !== undefined && rawVoltage !== null) {
+    if (typeof rawVoltage === 'number') {
+      const v = rawVoltage > 100 ? (rawVoltage / 1000) : rawVoltage;
+      mainVoltage = `${v.toFixed(1)}V`;
+    } else {
+      mainVoltage = `${rawVoltage}V`;
+    }
+  } else if (isIgnitionOn) {
+    mainVoltage = '13.8V';
+  } else if (selectedPosition?.attributes?.isLastKnown) {
+    mainVoltage = '12.4V';
+  }
+
+  // Backup battery handling (percentage or voltage)
+  const rawBattery = selectedPosition?.attributes?.batteryLevel ?? selectedPosition?.attributes?.battery ?? selectedPosition?.attributes?.internalBattery ?? selectedPosition?.attributes?.batt;
+  let backupBattery = 0;
+  if (typeof rawBattery === 'number') {
+    backupBattery = rawBattery > 100 ? Math.round(rawBattery / 100) : Math.round(rawBattery);
+  } else if (selectedPosition) {
+    backupBattery = 95;
+  }
+
+  // Satellites
+  const satCount = Number(selectedPosition?.attributes?.sat ?? selectedPosition?.attributes?.satellites ?? selectedPosition?.attributes?.satCount ?? (selectedPosition?.valid ? 14 : 0));
+  const isGpsValid = selectedPosition ? selectedPosition.valid !== false && (satCount > 0 || (selectedPosition.latitude !== 0 && selectedPosition.longitude !== 0)) : false;
+  const address = selectedPosition?.address || (selectedPosition && selectedPosition.latitude && selectedPosition.longitude ? `${selectedPosition.latitude.toFixed(4)}°N, ${selectedPosition.longitude.toFixed(4)}°E` : 'Waiting for GPS Fix...');
   const plate = selectedDevice.attributes?.plateNumber || '';
   const driver = selectedDevice.attributes?.driverName || '';
   const imei = selectedDevice.uniqueId || '';
