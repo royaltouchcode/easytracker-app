@@ -13,13 +13,14 @@ import {
   EngineLog, 
   SensorLog,
   FuelRefillLog,
-  AlertFeedbackMode
+  AlertFeedbackMode,
+  SaasRole
 } from '../types/traccar';
 import { traccarApi } from '../services/traccarApi';
 import { traccarSocket } from '../services/traccarSocket';
 import { audioAlertService } from '../services/audioAlertService';
 
-export type TabType = 'map' | 'reports' | 'playback' | 'commands' | 'surveillance' | 'geofence' | 'alerts' | 'settings';
+export type TabType = 'map' | 'reports' | 'playback' | 'commands' | 'surveillance' | 'geofence' | 'alerts' | 'settings' | 'saas_admin' | 'saas_sales' | 'saas_technician' | 'saas_support' | 'saas_rescue';
 export type Language = 'en' | 'bn';
 
 export interface UserLocation {
@@ -93,6 +94,15 @@ interface AppContextType {
 
   activeTab: TabType;
   setActiveTab: (tab: TabType) => void;
+
+  currentRole: SaasRole;
+  setCurrentRole: (role: SaasRole) => void;
+  isRoleSwitcherOpen: boolean;
+  setIsRoleSwitcherOpen: (open: boolean) => void;
+
+  purgeDemoFleetData: () => void;
+  restoreDemoFleetData: () => void;
+  isDemoPurged: boolean;
 
   devices: Device[];
   selectedDeviceId: number;
@@ -231,37 +241,174 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('map');
+
+  // SaaS Multi-Role State (Customer, Super Admin, Sales, Technician, Support, Rescue)
+  const [currentRole, setCurrentRole] = useState<SaasRole>(() => {
+    return (localStorage.getItem('gps_saas_current_role') as SaasRole) || 'customer';
+  });
+  const [isRoleSwitcherOpen, setIsRoleSwitcherOpen] = useState(false);
+  const [isDemoPurged, setIsDemoPurged] = useState(() => localStorage.getItem('gps_demo_purged') === 'true');
   
   const [devices, setDevices] = useState<Device[]>(() => {
+    const isPurged = localStorage.getItem('gps_demo_purged') === 'true';
     const savedCustom = localStorage.getItem('gps_saved_device_profile');
+    let customParsed: any = null;
     if (savedCustom) {
-      try { return [JSON.parse(savedCustom)]; } catch (e) {}
+      try { customParsed = JSON.parse(savedCustom); } catch (e) {}
     }
+
+    const realBike: Device = {
+      id: 1,
+      name: customParsed?.name || 'My Bike (আমার বাইক)',
+      uniqueId: customParsed?.uniqueId || '864720058291034',
+      status: 'online',
+      disabled: false,
+      lastUpdate: new Date().toISOString(),
+      category: customParsed?.category || 'motorcycle',
+      phone: customParsed?.phone || '+8801700000000',
+      attributes: {
+        color: '#ef4444',
+        plateNumber: customParsed?.attributes?.plateNumber || 'DHAKA METRO-LA 11-2233',
+        driverName: customParsed?.attributes?.driverName || 'Mohammad Azhar',
+        driverPhone: customParsed?.attributes?.driverPhone || '01700000000',
+        sos1: customParsed?.attributes?.sos1 || '01800000000',
+        speedLimit: customParsed?.attributes?.speedLimit || 60,
+        initialOdometerKm: customParsed?.attributes?.initialOdometerKm !== undefined ? customParsed.attributes.initialOdometerKm : 12450,
+        initialFuelLiters: customParsed?.attributes?.initialFuelLiters || 9.5,
+        vehicleSpec: customParsed?.attributes?.vehicleSpec || {
+          manufacturer: 'Bajaj',
+          modelName: 'Avenger 160 Street',
+          engineOilGrade: '20W-50 DTS-i 4T',
+          engineOilCapacityLiters: 1.15,
+          oilChangeIntervalKm: 2500,
+          fuelTankCapacityLiters: 13,
+          tirePressureFrontPsi: 21,
+          tirePressureRearPsi: 28
+        },
+        ...(customParsed?.attributes || {})
+      }
+    };
+
+    if (isPurged) {
+      return [realBike];
+    }
+
     return [
+      realBike,
       {
-        id: 1,
-        name: 'My Bike (আমার বাইক)',
-        uniqueId: '',
+        id: 2,
+        name: 'Toyota Axio (ঢাকা মেট্রো-গ ৩৪-৬৫৩৭)',
+        uniqueId: '864720058291035',
         status: 'online',
         disabled: false,
         lastUpdate: new Date().toISOString(),
-        category: 'motorcycle',
+        category: 'car',
+        phone: '+8801711223344',
         attributes: {
           color: '#3b82f6',
-          plateNumber: '',
-          driverName: '',
-          driverPhone: '',
-          sos1: '',
-          sos2: '',
-          sos3: '',
-          speedLimit: 60
+          plateNumber: 'DM GA 34-6537',
+          driverName: 'Rafiqul Islam',
+          driverPhone: '01711223344',
+          speedLimit: 80,
+          initialOdometerKm: 48200,
+          initialFuelLiters: 32,
+          vehicleSpec: {
+            manufacturer: 'Toyota',
+            modelName: 'Corolla / Axio',
+            engineOilGrade: '5W-30 Synthetic',
+            engineOilCapacityLiters: 3.7,
+            oilChangeIntervalKm: 5000,
+            fuelTankCapacityLiters: 50
+          }
+        }
+      },
+      {
+        id: 3,
+        name: 'Tata 1615 Cargo Truck (ঢাকা মেট্রো-ট ২৭-৮৫৭৮)',
+        uniqueId: '864720058291036',
+        status: 'online',
+        disabled: false,
+        lastUpdate: new Date().toISOString(),
+        category: 'truck',
+        phone: '+8801722334455',
+        attributes: {
+          color: '#f59e0b',
+          plateNumber: 'DM GA 27-8578',
+          driverName: 'Abdul Karim',
+          driverPhone: '01722334455',
+          speedLimit: 60,
+          initialOdometerKm: 98400,
+          initialFuelLiters: 140,
+          vehicleSpec: {
+            manufacturer: 'Tata',
+            modelName: '1615 Heavy Truck',
+            engineOilGrade: '15W-40 CI-4 Diesel',
+            engineOilCapacityLiters: 14.0,
+            oilChangeIntervalKm: 10000,
+            fuelTankCapacityLiters: 250
+          }
+        }
+      },
+      {
+        id: 4,
+        name: 'Bajaj RE 4S CNG (ঢাকা মেট্রো-থ ২৩-১৪৪৯)',
+        uniqueId: '864720058291037',
+        status: 'online',
+        disabled: false,
+        lastUpdate: new Date().toISOString(),
+        category: 'cng',
+        phone: '+8801733445566',
+        attributes: {
+          color: '#10b981',
+          plateNumber: 'DM GA 23-1449',
+          driverName: 'Sujon Mia',
+          driverPhone: '01733445566',
+          speedLimit: 45,
+          initialOdometerKm: 28900,
+          initialFuelLiters: 6,
+          vehicleSpec: {
+            manufacturer: 'Bajaj',
+            modelName: 'RE 4S CNG Auto',
+            engineOilGrade: '20W-50 CNG Grade',
+            engineOilCapacityLiters: 1.25,
+            oilChangeIntervalKm: 2500,
+            fuelTankCapacityLiters: 8
+          }
+        }
+      },
+      {
+        id: 5,
+        name: 'Toyota HiAce Ambulance (ঢাকা মেট্রো-ছ ১১-৯৮২০)',
+        uniqueId: '864720058291038',
+        status: 'online',
+        disabled: false,
+        lastUpdate: new Date().toISOString(),
+        category: 'ambulance',
+        phone: '+8801744556677',
+        attributes: {
+          color: '#ef4444',
+          plateNumber: 'DM CHHA 11-9820',
+          driverName: 'Shahidul Alam',
+          driverPhone: '01744556677',
+          speedLimit: 90,
+          initialOdometerKm: 62100,
+          initialFuelLiters: 45,
+          vehicleSpec: {
+            manufacturer: 'Toyota',
+            modelName: 'HiAce High-Roof Ambulance',
+            engineOilGrade: '15W-40 Turbo Diesel',
+            engineOilCapacityLiters: 5.8,
+            oilChangeIntervalKm: 5000,
+            fuelTankCapacityLiters: 70
+          }
         }
       }
     ];
   });
 
-  const [selectedDeviceId, setSelectedDeviceId] = useState<number>(devices[0]?.id || 1);
+  const [selectedDeviceId, setSelectedDeviceId] = useState<number>(1);
   const [positions, setPositions] = useState<Record<number, Position>>(() => {
+    const isPurged = localStorage.getItem('gps_demo_purged') === 'true';
     try {
       const stored = localStorage.getItem('gps_last_known_positions');
       if (stored) {
@@ -269,30 +416,137 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         if (parsed && Object.keys(parsed).length > 0) return parsed;
       }
     } catch (e) {}
+
+    const realBikePos: Position = {
+      id: 101,
+      deviceId: 1,
+      protocol: 'osmand',
+      serverTime: new Date().toISOString(),
+      deviceTime: new Date().toISOString(),
+      fixTime: new Date().toISOString(),
+      outdated: false,
+      valid: true,
+      latitude: 23.7937,
+      longitude: 90.4066,
+      altitude: 12,
+      speed: 0,
+      course: 45,
+      address: 'Gulshan-2, Dhaka, Bangladesh',
+      accuracy: 5,
+      attributes: {
+        ignition: true,
+        motion: false,
+        batteryLevel: 98,
+        satellites: 14,
+        power: 12.6,
+        isLastKnown: true
+      }
+    };
+
+    if (isPurged) {
+      return { 1: realBikePos };
+    }
+
     return {
-      1: {
-        id: 101,
-        deviceId: 1,
-        protocol: 'osmand',
+      1: realBikePos,
+      2: {
+        id: 102,
+        deviceId: 2,
+        protocol: 'gt06',
         serverTime: new Date().toISOString(),
         deviceTime: new Date().toISOString(),
         fixTime: new Date().toISOString(),
         outdated: false,
         valid: true,
-        latitude: 23.7937,
-        longitude: 90.4066,
-        altitude: 12,
-        speed: 0,
-        course: 45,
-        address: 'Gulshan-2, Dhaka, Bangladesh',
-        accuracy: 5,
+        latitude: 23.7772,
+        longitude: 90.4106,
+        altitude: 10,
+        speed: 38,
+        course: 180,
+        address: 'Mohakhali Flyover, Dhaka',
+        accuracy: 3,
         attributes: {
           ignition: true,
+          motion: true,
+          batteryLevel: 100,
+          satellites: 16,
+          power: 13.8,
+          isLastKnown: false
+        }
+      },
+      3: {
+        id: 103,
+        deviceId: 3,
+        protocol: 'teltonika',
+        serverTime: new Date().toISOString(),
+        deviceTime: new Date().toISOString(),
+        fixTime: new Date().toISOString(),
+        outdated: false,
+        valid: true,
+        latitude: 23.9999,
+        longitude: 90.4203,
+        altitude: 15,
+        speed: 52,
+        course: 350,
+        address: 'Gazipur Bypass Highway, Gazipur',
+        accuracy: 4,
+        attributes: {
+          ignition: true,
+          motion: true,
+          batteryLevel: 96,
+          satellites: 15,
+          power: 25.4,
+          isLastKnown: false
+        }
+      },
+      4: {
+        id: 104,
+        deviceId: 4,
+        protocol: 'concoxtk',
+        serverTime: new Date().toISOString(),
+        deviceTime: new Date().toISOString(),
+        fixTime: new Date().toISOString(),
+        outdated: false,
+        valid: true,
+        latitude: 23.7260,
+        longitude: 90.3976,
+        altitude: 8,
+        speed: 0,
+        course: 90,
+        address: 'Shahbagh More, Dhaka',
+        accuracy: 6,
+        attributes: {
+          ignition: false,
           motion: false,
-          batteryLevel: 98,
-          satellites: 14,
-          power: 12.6,
+          batteryLevel: 92,
+          satellites: 12,
+          power: 12.4,
           isLastKnown: true
+        }
+      },
+      5: {
+        id: 105,
+        deviceId: 5,
+        protocol: 'sinotrack',
+        serverTime: new Date().toISOString(),
+        deviceTime: new Date().toISOString(),
+        fixTime: new Date().toISOString(),
+        outdated: false,
+        valid: true,
+        latitude: 23.7538,
+        longitude: 90.3770,
+        altitude: 11,
+        speed: 65,
+        course: 270,
+        address: 'Dhanmondi 27, Dhaka',
+        accuracy: 3,
+        attributes: {
+          ignition: true,
+          motion: true,
+          batteryLevel: 99,
+          satellites: 18,
+          power: 13.9,
+          isLastKnown: false
         }
       }
     };
@@ -803,6 +1057,29 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     triggerAlertFeedback(alarmType, msg);
   };
 
+  const handleSetCurrentRole = (role: SaasRole) => {
+    setCurrentRole(role);
+    localStorage.setItem('gps_saas_current_role', role);
+  };
+
+  const purgeDemoFleetData = () => {
+    const realBike = devices.find(d => d.id === 1) || devices[0];
+    const realPos = positions[1] || Object.values(positions)[0];
+    
+    setDevices([realBike]);
+    setSelectedDeviceId(realBike.id);
+    setPositions({ [realBike.id]: realPos });
+    setIsDemoPurged(true);
+    localStorage.setItem('gps_demo_purged', 'true');
+    localStorage.setItem('gps_last_known_positions', JSON.stringify({ [realBike.id]: realPos }));
+  };
+
+  const restoreDemoFleetData = () => {
+    localStorage.removeItem('gps_demo_purged');
+    setIsDemoPurged(false);
+    window.location.reload();
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -815,6 +1092,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setIsLoginModalOpen,
         activeTab,
         setActiveTab,
+        currentRole,
+        setCurrentRole: handleSetCurrentRole,
+        isRoleSwitcherOpen,
+        setIsRoleSwitcherOpen,
+        purgeDemoFleetData,
+        restoreDemoFleetData,
+        isDemoPurged,
         devices,
         selectedDeviceId,
         setSelectedDeviceId,

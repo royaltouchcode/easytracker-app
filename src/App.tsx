@@ -14,6 +14,13 @@ import { DeviceSettingsView } from './components/settings/DeviceSettingsView';
 import { LoginScreen } from './components/auth/LoginScreen';
 import { InitialPinSetupModal } from './components/auth/InitialPinSetupModal';
 
+// SaaS Specialized Team Portals
+import { AdminDashboardView } from './components/saas/AdminDashboardView';
+import { SalesPortalView } from './components/saas/SalesPortalView';
+import { TechnicianPortalView } from './components/saas/TechnicianPortalView';
+import { SupportPortalView } from './components/saas/SupportPortalView';
+import { RescuePortalView } from './components/saas/RescuePortalView';
+
 const MainAppContent: React.FC = () => {
   const { user, activeTab } = useApp();
   const [isInitialPinModalOpen, setIsInitialPinModalOpen] = useState(false);
@@ -34,7 +41,7 @@ const MainAppContent: React.FC = () => {
 
   return (
     <div className="flex flex-col h-[100dvh] w-screen bg-slate-950 text-slate-100 overflow-hidden font-sans select-none">
-      {/* Top Header */}
+      {/* Top Header with Role Switcher & Vehicle Selector */}
       <Header />
 
       {/* Main View Area */}
@@ -52,6 +59,13 @@ const MainAppContent: React.FC = () => {
         {activeTab === 'geofence' && <GeofenceView />}
         {activeTab === 'alerts' && <AlertHistoryView />}
         {activeTab === 'settings' && <DeviceSettingsView />}
+
+        {/* Enterprise Multi-Role SaaS Portals */}
+        {activeTab === 'saas_admin' && <AdminDashboardView />}
+        {activeTab === 'saas_sales' && <SalesPortalView />}
+        {activeTab === 'saas_technician' && <TechnicianPortalView />}
+        {activeTab === 'saas_support' && <SupportPortalView />}
+        {activeTab === 'saas_rescue' && <RescuePortalView />}
       </main>
 
       {/* Mandatory First-Time PIN Setup Gate */}

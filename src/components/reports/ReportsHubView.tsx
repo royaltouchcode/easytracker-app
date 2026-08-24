@@ -54,7 +54,7 @@ export const ReportsHubView: React.FC = () => {
     updateDeviceProfile
   } = useApp();
 
-  const [activeSubTab, setActiveSubTab] = useState<'fuel' | 'maintenance' | 'ai_manual' | 'running' | 'subscription'>('fuel');
+  const [activeSubTab, setActiveSubTab] = useState<'hub' | 'fuel' | 'maintenance' | 'ai_manual' | 'running' | 'subscription'>('hub');
 
   // Initial Odometer Calibration (Zero Demo Data rule - 1st time user enters actual meter reading)
   const [initialOdometerKm, setInitialOdometerKm] = useState<number | null>(() => {
@@ -303,6 +303,18 @@ export const ReportsHubView: React.FC = () => {
       {/* Sub-Tab Navigation Bar */}
       <div className="flex items-center space-x-1 p-2 bg-slate-900/60 border-b border-slate-800/80 overflow-x-auto no-scrollbar shrink-0">
         <button
+          onClick={() => setActiveSubTab('hub')}
+          className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl font-bold text-xs whitespace-nowrap transition ${
+            activeSubTab === 'hub' 
+              ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20' 
+              : 'bg-slate-800/80 text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <BarChart3 className="w-3.5 h-3.5" />
+          <span>{language === 'bn' ? '📊 রিপোর্ট হাব' : 'Reports Hub'}</span>
+        </button>
+
+        <button
           onClick={() => setActiveSubTab('fuel')}
           className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl font-bold text-xs whitespace-nowrap transition ${
             activeSubTab === 'fuel' 
@@ -369,6 +381,191 @@ export const ReportsHubView: React.FC = () => {
       {/* Main Content Area */}
       <div className="p-3 space-x-0 space-y-3">
         
+        {/* =================================================== */}
+        {/* TAB 0: 2-COLUMN VISUAL REPORTS HUB (MYGPS STYLE)    */}
+        {/* =================================================== */}
+        {activeSubTab === 'hub' && (
+          <div className="space-y-3 animate-in fade-in duration-150">
+            {/* Quick Vehicle Health Summary Card */}
+            <div className="bg-slate-900 border border-slate-800 p-3.5 rounded-3xl shadow-xl flex items-center justify-between">
+              <div>
+                <span className="text-[10px] uppercase font-bold text-slate-400">ভেহিকেল স্ট্যাটাস সারাংশ</span>
+                <div className="font-extrabold text-sm text-slate-100 mt-0.5">{selectedDevice?.name}</div>
+                <div className="text-[10.5px] text-slate-400 mt-1">
+                  মবিল লাইফ: <strong className="text-amber-300 font-mono">{maintSpec?.engineOilGrade || '20W-50'}</strong> ({remainingOilKm} km বাকি)
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-xl font-mono font-black text-blue-300">{currentOdometer.toLocaleString()} km</div>
+                <div className="text-[9.5px] text-emerald-400 font-bold">মোট ওডোমিটার</div>
+              </div>
+            </div>
+
+            {/* 2-Column Clean Report Grid Cards */}
+            <div className="grid grid-cols-2 gap-2.5">
+              {/* 1. Ignition Report */}
+              <button
+                onClick={() => setActiveSubTab('running')}
+                className="bg-slate-900/90 hover:bg-slate-850 border border-slate-800 hover:border-blue-500/50 p-3.5 rounded-3xl flex flex-col justify-between text-left transition active:scale-95 shadow-md group"
+              >
+                <div className="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 text-lg shadow-inner">
+                  🔑
+                </div>
+                <div className="mt-3">
+                  <div className="font-extrabold text-xs text-slate-100 group-hover:text-amber-300 transition">
+                    {language === 'bn' ? 'ইগনিশন রিপোর্ট' : 'Ignition Report'}
+                  </div>
+                  <div className="text-[10px] text-slate-400 mt-0.5">ইঞ্জিন অন/অফ হিস্ট্রি</div>
+                </div>
+              </button>
+
+              {/* 2. AC & Sensors Report */}
+              <button
+                onClick={() => setActiveSubTab('running')}
+                className="bg-slate-900/90 hover:bg-slate-850 border border-slate-800 hover:border-sky-500/50 p-3.5 rounded-3xl flex flex-col justify-between text-left transition active:scale-95 shadow-md group"
+              >
+                <div className="w-10 h-10 rounded-2xl bg-sky-500/20 border border-sky-500/30 flex items-center justify-center text-sky-400 text-lg shadow-inner">
+                  ❄️
+                </div>
+                <div className="mt-3">
+                  <div className="font-extrabold text-xs text-slate-100 group-hover:text-sky-300 transition">
+                    {language === 'bn' ? 'এসি ও সেন্সর রিপোর্ট' : 'AC & Sensor Report'}
+                  </div>
+                  <div className="text-[10px] text-slate-400 mt-0.5">এসি ও ডোর সেন্সর লগ</div>
+                </div>
+              </button>
+
+              {/* 3. Trip Report */}
+              <button
+                onClick={() => setActiveSubTab('running')}
+                className="bg-slate-900/90 hover:bg-slate-850 border border-slate-800 hover:border-emerald-500/50 p-3.5 rounded-3xl flex flex-col justify-between text-left transition active:scale-95 shadow-md group"
+              >
+                <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-lg shadow-inner">
+                  🗺️
+                </div>
+                <div className="mt-3">
+                  <div className="font-extrabold text-xs text-slate-100 group-hover:text-emerald-300 transition">
+                    {language === 'bn' ? 'ট্রিপ রিপোর্ট' : 'Trip Report'}
+                  </div>
+                  <div className="text-[10px] text-slate-400 mt-0.5">রুট ও ভ্রমণ দূরত্ব</div>
+                </div>
+              </button>
+
+              {/* 4. Stoppage Report */}
+              <button
+                onClick={() => setActiveSubTab('running')}
+                className="bg-slate-900/90 hover:bg-slate-850 border border-slate-800 hover:border-rose-500/50 p-3.5 rounded-3xl flex flex-col justify-between text-left transition active:scale-95 shadow-md group"
+              >
+                <div className="w-10 h-10 rounded-2xl bg-rose-500/20 border border-rose-500/30 flex items-center justify-center text-rose-400 text-lg shadow-inner">
+                  🛑
+                </div>
+                <div className="mt-3">
+                  <div className="font-extrabold text-xs text-slate-100 group-hover:text-rose-300 transition">
+                    {language === 'bn' ? 'স্টপেজ রিপোর্ট' : 'Stoppage Report'}
+                  </div>
+                  <div className="text-[10px] text-slate-400 mt-0.5">পার্কিং ও অলস সময়</div>
+                </div>
+              </button>
+
+              {/* 5. Summary Report */}
+              <button
+                onClick={() => setActiveSubTab('running')}
+                className="bg-slate-900/90 hover:bg-slate-850 border border-slate-800 hover:border-purple-500/50 p-3.5 rounded-3xl flex flex-col justify-between text-left transition active:scale-95 shadow-md group"
+              >
+                <div className="w-10 h-10 rounded-2xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-purple-400 text-lg shadow-inner">
+                  📈
+                </div>
+                <div className="mt-3">
+                  <div className="font-extrabold text-xs text-slate-100 group-hover:text-purple-300 transition">
+                    {language === 'bn' ? 'সামারি রিপোর্ট' : 'Summary Report'}
+                  </div>
+                  <div className="text-[10px] text-slate-400 mt-0.5">মোট কিমি ও গড় গতিবেগ</div>
+                </div>
+              </button>
+
+              {/* 6. Daily Report */}
+              <button
+                onClick={() => setActiveSubTab('running')}
+                className="bg-slate-900/90 hover:bg-slate-850 border border-slate-800 hover:border-teal-500/50 p-3.5 rounded-3xl flex flex-col justify-between text-left transition active:scale-95 shadow-md group"
+              >
+                <div className="w-10 h-10 rounded-2xl bg-teal-500/20 border border-teal-500/30 flex items-center justify-center text-teal-400 text-lg shadow-inner">
+                  ⏰
+                </div>
+                <div className="mt-3">
+                  <div className="font-extrabold text-xs text-slate-100 group-hover:text-teal-300 transition">
+                    {language === 'bn' ? 'দৈনিক রিপোর্ট' : 'Daily Report'}
+                  </div>
+                  <div className="text-[10px] text-slate-400 mt-0.5">দিনভিত্তিক ২৪ ঘণ্টার হিসাব</div>
+                </div>
+              </button>
+
+              {/* 7. Over Speed Report */}
+              <button
+                onClick={() => setActiveSubTab('running')}
+                className="bg-slate-900/90 hover:bg-slate-850 border border-slate-800 hover:border-yellow-500/50 p-3.5 rounded-3xl flex flex-col justify-between text-left transition active:scale-95 shadow-md group"
+              >
+                <div className="w-10 h-10 rounded-2xl bg-yellow-500/20 border border-yellow-500/30 flex items-center justify-center text-yellow-400 text-lg shadow-inner">
+                  ⚡
+                </div>
+                <div className="mt-3">
+                  <div className="font-extrabold text-xs text-slate-100 group-hover:text-yellow-300 transition">
+                    {language === 'bn' ? 'ওভার স্পিড রিপোর্ট' : 'Over Speed Report'}
+                  </div>
+                  <div className="text-[10px] text-slate-400 mt-0.5">গতিসীমা লঙ্ঘনের তালিকা</div>
+                </div>
+              </button>
+
+              {/* 8. Geofence Report */}
+              <button
+                onClick={() => setActiveSubTab('running')}
+                className="bg-slate-900/90 hover:bg-slate-850 border border-slate-800 hover:border-indigo-500/50 p-3.5 rounded-3xl flex flex-col justify-between text-left transition active:scale-95 shadow-md group"
+              >
+                <div className="w-10 h-10 rounded-2xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 text-lg shadow-inner">
+                  🛡️
+                </div>
+                <div className="mt-3">
+                  <div className="font-extrabold text-xs text-slate-100 group-hover:text-indigo-300 transition">
+                    {language === 'bn' ? 'জিওফেন্স রিপোর্ট' : 'Geofence Report'}
+                  </div>
+                  <div className="text-[10px] text-slate-400 mt-0.5">সেফ জোন প্রবেশ ও প্রস্থান</div>
+                </div>
+              </button>
+
+              {/* 9. Engine Oil & Maintenance AI */}
+              <button
+                onClick={() => setActiveSubTab('maintenance')}
+                className="bg-gradient-to-br from-slate-900 to-amber-950/40 border border-amber-500/40 hover:border-amber-400 p-3.5 rounded-3xl flex flex-col justify-between text-left transition active:scale-95 shadow-md group"
+              >
+                <div className="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-300 text-lg shadow-inner">
+                  🛢️
+                </div>
+                <div className="mt-3">
+                  <div className="font-extrabold text-xs text-amber-200 group-hover:text-white transition">
+                    {language === 'bn' ? 'ইঞ্জিন অয়েল ও সার্ভিস' : 'Engine Oil & Service'}
+                  </div>
+                  <div className="text-[10px] text-slate-400 mt-0.5 font-mono">{maintSpec?.engineOilGrade || '20W-50'} AI ট্র্যাকার</div>
+                </div>
+              </button>
+
+              {/* 10. Fuel Mileage & Calibration */}
+              <button
+                onClick={() => setActiveSubTab('fuel')}
+                className="bg-gradient-to-br from-slate-900 to-blue-950/40 border border-blue-500/40 hover:border-blue-400 p-3.5 rounded-3xl flex flex-col justify-between text-left transition active:scale-95 shadow-md group"
+              >
+                <div className="w-10 h-10 rounded-2xl bg-blue-500/20 border border-blue-500/40 flex items-center justify-center text-blue-300 text-lg shadow-inner">
+                  ⛽
+                </div>
+                <div className="mt-3">
+                  <div className="font-extrabold text-xs text-blue-200 group-hover:text-white transition">
+                    {language === 'bn' ? 'ফুয়েল অডিট ও ওডোমিটার' : 'Fuel & Odometer Audit'}
+                  </div>
+                  <div className="text-[10px] text-slate-400 mt-0.5">জিরো-ডেমো ক্যালিব্রেশন</div>
+                </div>
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* =================================================== */}
         {/* TAB 1: FUEL & MILEAGE (ZERO DEMO DATA)              */}
         {/* =================================================== */}

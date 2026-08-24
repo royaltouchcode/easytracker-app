@@ -126,3 +126,140 @@ export const VehicleIcon: React.FC<{ type?: VehicleType; className?: string }> =
       );
   }
 };
+
+// 3D Realistic Colored Isometric Vehicle Renders (MyGPS & Xeekar Inspired)
+export const Vehicle3DRender: React.FC<{ type?: VehicleType; className?: string }> = ({
+  type = 'motorcycle',
+  className = "w-14 h-14"
+}) => {
+  switch (type) {
+    case 'motorcycle':
+      return (
+        <div className={`${className} flex items-center justify-center`}>
+          <svg viewBox="0 0 64 64" className="w-full h-full drop-shadow-md">
+            <defs>
+              <linearGradient id="bikeBody" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#ef4444" />
+                <stop offset="100%" stopColor="#991b1b" />
+              </linearGradient>
+            </defs>
+            {/* Front & Rear Wheels */}
+            <circle cx="15" cy="44" r="10" fill="#1e293b" stroke="#64748b" strokeWidth="2.5" />
+            <circle cx="15" cy="44" r="5" fill="#334155" />
+            <circle cx="49" cy="44" r="10" fill="#1e293b" stroke="#64748b" strokeWidth="2.5" />
+            <circle cx="49" cy="44" r="5" fill="#334155" />
+            {/* Engine & Exhaust */}
+            <rect x="22" y="38" width="14" height="8" rx="2" fill="#475569" />
+            <path d="M26 44 L48 46" stroke="#94a3b8" strokeWidth="3" strokeLinecap="round" />
+            {/* Frame & Tank */}
+            <path d="M15 44 L25 32 L38 32 L49 44" stroke="#0f172a" strokeWidth="3" fill="none" />
+            <path d="M25 32 Q32 24 38 32 Z" fill="url(#bikeBody)" />
+            {/* Seat */}
+            <path d="M36 32 Q42 30 46 34" stroke="#020617" strokeWidth="4" strokeLinecap="round" fill="none" />
+            {/* Handlebar & Headlight */}
+            <path d="M23 23 L25 32" stroke="#38bdf8" strokeWidth="2.5" />
+            <circle cx="21" cy="22" r="3" fill="#facc15" />
+          </svg>
+        </div>
+      );
+
+    case 'cng':
+      return (
+        <div className={`${className} flex items-center justify-center`}>
+          <svg viewBox="0 0 64 64" className="w-full h-full drop-shadow-md">
+            <defs>
+              <linearGradient id="cngGreen" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#16a34a" />
+                <stop offset="100%" stopColor="#15803d" />
+              </linearGradient>
+              <linearGradient id="cngHood" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#f97316" />
+                <stop offset="100%" stopColor="#c2410c" />
+              </linearGradient>
+            </defs>
+            {/* Wheels */}
+            <circle cx="16" cy="46" r="7" fill="#1e293b" stroke="#64748b" strokeWidth="2" />
+            <circle cx="48" cy="46" r="7" fill="#1e293b" stroke="#64748b" strokeWidth="2" />
+            {/* Body */}
+            <path d="M12 40 L16 26 L30 18 L52 20 L54 42 L12 40 Z" fill="url(#cngGreen)" />
+            <path d="M28 18 L54 20 L54 26 L26 24 Z" fill="url(#cngHood)" />
+            {/* Windshield & Cabin Window */}
+            <path d="M18 27 L28 20 L30 32 L16 33 Z" fill="#38bdf8" opacity="0.85" />
+            <rect x="34" y="24" width="16" height="10" rx="1.5" fill="#38bdf8" opacity="0.7" />
+            {/* Headlight */}
+            <circle cx="12" cy="38" r="2.5" fill="#fef08a" />
+          </svg>
+        </div>
+      );
+
+    case 'car':
+      return (
+        <div className={`${className} flex items-center justify-center`}>
+          <svg viewBox="0 0 64 64" className="w-full h-full drop-shadow-md">
+            <defs>
+              <linearGradient id="carRed" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#ef4444" />
+                <stop offset="100%" stopColor="#b91c1c" />
+              </linearGradient>
+            </defs>
+            {/* Wheels */}
+            <circle cx="16" cy="44" r="7.5" fill="#1e293b" stroke="#64748b" strokeWidth="2.5" />
+            <circle cx="48" cy="44" r="7.5" fill="#1e293b" stroke="#64748b" strokeWidth="2.5" />
+            {/* Car Body */}
+            <path d="M8 38 L14 26 L30 20 L46 22 L54 32 L58 38 L58 42 L8 42 Z" fill="url(#carRed)" />
+            {/* Windows */}
+            <path d="M17 27 L28 22 L29 32 L14 33 Z" fill="#38bdf8" opacity="0.8" />
+            <path d="M31 22 L44 24 L48 32 L31 32 Z" fill="#38bdf8" opacity="0.8" />
+            {/* Headlight & Taillight */}
+            <circle cx="10" cy="37" r="2" fill="#fef08a" />
+            <circle cx="56" cy="36" r="2" fill="#fca5a5" />
+          </svg>
+        </div>
+      );
+
+    case 'truck':
+      return (
+        <div className={`${className} flex items-center justify-center`}>
+          <svg viewBox="0 0 64 64" className="w-full h-full drop-shadow-md">
+            <defs>
+              <linearGradient id="truckBox" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#f59e0b" />
+                <stop offset="100%" stopColor="#d97706" />
+              </linearGradient>
+            </defs>
+            {/* Wheels */}
+            <circle cx="15" cy="46" r="7" fill="#1e293b" stroke="#64748b" strokeWidth="2" />
+            <circle cx="42" cy="46" r="7" fill="#1e293b" stroke="#64748b" strokeWidth="2" />
+            <circle cx="53" cy="46" r="7" fill="#1e293b" stroke="#64748b" strokeWidth="2" />
+            {/* Cabin */}
+            <path d="M8 42 L8 28 L18 20 L24 20 L24 42 Z" fill="#3b82f6" />
+            <path d="M12 28 L18 22 L22 22 L22 28 Z" fill="#bae6fd" />
+            {/* Cargo Box */}
+            <rect x="25" y="16" width="34" height="26" rx="2" fill="url(#truckBox)" stroke="#b45309" strokeWidth="1.5" />
+          </svg>
+        </div>
+      );
+
+    case 'ambulance':
+      return (
+        <div className={`${className} flex items-center justify-center`}>
+          <svg viewBox="0 0 64 64" className="w-full h-full drop-shadow-md">
+            {/* Wheels */}
+            <circle cx="17" cy="46" r="7" fill="#1e293b" stroke="#64748b" strokeWidth="2" />
+            <circle cx="47" cy="46" r="7" fill="#1e293b" stroke="#64748b" strokeWidth="2" />
+            {/* Body */}
+            <path d="M9 42 L9 26 L22 20 L55 20 L55 42 Z" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="1.5" />
+            <path d="M14 26 L20 22 L24 22 L24 28 Z" fill="#38bdf8" opacity="0.8" />
+            {/* Red Cross */}
+            <rect x="36" y="27" width="10" height="4" fill="#ef4444" rx="1" />
+            <rect x="39" y="24" width="4" height="10" fill="#ef4444" rx="1" />
+            {/* Siren */}
+            <ellipse cx="26" cy="18" rx="3" ry="2" fill="#ef4444" className="animate-pulse" />
+          </svg>
+        </div>
+      );
+
+    default:
+      return <VehicleIcon type={type} className={className} />;
+  }
+};
