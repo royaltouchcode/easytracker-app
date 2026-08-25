@@ -60,7 +60,7 @@ export const TechnicianPortalView: React.FC = () => {
     technicianLedgers
   } = useApp();
 
-  const [activeTabMode, setActiveTabMode] = useState<'install_diagnostic' | 'paid_job_cards' | 'floating_ledger'>('install_diagnostic');
+  const [activeTabMode, setActiveTabMode] = useState<'install_diagnostic' | 'paid_job_cards' | 'my_parts_bag' | 'floating_ledger' | 'device_sales'>('install_diagnostic');
   const [selectedJobCardId, setSelectedJobCardId] = useState<string>('');
   const [billSentSuccessId, setBillSentSuccessId] = useState<string | null>(null);
 
@@ -252,69 +252,92 @@ export const TechnicianPortalView: React.FC = () => {
   const [isSaleModalOpen, setIsSaleModalOpen] = useState(false);
 
   return (
-    <div className="w-full h-full flex flex-col bg-slate-950 text-slate-100 overflow-y-auto p-4 space-y-4 pb-24 select-none">
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-slate-900/90 border border-slate-800 p-3 rounded-2xl shadow-md gap-3">
-        <div className="flex items-center space-x-2.5">
-          {isSuperAdmin && (
+    <div className="w-full h-full flex flex-col bg-slate-950 text-slate-100 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4 pb-24 select-none">
+      {/* Top Header & Quick Actions */}
+      <div className="bg-slate-900/90 border border-slate-800 p-3 sm:p-4 rounded-3xl shadow-xl space-y-3">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center space-x-2.5">
+            {isSuperAdmin && (
+              <button
+                onClick={() => {
+                  setCurrentRole('customer');
+                  setActiveTab('map');
+                }}
+                className="p-2 rounded-2xl bg-slate-800 hover:bg-slate-750 text-slate-200 border border-slate-700 transition active:scale-95 flex items-center space-x-1"
+              >
+                <ArrowLeft className="w-4 h-4 text-purple-400" />
+                <span className="text-xs font-bold">{language === 'bn' ? 'কাস্টমার ভিউ' : 'Customer View'}</span>
+              </button>
+            )}
+            <div>
+              <h2 className="text-sm font-extrabold flex items-center space-x-1.5 text-purple-300">
+                <Wrench className="w-4 h-4 text-purple-400" />
+                <span>{language === 'bn' ? 'EasyTracker ফিল্ড টেকনিশিয়ান ও সার্ভিস পোর্টাল' : 'Field Technician Portal'}</span>
+              </h2>
+              <p className="text-[10.5px] text-slate-400">
+                {user?.name || 'আব্দুল করিম'} • গুলশান সার্ভিস পয়েন্ট • মোবাইল: 01711-223344
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-2 w-full sm:w-auto justify-between sm:justify-end">
             <button
-              onClick={() => {
-                setCurrentRole('customer');
-                setActiveTab('map');
-              }}
-              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-200 border border-slate-700 transition active:scale-95 flex items-center space-x-1"
+              onClick={() => setIsSaleModalOpen(true)}
+              className="px-3.5 py-2 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 text-white font-extrabold text-xs shadow-lg shadow-emerald-600/30 flex items-center space-x-1.5 transition active:scale-95"
             >
-              <ArrowLeft className="w-4 h-4 text-purple-400" />
-              <span className="text-xs font-bold">{language === 'bn' ? 'কাস্টমার ভিউ' : 'Customer View'}</span>
+              <DollarSign className="w-4 h-4" />
+              <span>ডিভাইস সেল করুন (৳৫০০ কমিশন)</span>
             </button>
-          )}
-          <div>
-            <h2 className="text-sm font-extrabold flex items-center space-x-1.5 text-purple-300">
-              <Wrench className="w-4 h-4 text-purple-400" />
-              <span>{language === 'bn' ? 'ফিল্ড টেকনিশিয়ান সার্ভিস ও ওয়্যারিং হাব' : 'Field Technician Hub'}</span>
-            </h2>
-            <p className="text-[10px] text-slate-400">
-              {language === 'bn' ? 'জব চলাকালীন সাময়িক ওয়্যারিং টেস্ট ও অ্যাক্টিভেশন' : 'Time-bounded hardware testing & handover'}
-            </p>
           </div>
         </div>
 
-        <div className="flex items-center space-x-2.5 w-full sm:w-auto justify-between sm:justify-end">
-          <button
-            onClick={() => setIsSaleModalOpen(true)}
-            className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs shadow-md shadow-emerald-600/30 flex items-center space-x-1.5 transition active:scale-95"
-          >
-            <DollarSign className="w-3.5 h-3.5" />
-            <span>ডিভাইস সেল করুন (৳৫০০ আয়)</span>
-          </button>
-
-          <div className="text-right">
-            <span className="text-[9px] text-slate-400 block">অনুমোদিত সার্ভিস ফি</span>
-            <span className="text-xs font-mono font-black text-purple-300">৳{earnedFees.toLocaleString()}</span>
+        {/* 4 KPI Quick Metric Cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 border-t border-slate-800/80">
+          <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-2.5">
+            <span className="text-[10px] font-bold text-slate-400 block">অনুমোদিত সার্ভিস ফি</span>
+            <span className="text-sm sm:text-base font-black font-mono text-purple-300">৳ {earnedFees.toLocaleString()}</span>
             {pendingFees > 0 && (
-              <span className="text-[8.5px] text-amber-400 block font-mono">পেন্ডিং: ৳{pendingFees}</span>
+              <span className="text-[9px] text-amber-400 block font-mono">পেন্ডিং: ৳{pendingFees}</span>
             )}
+          </div>
+
+          <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-2.5">
+            <span className="text-[10px] font-bold text-slate-400 block">ফ্লোটিং লেজার ব্যালেন্স</span>
+            <span className="text-sm sm:text-base font-black font-mono text-indigo-300">৳ {technicianLedgers[0]?.currentFloatingBalance || 0}</span>
+            <span className="text-[9px] text-slate-500 block font-mono">লিমিট: ৳১৫,০০০</span>
+          </div>
+
+          <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-2.5">
+            <span className="text-[10px] font-bold text-slate-400 block">আমার ব্যাগে পার্টস স্টক</span>
+            <span className="text-sm sm:text-base font-black font-mono text-cyan-300">১৫ টি আইটেম</span>
+            <span className="text-[9px] text-cyan-400/80 block">সেন্ট্রাল হ্যান্ডওভার কিট</span>
+          </div>
+
+          <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-2.5">
+            <span className="text-[10px] font-bold text-slate-400 block">পেন্ডিং ডিসপ্যাচ কিউ</span>
+            <span className="text-sm sm:text-base font-black font-mono text-amber-400">{pendingDispatches.length} টি নতুন</span>
+            <span className="text-[9px] text-amber-400/80 block">অ্যাসাইনমেন্ট অপেক্ষমান</span>
           </div>
         </div>
       </div>
 
-      {/* Mode Switcher Tabs */}
-      <div className="flex bg-slate-900 p-1.5 rounded-2xl border border-slate-800 gap-1.5 shadow-md">
+      {/* 5-Tab Segmented Navigation Bar */}
+      <div className="flex flex-wrap bg-slate-900 p-1.5 rounded-2xl border border-slate-800 gap-1 shadow-md">
         <button
           onClick={() => setActiveTabMode('install_diagnostic')}
-          className={`flex-1 py-2 rounded-xl text-xs font-extrabold flex items-center justify-center space-x-1.5 transition ${
+          className={`flex-1 min-w-[120px] py-2 rounded-xl text-xs font-extrabold flex items-center justify-center space-x-1.5 transition ${
             activeTabMode === 'install_diagnostic'
               ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30'
               : 'text-slate-400 hover:text-slate-200'
           }`}
         >
           <Wrench className="w-3.5 h-3.5" />
-          <span>হার্ডওয়্যার ইনস্টলেশন ও ডায়াগনস্টিক</span>
+          <span>ইনস্টলেশন ও কিউ ({workOrders.length + pendingDispatches.length})</span>
         </button>
 
         <button
           onClick={() => setActiveTabMode('paid_job_cards')}
-          className={`flex-1 py-2 rounded-xl text-xs font-extrabold flex items-center justify-center space-x-1.5 transition ${
+          className={`flex-1 min-w-[120px] py-2 rounded-xl text-xs font-extrabold flex items-center justify-center space-x-1.5 transition ${
             activeTabMode === 'paid_job_cards'
               ? 'bg-amber-600 text-white shadow-md shadow-amber-600/30'
               : 'text-slate-400 hover:text-slate-200'
@@ -325,8 +348,20 @@ export const TechnicianPortalView: React.FC = () => {
         </button>
 
         <button
+          onClick={() => setActiveTabMode('my_parts_bag')}
+          className={`flex-1 min-w-[120px] py-2 rounded-xl text-xs font-extrabold flex items-center justify-center space-x-1.5 transition ${
+            activeTabMode === 'my_parts_bag'
+              ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/30'
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <Package className="w-3.5 h-3.5" />
+          <span>আমার পার্টস টুলব্যাগ (১৫ টি)</span>
+        </button>
+
+        <button
           onClick={() => setActiveTabMode('floating_ledger')}
-          className={`flex-1 py-2 rounded-xl text-xs font-extrabold flex items-center justify-center space-x-1.5 transition ${
+          className={`flex-1 min-w-[120px] py-2 rounded-xl text-xs font-extrabold flex items-center justify-center space-x-1.5 transition ${
             activeTabMode === 'floating_ledger'
               ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
               : 'text-slate-400 hover:text-slate-200'
@@ -694,6 +729,75 @@ export const TechnicianPortalView: React.FC = () => {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 📦 MY TOOLBAG SPARE PARTS INVENTORY (HANDOVER STOCK)                       */}
+      {/* ========================================================================= */}
+      {activeTabMode === 'my_parts_bag' && (
+        <div className="space-y-3">
+          <div className="bg-gradient-to-br from-cyan-950/40 via-slate-900 to-slate-900 border border-cyan-500/40 rounded-3xl p-4 shadow-xl space-y-3">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-slate-800 pb-2.5">
+              <div className="flex items-center space-x-2">
+                <Package className="w-4 h-4 text-cyan-400" />
+                <h3 className="font-extrabold text-xs text-cyan-300">
+                  আমার টুলব্যাগ ও ফিল্ড স্পেয়ার পার্টস স্টক (Handover Inventory)
+                </h3>
+              </div>
+              <span className="text-[10px] text-slate-400 font-mono">
+                সেন্ট্রাল স্টক থেকে সর্বশেষ হস্তান্তর: আজ, ১১:৩০ AM
+              </span>
+            </div>
+
+            <p className="text-[11px] text-slate-400">
+              অ্যাডমিন ওয়্যারহাউস থেকে আপনাকে ইস্যু করা স্পেয়ার পার্টসসমূহ। কাস্টমারের পেইড জব-কার্ডে পার্টস যোগ করলে এখান থেকে অটো-মাইনাস হবে।
+            </p>
+
+            {/* 4 Toolbag Parts Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 pt-1">
+              {[
+                { name: '12V 40A হেভি ডিউটি রিলে', code: 'RELAY-40A', inBag: 4, unitPrice: 200, warranty: '90 দিন' },
+                { name: 'হাই-গেইন সিরামিক GPS অ্যান্টেনা', code: 'ANT-GPS-01', inBag: 2, unitPrice: 250, warranty: '180 দিন' },
+                { name: 'ওয়াটারপ্রুফ ফিউজ ক্যাবল হারনেস', code: 'FUSE-10A-WP', inBag: 6, unitPrice: 150, warranty: '60 দিন' },
+                { name: '3.7V ব্যাকআপ লি-আয়ন ব্যাটারি', code: 'BAT-3.7V-LI', inBag: 3, unitPrice: 350, warranty: '180 দিন' }
+              ].map((item, idx) => (
+                <div key={idx} className="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-1.5 hover:border-cyan-500/40 transition">
+                  <div className="flex justify-between items-start">
+                    <span className="font-mono text-[9.5px] font-bold text-cyan-400 bg-cyan-950/80 px-2 py-0.2 rounded border border-cyan-800">
+                      {item.code}
+                    </span>
+                    <span className="font-mono font-black text-emerald-400 text-xs">
+                      ৳ {item.unitPrice}
+                    </span>
+                  </div>
+                  <h4 className="font-bold text-xs text-slate-100 line-clamp-1">{item.name}</h4>
+                  <div className="flex justify-between items-center text-[10.5px] text-slate-400 pt-1 border-t border-slate-800/80">
+                    <span>আমার ব্যাগে: <b className="text-cyan-300 font-mono font-black">{item.inBag} টি</b></span>
+                    <span className="text-amber-400 font-mono text-[9.5px]">মোট: ৳{item.inBag * item.unitPrice}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Recent Parts Consumption Log */}
+            <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-2">
+              <span className="text-[10.5px] font-bold text-slate-300 uppercase tracking-wider block">
+                সাম্প্রতিক পার্টস ব্যবহার ও ইনস্টলেশন লগ:
+              </span>
+              <div className="space-y-1.5 text-xs font-sans">
+                <div className="p-2 rounded-xl bg-slate-900 border border-slate-800/80 flex justify-between items-center">
+                  <div>
+                    <span className="font-bold text-slate-200">12V 40A হেভি ডিউটি রিলে (x১)</span>
+                    <span className="text-[10px] text-slate-400 block font-mono">Job Card #JC-901 • কাস্টমার: Mohammad Azhar</span>
+                  </div>
+                  <span className="text-[9.5px] font-mono text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-800">
+                    ✓ বিল্ড & গ্যারান্টি অ্যাক্টিভ
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 

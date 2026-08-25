@@ -20,10 +20,30 @@ import {
   Check,
   Smartphone,
   MapPin,
-  Clock
+  Clock,
+  Sliders,
+  History,
+  Send,
+  Users,
+  Gift,
+  ArrowRight
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { RateCardService, SparePartItem, PaidJobCard } from '../../types/traccar';
+
+export interface SparePartsLedgerTx {
+  id: string;
+  date: string;
+  partId: string;
+  partNameBn: string;
+  type: 'stock_in' | 'issue_to_tech' | 'used_on_vehicle';
+  quantity: number;
+  unitPrice: number;
+  recipientTech?: string;
+  jobCardId?: string;
+  performedBy: string;
+  note?: string;
+}
 
 export const ServiceRateCardManager: React.FC = () => {
   const {
@@ -42,7 +62,7 @@ export const ServiceRateCardManager: React.FC = () => {
     language
   } = useApp();
 
-  const [activeSubTab, setActiveSubTab] = useState<'services' | 'parts' | 'job_cards'>('services');
+  const [activeSubTab, setActiveSubTab] = useState<'services' | 'parts' | 'parts_ledger' | 'job_cards' | 'fee_config'>('services');
 
   // Edit / Add Service Modal State
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
@@ -65,23 +85,115 @@ export const ServiceRateCardManager: React.FC = () => {
   const [partStockCount, setPartStockCount] = useState<number>(50);
   const [partDescBn, setPartDescBn] = useState('');
 
-  // Commission Edit
+  // Platform Commission & Fee Controls
   const [commissionInput, setCommissionInput] = useState<number>(platformCommissionPercent);
-  const [commissionSaved, setCommissionSaved] = useState(false);
+  const [referralBonus, setReferralBonus] = useState<number>(() => Number(localStorage.getItem('gps_referral_bonus_amount') || '200'));
+  const [salesStaffCommission, setSalesStaffCommission] = useState<number>(() => Number(localStorage.getItem('gps_sales_staff_commission') || '500'));
+  const [techInstallFee, setTechInstallFee] = useState<number>(() => Number(localStorage.getItem('gps_tech_install_fee') || '500'));
+  const [dealerMarginPercent, setDealerMarginPercent] = useState<number>(() => Number(localStorage.getItem('gps_dealer_margin_percent') || '15'));
+  const [cashlessDiscount, setCashlessDiscount] = useState<number>(() => Number(localStorage.getItem('gps_cashless_discount_amount') || '50'));
+  const [feeSettingsSaved, setFeeSettingsSaved] = useState(false);
+
+  // Spare Parts Issue & Ledger State
+  const [partsLedgerLogs, setPartsLedgerLogs] = useState<SparePartsLedgerTx[]>(() => {
+    const saved = localStorage.getItem('gps_spare_parts_ledger_logs');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return [
+      {
+        id: 'STX-101',
+        date: '25 Aug 2026, 11:30 AM',
+        partId: 'part_relay_40a',
+        partNameBn: '12V 40A হেভি ডিউটি রিলে',
+        type: 'stock_in',
+        quantity: 50,
+        unitPrice: 200,
+        performedBy: 'সেন্ট্রাল ওয়্যারহাউস অ্যাডমিন',
+        note: 'নতুন OEM কনসাইনমেন্ট থেকে সেন্ট্রাল স্টকে ইনভেন্টরি যুক্ত'
+      },
+      {
+        id: 'STX-102',
+        date: '25 Aug 2026, 02:15 PM',
+        partId: 'part_relay_40a',
+        partNameBn: '12V 40A হেভি ডিউটি রিলে',
+        type: 'issue_to_tech',
+        quantity: 5,
+        unitPrice: 200,
+        recipientTech: 'আব্দুল করিম (গুলশান হাব)',
+        performedBy: 'সুপার অ্যাডমিন',
+        note: 'সার্ভিস ভ্যান টুলব্যাগে হ্যান্ডওভার প্রদান'
+      },
+      {
+        id: 'STX-103',
+        date: '25 Aug 2026, 04:45 PM',
+        partId: 'part_relay_40a',
+        partNameBn: '12V 40A হেভি ডিউটি রিলে',
+        type: 'used_on_vehicle',
+        quantity: 1,
+        unitPrice: 200,
+        jobCardId: 'JC-901',
+        recipientTech: 'আব্দুল করিম',
+        performedBy: 'পেইড জব-কার্ড অটো বিলিং',
+        note: 'কাস্টমার Mohammad Azhar এর গাড়িতে ইনস্টলেশন'
+      }
+    ];
+  });
+
+  // Issue to Tech Modal State
+  const [isIssueModalOpen, setIsIssueModalOpen] = useState(false);
+  const [issueTechName, setIssueTechName] = useState('আব্দুল করিম (গুলশান হাব)');
+  const [issuePartId, setIssuePartId] = useState(sparePartsCatalog[0]?.id || '');
+  const [issueQuantity, setIssueQuantity] = useState<number>(5);
+  const [issueNote, setIssueNote] = useState('');
 
   // Search
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Save Commission Rate
-  const handleSaveCommission = (e: React.FormEvent) => {
+  // Save All Fee Settings
+  const handleSaveAllFees = (e: React.FormEvent) => {
     e.preventDefault();
-    const val = Number(commissionInput);
-    if (val >= 0 && val <= 100) {
-      setPlatformCommissionPercent(val);
-      localStorage.setItem('gps_platform_commission_percent', String(val));
-      setCommissionSaved(true);
-      setTimeout(() => setCommissionSaved(false), 2000);
-    }
+    setPlatformCommissionPercent(commissionInput);
+    localStorage.setItem('gps_platform_commission_percent', String(commissionInput));
+    localStorage.setItem('gps_referral_bonus_amount', String(referralBonus));
+    localStorage.setItem('gps_sales_staff_commission', String(salesStaffCommission));
+    localStorage.setItem('gps_tech_install_fee', String(techInstallFee));
+    localStorage.setItem('gps_dealer_margin_percent', String(dealerMarginPercent));
+    localStorage.setItem('gps_cashless_discount_amount', String(cashlessDiscount));
+    setFeeSettingsSaved(true);
+    setTimeout(() => setFeeSettingsSaved(false), 2500);
+  };
+
+  // Issue Parts to Technician Handler
+  const handleIssuePartToTech = (e: React.FormEvent) => {
+    e.preventDefault();
+    const part = sparePartsCatalog.find(p => p.id === issuePartId);
+    if (!part || issueQuantity <= 0) return;
+
+    const newTx: SparePartsLedgerTx = {
+      id: `STX-${Math.floor(100 + Math.random() * 900)}`,
+      date: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+      partId: part.id,
+      partNameBn: part.nameBn,
+      type: 'issue_to_tech',
+      quantity: Number(issueQuantity),
+      unitPrice: part.unitPrice,
+      recipientTech: issueTechName,
+      performedBy: 'সুপার অ্যাডমিন',
+      note: issueNote.trim() || `ফিল্ড টেকনিশিয়ান ব্যাগে ${issueQuantity}টি পার্টস হস্তান্তর`
+    };
+
+    const updatedLogs = [newTx, ...partsLedgerLogs];
+    setPartsLedgerLogs(updatedLogs);
+    localStorage.setItem('gps_spare_parts_ledger_logs', JSON.stringify(updatedLogs));
+
+    // Deduct from Central Warehouse Catalog count
+    updateSparePart(part.id, {
+      stockCount: Math.max(0, part.stockCount - Number(issueQuantity))
+    });
+
+    setIsIssueModalOpen(false);
+    setIssueNote('');
   };
 
   // Open Service Modal (Add or Edit)
@@ -275,56 +387,82 @@ export const ServiceRateCardManager: React.FC = () => {
       </div>
 
       {/* Tabs & Search Navigation */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
-        <div className="flex bg-slate-900 p-1 rounded-xl border border-slate-800 gap-1">
+      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5">
+        <div className="flex flex-wrap bg-slate-900 p-1 rounded-2xl border border-slate-800 gap-1">
           <button
             onClick={() => setActiveSubTab('services')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 ${
               activeSubTab === 'services'
                 ? 'bg-amber-600 text-white shadow-md'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
             <Layers className="w-3.5 h-3.5" />
-            <span>সার্ভিস রেট-কার্ড ({rateCardServices.length})</span>
+            <span>সার্ভিস রেট ({rateCardServices.length})</span>
           </button>
 
           <button
             onClick={() => setActiveSubTab('parts')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 ${
               activeSubTab === 'parts'
                 ? 'bg-cyan-600 text-white shadow-md'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
             <Package className="w-3.5 h-3.5" />
-            <span>স্পেয়ার পার্টস ক্যাটালগ ({sparePartsCatalog.length})</span>
+            <span>পার্টস ক্যাটালগ ({sparePartsCatalog.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveSubTab('parts_ledger')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 ${
+              activeSubTab === 'parts_ledger'
+                ? 'bg-blue-600 text-white shadow-md'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <History className="w-3.5 h-3.5" />
+            <span>পার্টস স্টক ও ইস্যু লেজার ({partsLedgerLogs.length})</span>
           </button>
 
           <button
             onClick={() => setActiveSubTab('job_cards')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 ${
               activeSubTab === 'job_cards'
                 ? 'bg-emerald-600 text-white shadow-md'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
             <Receipt className="w-3.5 h-3.5" />
-            <span>পেইড জব-কার্ড লেজার ({paidJobCards.length})</span>
+            <span>পেইড জব-কার্ড ({paidJobCards.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveSubTab('fee_config')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 ${
+              activeSubTab === 'fee_config'
+                ? 'bg-purple-600 text-white shadow-md'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Sliders className="w-3.5 h-3.5" />
+            <span>⚙️ ফি % ও কমিশন কন্ট্রোল</span>
           </button>
         </div>
 
         <div className="flex items-center space-x-2">
-          <div className="relative flex-1 sm:w-60">
-            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-            <input
-              type="text"
-              placeholder="সার্চ করুন..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-8 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-500"
-            />
-          </div>
+          {activeSubTab !== 'fee_config' && (
+            <div className="relative flex-1 sm:w-56">
+              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+              <input
+                type="text"
+                placeholder="সার্চ করুন..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-8 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-500"
+              />
+            </div>
+          )}
 
           {activeSubTab === 'services' && (
             <button
@@ -342,7 +480,17 @@ export const ServiceRateCardManager: React.FC = () => {
               className="px-3 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-extrabold flex items-center space-x-1 transition shrink-0 shadow-md shadow-cyan-600/20"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>নতুন স্পেয়ার পার্ট যোগ</span>
+              <span>নতুন পার্টস যোগ</span>
+            </button>
+          )}
+
+          {activeSubTab === 'parts_ledger' && (
+            <button
+              onClick={() => setIsIssueModalOpen(true)}
+              className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-extrabold flex items-center space-x-1 transition shrink-0 shadow-md shadow-blue-600/20"
+            >
+              <Send className="w-3.5 h-3.5" />
+              <span>টেকনিশিয়ানকে পার্টস ইস্যু</span>
             </button>
           )}
         </div>
@@ -570,6 +718,358 @@ export const ServiceRateCardManager: React.FC = () => {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 4: SPARE PARTS STOCK & ISSUE LEDGER                                   */}
+      {/* ========================================================================= */}
+      {activeSubTab === 'parts_ledger' && (
+        <div className="space-y-4">
+          {/* Inventory Overview Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 space-y-1">
+              <span className="text-[11px] font-bold text-slate-400">🏢 সেন্ট্রাল ওয়্যারহাউস মোট পার্টস</span>
+              <div className="flex items-baseline space-x-1.5">
+                <span className="text-xl font-mono font-black text-cyan-400">
+                  {sparePartsCatalog.reduce((sum, p) => sum + p.stockCount, 0)}
+                </span>
+                <span className="text-xs text-slate-400">টি আইটেম</span>
+              </div>
+              <span className="text-[10px] text-slate-400 block font-mono">
+                মোট সেন্ট্রাল ভ্যালুয়েশন: ৳ {sparePartsCatalog.reduce((sum, p) => sum + (p.stockCount * p.unitPrice), 0).toLocaleString()}
+              </span>
+            </div>
+
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 space-y-1">
+              <span className="text-[11px] font-bold text-slate-400">🔧 টেকনিশিয়ানদের ব্যাগে হ্যান্ডওভার স্টক</span>
+              <div className="flex items-baseline space-x-1.5">
+                <span className="text-xl font-mono font-black text-amber-400">
+                  {partsLedgerLogs.filter(l => l.type === 'issue_to_tech').reduce((sum, l) => sum + l.quantity, 0) -
+                   partsLedgerLogs.filter(l => l.type === 'used_on_vehicle').reduce((sum, l) => sum + l.quantity, 0)}
+                </span>
+                <span className="text-xs text-slate-400">টি আইটেম</span>
+              </div>
+              <span className="text-[10px] text-amber-400/80 block">ফিল্ডে রানিং ভ্যান ও টেকনিশিয়ানদের জিম্মায়</span>
+            </div>
+
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 space-y-1">
+              <span className="text-[11px] font-bold text-slate-400">🚗 সার্ভিসিংয়ে মোট পার্টস ব্যবহার</span>
+              <div className="flex items-baseline space-x-1.5">
+                <span className="text-xl font-mono font-black text-emerald-400">
+                  {partsLedgerLogs.filter(l => l.type === 'used_on_vehicle').reduce((sum, l) => sum + l.quantity, 0)}
+                </span>
+                <span className="text-xs text-slate-400">টি বিল্ড</span>
+              </div>
+              <span className="text-[10px] text-emerald-400/80 block">কাস্টমার জব কার্ডে সফলভাবে কনজ্যুমড</span>
+            </div>
+          </div>
+
+          {/* Detailed Ledger Audit Table */}
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+            <div className="p-3.5 border-b border-slate-800 flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <History className="w-4 h-4 text-blue-400" />
+                <h4 className="font-extrabold text-xs text-slate-100">
+                  স্পেয়ার পার্টস মুভমেন্ট ও হ্যান্ডওভার অডিট লগ (Stock Movement Ledger)
+                </h4>
+              </div>
+              <span className="text-[10px] text-slate-400 font-mono">মোট {partsLedgerLogs.length} টি ট্রানজ্যাকশন</span>
+            </div>
+
+            <div className="divide-y divide-slate-800/80">
+              {partsLedgerLogs.map(log => {
+                const isStockIn = log.type === 'stock_in';
+                const isIssue = log.type === 'issue_to_tech';
+
+                return (
+                  <div key={log.id} className="p-3 hover:bg-slate-850/50 transition flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                    <div className="flex items-start space-x-3">
+                      <span className="font-mono text-[10px] font-black text-blue-400 bg-blue-950 px-2 py-0.5 rounded border border-blue-800 shrink-0 mt-0.5">
+                        {log.id}
+                      </span>
+                      <div>
+                        <div className="flex items-center space-x-2">
+                          <span className="font-extrabold text-slate-100 text-xs">{log.partNameBn}</span>
+                          <span className={`text-[9.5px] font-bold px-2 py-0.2 rounded-full border ${
+                            isStockIn
+                              ? 'bg-emerald-950 text-emerald-300 border-emerald-700'
+                              : isIssue
+                                ? 'bg-amber-950 text-amber-300 border-amber-700'
+                                : 'bg-purple-950 text-purple-300 border-purple-700'
+                          }`}>
+                            {isStockIn ? '📥 ওয়্যারহাউস স্টক ইন' : isIssue ? '📤 টেকনিশিয়ানকে হ্যান্ডওভার' : '🚗 গাড়িতে ফিটিং ও বিল'}
+                          </span>
+                        </div>
+                        <p className="text-[10.5px] text-slate-400 mt-0.5">
+                          {log.note} {log.recipientTech && <b className="text-amber-300">• প্রাপক: {log.recipientTech}</b>}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between sm:justify-end space-x-4 pl-8 sm:pl-0">
+                      <div className="text-right font-mono">
+                        <span className={`text-xs font-black block ${isStockIn ? 'text-emerald-400' : isIssue ? 'text-amber-400' : 'text-purple-400'}`}>
+                          {isStockIn ? `+${log.quantity}` : `-${log.quantity}`} টি
+                        </span>
+                        <span className="text-[9.5px] text-slate-500 block">৳ {log.unitPrice * log.quantity}</span>
+                      </div>
+
+                      <div className="text-right text-[10px] text-slate-400 shrink-0">
+                        <span className="block text-slate-300">{log.performedBy}</span>
+                        <span className="block font-mono text-[9px] text-slate-500">{log.date}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 5: COMMISSION & FEE % CONFIGURATION PANEL                              */}
+      {/* ========================================================================= */}
+      {activeSubTab === 'fee_config' && (
+        <div className="space-y-4">
+          <form onSubmit={handleSaveAllFees} className="bg-slate-900 border border-purple-500/40 rounded-3xl p-5 shadow-2xl space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-800 gap-2">
+              <div className="flex items-center space-x-2.5">
+                <div className="w-9 h-9 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-purple-400">
+                  <Sliders className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-sm text-slate-100">
+                    সুপার অ্যাডমিন প্ল্যাটফর্ম ফি, কমিশন ও ইনসেন্টিভ কন্ট্রোল
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    এখানে নির্ধারিত হার অনুযায়ী গ্রাহক, সেলস স্টাফ, টেকনিশিয়ান ও পার্টনারদের কমিশন ও ক্যাশব্যাক স্বয়ংক্রিয়ভাবে হিসাব হবে।
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className="px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-extrabold text-xs flex items-center space-x-1.5 shadow-lg shadow-purple-600/30 transition active:scale-95 shrink-0"
+              >
+                <Save className="w-4 h-4" />
+                <span>{feeSettingsSaved ? '✅ সকল রেট সফলভাবে সংরক্ষিত!' : 'সকল ফি ও কমিশন রেট সেভ করুন'}</span>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+              {/* 1. Platform Commission % */}
+              <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-slate-200 flex items-center space-x-1.5">
+                    <Percent className="w-4 h-4 text-amber-400" />
+                    <span>পেইড সার্ভিসে কোম্পানির প্ল্যাটফর্ম ফি (%)</span>
+                  </label>
+                  <span className="font-mono font-black text-amber-400 text-sm">{commissionInput}%</span>
+                </div>
+                <p className="text-[10.5px] text-slate-400">
+                  টেকনিশিয়ানদের জব-কার্ডের মোট বিল থেকে কোম্পানি যে শতাংশ প্ল্যাটফর্ম চার্জ কাটবে।
+                </p>
+                <input
+                  type="range"
+                  min="0"
+                  max="50"
+                  value={commissionInput}
+                  onChange={(e) => setCommissionInput(Number(e.target.value))}
+                  className="w-full accent-amber-500"
+                />
+              </div>
+
+              {/* 2. Customer Referral Cashback Bonus */}
+              <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-slate-200 flex items-center space-x-1.5">
+                    <Gift className="w-4 h-4 text-emerald-400" />
+                    <span>কাস্টমার রেফারেল বোনাস (প্রতি সফল অর্ডারে)</span>
+                  </label>
+                  <span className="font-mono font-black text-emerald-400 text-sm">৳ {referralBonus}</span>
+                </div>
+                <p className="text-[10.5px] text-slate-400">
+                  গ্রাহক অন্য কাউকে রেফার করলে তার ওয়ালেটে যে ক্যাশব্যাক বোনাস স্বয়ংক্রিয়ভাবে জমা হবে।
+                </p>
+                <input
+                  type="number"
+                  min="0"
+                  value={referralBonus}
+                  onChange={(e) => setReferralBonus(Number(e.target.value))}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-emerald-400 font-mono font-bold focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              {/* 3. Sales Staff Commission */}
+              <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-slate-200 flex items-center space-x-1.5">
+                    <Users className="w-4 h-4 text-cyan-400" />
+                    <span>সেলস ও কাস্টমার সাপোর্ট স্টাফ ডিভাইস সেল কমিশন</span>
+                  </label>
+                  <span className="font-mono font-black text-cyan-400 text-sm">৳ {salesStaffCommission}</span>
+                </div>
+                <p className="text-[10.5px] text-slate-400">
+                  প্রতিটি ট্র্যাকার সরাসরি সেল করলে সেলস কর্মী বা সাপোর্টের অ্যাকাউন্টে নির্ধারিত ইনসেন্টিভ।
+                </p>
+                <input
+                  type="number"
+                  min="0"
+                  value={salesStaffCommission}
+                  onChange={(e) => setSalesStaffCommission(Number(e.target.value))}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-cyan-400 font-mono font-bold focus:outline-none focus:border-cyan-500"
+                />
+              </div>
+
+              {/* 4. Technician New Installation Fee */}
+              <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-slate-200 flex items-center space-x-1.5">
+                    <Wrench className="w-4 h-4 text-purple-400" />
+                    <span>টেকনিশিয়ান নতুন ইনস্টলেশন ফিক্সড ফি</span>
+                  </label>
+                  <span className="font-mono font-black text-purple-400 text-sm">৳ {techInstallFee}</span>
+                </div>
+                <p className="text-[10.5px] text-slate-400">
+                  মাঠে গিয়ে নতুন গ্রাহকের গাড়িতে সফলভাবে ট্র্যাকার ইনস্টলেশন ও হস্তান্তরের পর টেকনিশিয়ানের প্রাপ্য পারিশ্রমিক।
+                </p>
+                <input
+                  type="number"
+                  min="0"
+                  value={techInstallFee}
+                  onChange={(e) => setTechInstallFee(Number(e.target.value))}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-purple-400 font-mono font-bold focus:outline-none focus:border-purple-500"
+                />
+              </div>
+
+              {/* 5. B2B Dealer Margin Discount */}
+              <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-slate-200 flex items-center space-x-1.5">
+                    <DollarSign className="w-4 h-4 text-blue-400" />
+                    <span>B2B ডিলার ও পার্টনার হোলসেল মার্জিন (%)</span>
+                  </label>
+                  <span className="font-mono font-black text-blue-400 text-sm">{dealerMarginPercent}%</span>
+                </div>
+                <p className="text-[10.5px] text-slate-400">
+                  অনুমোদিত ডিলার বা শোরুম পার্টনারদের জন্য ডিভাইসের মূল্যের ওপর পাইকারি ছাড়।
+                </p>
+                <input
+                  type="range"
+                  min="5"
+                  max="35"
+                  value={dealerMarginPercent}
+                  onChange={(e) => setDealerMarginPercent(Number(e.target.value))}
+                  className="w-full accent-blue-500"
+                />
+              </div>
+
+              {/* 6. Cashless Instant Discount */}
+              <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-slate-200 flex items-center space-x-1.5">
+                    <Smartphone className="w-4 h-4 text-pink-400" />
+                    <span>অনলাইন বিকাশ / বাংলা QR ক্যাশলেস পে ছাড়</span>
+                  </label>
+                  <span className="font-mono font-black text-pink-400 text-sm">৳ {cashlessDiscount}</span>
+                </div>
+                <p className="text-[10.5px] text-slate-400">
+                  ডিজিটাল পেমেন্ট উৎসাহিত করতে গ্রাহক যদি অনলাইনে বিকাশ/QR দিয়ে পে করে তবে বিল থেকে ছাড়।
+                </p>
+                <input
+                  type="number"
+                  min="0"
+                  value={cashlessDiscount}
+                  onChange={(e) => setCashlessDiscount(Number(e.target.value))}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-pink-400 font-mono font-bold focus:outline-none focus:border-pink-500"
+                />
+              </div>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* ISSUE SPARE PARTS TO TECHNICIAN MODAL                                     */}
+      {/* ========================================================================= */}
+      {isIssueModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in select-none">
+          <div className="bg-slate-900 border border-blue-500/50 rounded-3xl max-w-md w-full p-5 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="font-extrabold text-sm text-slate-100 flex items-center space-x-2">
+                <Send className="w-4 h-4 text-blue-400" />
+                <span>টেকনিশিয়ানকে সেন্ট্রাল পার্টস ইস্যু / হ্যান্ডওভার</span>
+              </h3>
+              <button onClick={() => setIsIssueModalOpen(false)} className="text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleIssuePartToTech} className="space-y-3 text-xs">
+              <div>
+                <label className="text-[10.5px] font-bold text-slate-300 block mb-1">প্রাপক টেকনিশিয়ান নির্বাচন করুন *</label>
+                <select
+                  value={issueTechName}
+                  onChange={(e) => setIssueTechName(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 font-bold focus:border-blue-500 focus:outline-none"
+                >
+                  <option value="আব্দুল করিম (গুলশান হাব)">আব্দুল করিম (গুলশান সার্ভিস ভ্যান)</option>
+                  <option value="সুজন মিয়া (মিরপুর হাব)">সুজন মিয়া (মিরপুর সার্ভিস হাব)</option>
+                  <option value="তানভীর আহমেদ (উত্তরা হাব)">তানভীর আহমেদ (উত্তরা সার্ভিস হাব)</option>
+                  <option value="বিল্লাল হোসেন (ধানমন্ডি হাব)">বিল্লাল হোসেন (ধানমন্ডি সার্ভিস পয়েন্ট)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[10.5px] font-bold text-slate-300 block mb-1">স্পেয়ার পার্টস নির্বাচন করুন *</label>
+                <select
+                  value={issuePartId}
+                  onChange={(e) => setIssuePartId(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 font-bold focus:border-blue-500 focus:outline-none"
+                >
+                  {sparePartsCatalog.map(p => (
+                    <option key={p.id} value={p.id}>
+                      {p.nameBn} ({p.partCode}) — সেন্ট্রাল স্টক: {p.stockCount} টি
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[10.5px] font-bold text-slate-300 block mb-1">ইস্যুকৃত পরিমাণ (Quantity) *</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="100"
+                  required
+                  value={issueQuantity}
+                  onChange={(e) => setIssueQuantity(Number(e.target.value))}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-blue-400 font-mono font-black focus:border-blue-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-[10.5px] font-bold text-slate-300 block mb-1">নোট / হ্যান্ডওভার রেফারেন্স</label>
+                <input
+                  type="text"
+                  placeholder="যেমন: সার্ভিস কিট ব্যাগে ৫টি রিলে ও ফিউজ হস্তান্তর"
+                  value={issueNote}
+                  onChange={(e) => setIssueNote(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 focus:border-blue-500 focus:outline-none"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs flex items-center justify-center space-x-1.5 shadow-lg shadow-blue-600/30 transition active:scale-95"
+              >
+                <Send className="w-4 h-4" />
+                <span>হ্যান্ডওভার কনফার্ম ও লেজারে রেকর্ড করুন</span>
+              </button>
+            </form>
+          </div>
         </div>
       )}
 
