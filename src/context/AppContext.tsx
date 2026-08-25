@@ -494,148 +494,28 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const [selectedDeviceId, setSelectedDeviceId] = useState<number>(1);
   const [positions, setPositions] = useState<Record<number, Position>>(() => {
-    const isPurged = localStorage.getItem('gps_demo_purged') !== 'false';
     try {
       const stored = localStorage.getItem('gps_last_known_positions');
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (parsed && Object.keys(parsed).length > 0) return parsed;
+        if (parsed && typeof parsed === 'object') {
+          // Purge any stale legacy mock positions (23.8103, 90.4125)
+          const cleaned: Record<number, Position> = {};
+          for (const [k, v] of Object.entries(parsed)) {
+            const pos = v as Position;
+            if (pos && typeof pos.latitude === 'number' && typeof pos.longitude === 'number' && pos.latitude !== 0) {
+              if (Math.abs(pos.latitude - 23.8103) > 0.0001 || Math.abs(pos.longitude - 90.4125) > 0.0001) {
+                cleaned[Number(k)] = pos;
+              }
+            }
+          }
+          if (Object.keys(cleaned).length > 0) return cleaned;
+        }
       }
     } catch (e) {}
 
-    const realBikePos: Position = {
-      id: 101,
-      deviceId: 1,
-      protocol: 'gt06',
-      serverTime: new Date().toISOString(),
-      deviceTime: new Date().toISOString(),
-      fixTime: new Date().toISOString(),
-      outdated: false,
-      valid: true,
-      latitude: 23.8103,
-      longitude: 90.4125,
-      altitude: 10,
-      speed: 0,
-      course: 0,
-      address: 'অনন্যা শপিং কমপ্লেক্স, বারিধারা ডিওএইচএস, ঢাকা',
-      accuracy: 5,
-      attributes: {
-        ignition: false,
-        motion: false,
-        batteryLevel: 98,
-        satellites: 0,
-        power: 12.2,
-        isLastKnown: true
-      }
-    };
-
-    if (isPurged) {
-      return { 1: realBikePos };
-    }
-
-    return {
-      1: realBikePos,
-      2: {
-        id: 102,
-        deviceId: 2,
-        protocol: 'gt06',
-        serverTime: new Date().toISOString(),
-        deviceTime: new Date().toISOString(),
-        fixTime: new Date().toISOString(),
-        outdated: false,
-        valid: true,
-        latitude: 23.7772,
-        longitude: 90.4106,
-        altitude: 10,
-        speed: 38,
-        course: 180,
-        address: 'Mohakhali Flyover, Dhaka',
-        accuracy: 3,
-        attributes: {
-          ignition: true,
-          motion: true,
-          batteryLevel: 100,
-          satellites: 16,
-          power: 13.8,
-          isLastKnown: false
-        }
-      },
-      3: {
-        id: 103,
-        deviceId: 3,
-        protocol: 'teltonika',
-        serverTime: new Date().toISOString(),
-        deviceTime: new Date().toISOString(),
-        fixTime: new Date().toISOString(),
-        outdated: false,
-        valid: true,
-        latitude: 23.9999,
-        longitude: 90.4203,
-        altitude: 15,
-        speed: 52,
-        course: 350,
-        address: 'Gazipur Bypass Highway, Gazipur',
-        accuracy: 4,
-        attributes: {
-          ignition: true,
-          motion: true,
-          batteryLevel: 96,
-          satellites: 15,
-          power: 25.4,
-          isLastKnown: false
-        }
-      },
-      4: {
-        id: 104,
-        deviceId: 4,
-        protocol: 'concoxtk',
-        serverTime: new Date().toISOString(),
-        deviceTime: new Date().toISOString(),
-        fixTime: new Date().toISOString(),
-        outdated: false,
-        valid: true,
-        latitude: 23.7260,
-        longitude: 90.3976,
-        altitude: 8,
-        speed: 0,
-        course: 90,
-        address: 'Shahbagh More, Dhaka',
-        accuracy: 6,
-        attributes: {
-          ignition: false,
-          motion: false,
-          batteryLevel: 92,
-          satellites: 12,
-          power: 12.4,
-          isLastKnown: true
-        }
-      },
-      5: {
-        id: 105,
-        deviceId: 5,
-        protocol: 'sinotrack',
-        serverTime: new Date().toISOString(),
-        deviceTime: new Date().toISOString(),
-        fixTime: new Date().toISOString(),
-        outdated: false,
-        valid: true,
-        latitude: 23.7538,
-        longitude: 90.3770,
-        altitude: 11,
-        speed: 65,
-        course: 270,
-        address: 'Dhanmondi 27, Dhaka',
-        accuracy: 3,
-        attributes: {
-          ignition: true,
-          motion: true,
-          batteryLevel: 99,
-          satellites: 18,
-          power: 13.9,
-          isLastKnown: false
-        }
-      }
-    };
+    // Default neutral empty position waiting for server sync
+    return {};
   });
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
 
@@ -2049,6 +1929,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             });
           }
         }
+
+        // Fetch database latest position for each real device
+        merged.forEach(d => {
+          traccarApi.getDeviceLatestPosition(d.id, d.positionId).then(pos => {
+            if (pos && typeof pos.latitude === 'number' && typeof pos.longitude === 'number' && pos.latitude !== 0) {
+              setPositions(prev => mergePositionsSafely([pos], prev));
+            }
+          });
+        });
       }
     } catch (e) {
       console.warn('Sync server data error:', e);
@@ -2063,7 +1952,20 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     let storedLastKnown: Record<number, Position> = {};
     try {
       const storedLastKnownRaw = localStorage.getItem('gps_last_known_positions');
-      if (storedLastKnownRaw) storedLastKnown = JSON.parse(storedLastKnownRaw);
+      if (storedLastKnownRaw) {
+        const parsed = JSON.parse(storedLastKnownRaw);
+        if (parsed && typeof parsed === 'object') {
+          // Clean legacy mock coordinates
+          for (const [k, v] of Object.entries(parsed)) {
+            const pos = v as Position;
+            if (pos && typeof pos.latitude === 'number' && typeof pos.longitude === 'number' && pos.latitude !== 0) {
+              if (Math.abs(pos.latitude - 23.8103) > 0.0001 || Math.abs(pos.longitude - 90.4125) > 0.0001) {
+                storedLastKnown[Number(k)] = pos;
+              }
+            }
+          }
+        }
+      }
     } catch (e) {}
 
     const next = { ...previous };
@@ -2074,7 +1976,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                              p.latitude !== 0 && 
                              p.longitude !== 0 &&
                              !isNaN(p.latitude) && 
-                             !isNaN(p.longitude);
+                             !isNaN(p.longitude) &&
+                             (Math.abs(p.latitude - 23.8103) > 0.0001 || Math.abs(p.longitude - 90.4125) > 0.0001);
 
       if (hasValidCoords) {
         storedLastKnown[p.deviceId] = p;
@@ -2086,7 +1989,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           }
         };
       } else {
-        const fallback = previous[p.deviceId] || storedLastKnown[p.deviceId];
+        const fallback = (previous[p.deviceId] && (Math.abs(previous[p.deviceId].latitude - 23.8103) > 0.0001 || Math.abs(previous[p.deviceId].longitude - 90.4125) > 0.0001)) 
+          ? previous[p.deviceId] 
+          : storedLastKnown[p.deviceId];
+
         if (fallback && fallback.latitude && fallback.longitude && fallback.latitude !== 0) {
           next[p.deviceId] = {
             ...p,
@@ -2112,6 +2018,17 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     return next;
   };
+
+  // Immediate fetch when selected device changes
+  useEffect(() => {
+    if (!selectedDeviceId) return;
+    const dev = devices.find(d => d.id === selectedDeviceId);
+    traccarApi.getDeviceLatestPosition(selectedDeviceId, dev?.positionId).then(pos => {
+      if (pos && typeof pos.latitude === 'number' && typeof pos.longitude === 'number' && pos.latitude !== 0) {
+        setPositions(prev => mergePositionsSafely([pos], prev));
+      }
+    });
+  }, [selectedDeviceId]);
 
   useEffect(() => {
     requestUserLocation();
@@ -2141,7 +2058,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           setPositions(prev => mergePositionsSafely(realPositions, prev));
         }
       });
-    }, 5000);
+      if (selectedDeviceId) {
+        const dev = devices.find(d => d.id === selectedDeviceId);
+        traccarApi.getDeviceLatestPosition(selectedDeviceId, dev?.positionId).then(pos => {
+          if (pos && typeof pos.latitude === 'number' && typeof pos.longitude === 'number' && pos.latitude !== 0) {
+            setPositions(prev => mergePositionsSafely([pos], prev));
+          }
+        });
+      }
+    }, 4000);
 
     const unsubscribe = traccarSocket.subscribe((data) => {
       if (data.positions && data.positions.length > 0) {

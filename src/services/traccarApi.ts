@@ -174,9 +174,16 @@ class TraccarApiService {
     return [];
   }
 
-  async getPositions(): Promise<Position[]> {
+  async getPositions(deviceId?: number): Promise<Position[]> {
     const baseClean = this.baseUrl.replace(/\/$/, '');
-    const endpoints = ['/api/positions', `${baseClean}/api/positions`];
+    const endpoints: string[] = [];
+    
+    if (deviceId) {
+      endpoints.push(`/api/positions?deviceId=${deviceId}`);
+      endpoints.push(`${baseClean}/api/positions?deviceId=${deviceId}`);
+    }
+    endpoints.push('/api/positions');
+    endpoints.push(`${baseClean}/api/positions`);
 
     for (const url of endpoints) {
       try {
@@ -193,30 +200,67 @@ class TraccarApiService {
         if (res.ok) {
           const rawPositions = await res.json();
           if (Array.isArray(rawPositions) && rawPositions.length > 0) {
-            return rawPositions.map((p: any) => {
-              const rawSpeed = p.speed || 0;
-              const speedKmh = rawSpeed > 0.5 ? Math.round(rawSpeed * 1.852) : 0;
-              const isIgnition = p.attributes?.ignition !== undefined 
-                ? !!p.attributes.ignition 
-                : (p.attributes?.acc !== undefined ? !!p.attributes.acc : speedKmh > 0);
-
-              return {
-                ...p,
-                speed: speedKmh,
-                course: p.course || 0,
-                attributes: {
-                  ...p.attributes,
-                  ignition: isIgnition,
-                  power: p.attributes?.power !== undefined ? Number(p.attributes.power) : (p.attributes?.battery !== undefined ? Number(p.attributes.battery) : undefined),
-                  sat: p.attributes?.sat !== undefined ? Number(p.attributes.sat) : (p.attributes?.satellites !== undefined ? Number(p.attributes.satellites) : (p.valid === false ? 0 : (p.attributes?.satCount !== undefined ? Number(p.attributes.satCount) : 0)))
-                }
-              };
-            });
+            return rawPositions.map((p: any) => this.mapRawPosition(p));
           }
         }
       } catch (e) {}
     }
     return [];
+  }
+
+  async getDeviceLatestPosition(deviceId: number, positionId?: number): Promise<Position | null> {
+    const baseClean = this.baseUrl.replace(/\/$/, '');
+    const endpoints: string[] = [];
+
+    if (positionId) {
+      endpoints.push(`/api/positions?id=${positionId}`);
+      endpoints.push(`${baseClean}/api/positions?id=${positionId}`);
+    }
+    endpoints.push(`/api/positions?deviceId=${deviceId}`);
+    endpoints.push(`${baseClean}/api/positions?deviceId=${deviceId}`);
+
+    for (const url of endpoints) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 4000);
+
+        const res = await fetch(url, {
+          headers: this.getHeaders(),
+          credentials: 'include',
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+
+        if (res.ok) {
+          const data = await res.json();
+          const list = Array.isArray(data) ? data : [data];
+          if (list.length > 0 && list[0] && list[0].latitude) {
+            return this.mapRawPosition(list[0]);
+          }
+        }
+      } catch (e) {}
+    }
+    return null;
+  }
+
+  private mapRawPosition(p: any): Position {
+    const rawSpeed = p.speed || 0;
+    const speedKmh = rawSpeed > 0.5 ? Math.round(rawSpeed * 1.852) : 0;
+    const isIgnition = p.attributes?.ignition !== undefined 
+      ? !!p.attributes.ignition 
+      : (p.attributes?.acc !== undefined ? !!p.attributes.acc : speedKmh > 0);
+
+    return {
+      ...p,
+      speed: speedKmh,
+      course: p.course || 0,
+      attributes: {
+        ...p.attributes,
+        ignition: isIgnition,
+        power: p.attributes?.power !== undefined ? Number(p.attributes.power) : (p.attributes?.battery !== undefined ? Number(p.attributes.battery) : undefined),
+        sat: p.attributes?.sat !== undefined ? Number(p.attributes.sat) : (p.attributes?.satellites !== undefined ? Number(p.attributes.satellites) : (p.valid === false ? 0 : (p.attributes?.satCount !== undefined ? Number(p.attributes.satCount) : 0)))
+      }
+    };
   }
 
   async sendCommand(payload: CommandPayload): Promise<{ success: boolean; message: string }> {
