@@ -26,7 +26,9 @@ import {
   HardDrive,
   Cpu,
   Layers,
-  PhoneCall
+  PhoneCall,
+  ArrowLeft,
+  BarChart3
 } from 'lucide-react';
 import { MediaEvidence } from '../../types/traccar';
 import { PinVerificationModal } from '../commands/PinVerificationModal';
@@ -39,7 +41,8 @@ export const SurveillanceView: React.FC = () => {
     addEvidence, 
     deleteEvidence, 
     language, 
-    t 
+    t,
+    setActiveTab
   } = useApp();
 
   const [activeCam, setActiveCam] = useState<'front' | 'cabin' | 'rear' | '360'>('front');
@@ -174,6 +177,34 @@ export const SurveillanceView: React.FC = () => {
 
   return (
     <div className="w-full h-full flex flex-col bg-slate-950 text-slate-100 overflow-y-auto p-4 space-y-4 pb-24 select-none">
+      
+      {/* 🧭 Top Navigation & Return to Report Dashboard Bar */}
+      <div className="flex items-center justify-between bg-slate-900 border border-slate-800 p-2.5 rounded-2xl shadow-xl">
+        <div className="flex items-center space-x-2">
+          {/* Back to Reports Hub Button */}
+          <button
+            onClick={() => setActiveTab('reports')}
+            className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs flex items-center space-x-2 transition active:scale-95 shadow-md shadow-blue-600/30 ring-1 ring-blue-400/50"
+          >
+            <ArrowLeft className="w-4 h-4 text-white" />
+            <BarChart3 className="w-4 h-4 text-amber-300" />
+            <span>{language === 'bn' ? 'রিপোর্ট ড্যাশবোর্ডে ফিরে যান' : 'Back to Reports Dashboard'}</span>
+          </button>
+
+          {/* Direct Live Map Shortcut */}
+          <button
+            onClick={() => setActiveTab('map')}
+            className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-200 hover:text-white font-bold text-xs flex items-center space-x-1.5 transition active:scale-95 border border-slate-700"
+          >
+            <span>🗺️ ম্যাপে যান</span>
+          </button>
+        </div>
+
+        <span className="text-[10px] font-mono text-purple-300 font-bold bg-purple-950 px-2.5 py-1 rounded-full border border-purple-800 hidden sm:inline-block">
+          EasyTracker 360° ADAS Hub
+        </span>
+      </div>
+
       {/* Header with Storage Meter */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-slate-900/90 border border-slate-800 p-4 rounded-3xl shadow-xl gap-3">
         <div className="flex items-center space-x-3">
