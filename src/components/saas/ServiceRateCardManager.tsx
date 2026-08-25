@@ -26,7 +26,12 @@ import {
   Send,
   Users,
   Gift,
-  ArrowRight
+  ArrowRight,
+  RotateCcw,
+  Scan,
+  QrCode,
+  Camera,
+  ShieldAlert
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { RateCardService, SparePartItem, PaidJobCard } from '../../types/traccar';
@@ -45,11 +50,40 @@ export interface SparePartsLedgerTx {
   note?: string;
 }
 
+export interface TechReturnItem {
+  id: string;
+  date: string;
+  techName: string;
+  itemType: 'spare_part' | 'gps_device';
+  itemName: string;
+  itemCodeOrImei: string;
+  quantity: number;
+  unitPrice: number;
+  reportedCondition: 'good_unused' | 'defective_damaged';
+  reason: string;
+  status: 'pending_admin_scan' | 'received_restocked' | 'received_scrapped';
+  adminDecisionNote?: string;
+  receivedAt?: string;
+}
+
+export interface WastageLossLog {
+  id: string;
+  date: string;
+  itemName: string;
+  itemCodeOrImei: string;
+  quantity: number;
+  unitLossPrice: number;
+  totalLoss: number;
+  surrenderedByTech: string;
+  inspectedByAdmin: string;
+  reason: string;
+}
+
 export const ServiceRateCardManager: React.FC = () => {
-  const {
-    rateCardServices,
-    sparePartsCatalog,
-    paidJobCards,
+  const { 
+    rateCardServices, 
+    sparePartsCatalog, 
+    paidJobCards, 
     platformCommissionPercent,
     setPlatformCommissionPercent,
     addRateCardService,
@@ -140,6 +174,58 @@ export const ServiceRateCardManager: React.FC = () => {
     ];
   });
 
+  // Returns from Technicians State
+  const [techReturns, setTechReturns] = useState<TechReturnItem[]>(() => {
+    const saved = localStorage.getItem('gps_tech_return_shipments');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return [
+      {
+        id: 'RET-881',
+        date: '25 Aug 2026, 03:30 PM',
+        techName: 'আব্দুল করিম (গুলশান হাব)',
+        itemType: 'spare_part',
+        itemName: '12V 40A হেভি ডিউটি রিলে',
+        itemCodeOrImei: 'RELAY-40A',
+        quantity: 1,
+        unitPrice: 200,
+        reportedCondition: 'good_unused',
+        reason: 'অব্যবহৃত অতিরিক্ত পার্টস সেন্ট্রাল স্টকে ফেরত',
+        status: 'pending_admin_scan'
+      }
+    ];
+  });
+
+  // Wastage & Scrap Loss Ledger State
+  const [wastageLogs, setWastageLogs] = useState<WastageLossLog[]>(() => {
+    const saved = localStorage.getItem('gps_wastage_loss_ledger_logs');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return [
+      {
+        id: 'WST-201',
+        date: '24 Aug 2026, 05:10 PM',
+        itemName: 'হাই-গেইন সিরামিক GPS অ্যান্টেনা (ফাটা ক্যাবল)',
+        itemCodeOrImei: 'ANT-GPS-01',
+        quantity: 1,
+        unitLossPrice: 250,
+        totalLoss: 250,
+        surrenderedByTech: 'আব্দুল করিম (গুলশান হাব)',
+        inspectedByAdmin: 'সুপার অ্যাডমিন',
+        reason: 'কাস্টমার গাড়ির শর্ট-সার্কিটে ওয়্যারিং ক্যাবল ভস্মীভূত (স্ক্র্যাপ রাইট-অফ)'
+      }
+    ];
+  });
+
+  // Barcode & QC Inspection Modal
+  const [isScanModalOpen, setIsScanModalOpen] = useState(false);
+  const [selectedReturnToScan, setSelectedReturnToScan] = useState<TechReturnItem | null>(null);
+  const [scannedBarcode, setScannedBarcode] = useState('');
+  const [qcCondition, setQcCondition] = useState<'good_restock' | 'damaged_wastage'>('good_restock');
+  const [adminInspectionNote, setAdminInspectionNote] = useState('');
+
   // Issue to Tech Modal State
   const [isIssueModalOpen, setIsIssueModalOpen] = useState(false);
   const [issueTechName, setIssueTechName] = useState('আব্দুল করিম (গুলশান হাব)');
@@ -194,6 +280,88 @@ export const ServiceRateCardManager: React.FC = () => {
 
     setIsIssueModalOpen(false);
     setIssueNote('');
+  };
+
+  // Process Barcode Scan & Return Receive Handler
+  const handleProcessScanReceive = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedReturnToScan) return;
+
+    const returnItem = selectedReturnToScan;
+    const nowStr = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+    if (qcCondition === 'good_restock') {
+      // 1. If spare part, restock into active inventory
+      const matchingPart = sparePartsCatalog.find(p => p.code === returnItem.itemCodeOrImei || p.nameBn.includes(returnItem.itemName));
+      if (matchingPart) {
+        updateSparePart(matchingPart.id, {
+          stockCount: matchingPart.stockCount + Number(returnItem.quantity)
+        });
+      }
+
+      // 2. Add credit log to parts ledger
+      const newLedgerTx: SparePartsLedgerTx = {
+        id: `STX-${Math.floor(100 + Math.random() * 900)}`,
+        date: nowStr,
+        partId: matchingPart?.id || 'restock_item',
+        partNameBn: returnItem.itemName,
+        type: 'stock_in',
+        quantity: Number(returnItem.quantity),
+        unitPrice: returnItem.unitPrice,
+        performedBy: 'সুপার অ্যাডমিন (বারকোড স্ক্যান রিসিভ)',
+        note: `টেকনিশিয়ান (${returnItem.techName}) রিটার্ন পার্সেল [${returnItem.id}] QC ভেরিফাইড ভালো কন্ডিশনে সেন্ট্রাল স্টকে রিস্টক`
+      };
+      const updatedLedger = [newLedgerTx, ...partsLedgerLogs];
+      setPartsLedgerLogs(updatedLedger);
+      localStorage.setItem('gps_spare_parts_ledger_logs', JSON.stringify(updatedLedger));
+
+      // 3. Mark return status as received_restocked
+      const updatedReturns = techReturns.map(r => r.id === returnItem.id ? {
+        ...r,
+        status: 'received_restocked' as const,
+        receivedAt: nowStr,
+        adminDecisionNote: adminInspectionNote || 'QC পাস: ভালো কন্ডিশন, সেন্ট্রাল স্টকে সফলভাবে যোগ করা হয়েছে।'
+      } : r);
+      setTechReturns(updatedReturns);
+      localStorage.setItem('gps_tech_return_shipments', JSON.stringify(updatedReturns));
+
+      alert(`✅ বারকোড [${scannedBarcode || returnItem.itemCodeOrImei}] স্ক্যান সফল!\nপার্টসটি ভালো কন্ডিশনে সেন্ট্রাল ইনভেন্টরিতে যুক্ত (+${returnItem.quantity}) হয়েছে এবং টেকনিশিয়ানের লেজার থেকে মাইনাস হয়েছে।`);
+    } else {
+      // Defective / Damaged Wastage:
+      // Does NOT add to active inventory! Relieves technician and adds to Wastage Ledger!
+      const newWastageLog: WastageLossLog = {
+        id: `WST-${Math.floor(100 + Math.random() * 900)}`,
+        date: nowStr,
+        itemName: returnItem.itemName,
+        itemCodeOrImei: returnItem.itemCodeOrImei,
+        quantity: Number(returnItem.quantity),
+        unitLossPrice: returnItem.unitPrice,
+        totalLoss: Number(returnItem.quantity) * returnItem.unitPrice,
+        surrenderedByTech: returnItem.techName,
+        inspectedByAdmin: 'সুপার অ্যাডমিন',
+        reason: adminInspectionNote || 'ত্রুটিপূর্ণ ও ড্যামেজ হওয়ার কারণে স্ক্র্যাপ ও ওয়েস্টেজ হিসেবে গৃহীত (ইনভেন্টরিতে যুক্ত হয়নি)'
+      };
+      const updatedWastage = [newWastageLog, ...wastageLogs];
+      setWastageLogs(updatedWastage);
+      localStorage.setItem('gps_wastage_loss_ledger_logs', JSON.stringify(updatedWastage));
+
+      // Mark return status as received_scrapped
+      const updatedReturns = techReturns.map(r => r.id === returnItem.id ? {
+        ...r,
+        status: 'received_scrapped' as const,
+        receivedAt: nowStr,
+        adminDecisionNote: adminInspectionNote || 'QC রিজেক্ট: ড্যামেজ/নষ্ট হওয়ার কারণে ওয়েস্টেজ লেজারে এন্ট্রি (টেকনিশিয়ান খালাস)।'
+      } : r);
+      setTechReturns(updatedReturns);
+      localStorage.setItem('gps_tech_return_shipments', JSON.stringify(updatedReturns));
+
+      alert(`🗑️ বারকোড [${scannedBarcode || returnItem.itemCodeOrImei}] স্ক্যান সফল!\nপার্টসটি নষ্ট হওয়ায় সেন্ট্রাল স্টকে যোগ না করে ওয়েস্টেজ ও লস লেজারে এন্ট্রি করা হয়েছে। টেকনিশিয়ানের দায়িত্ব থেকে অব্যাহতি দেওয়া হয়েছে।`);
+    }
+
+    setIsScanModalOpen(false);
+    setSelectedReturnToScan(null);
+    setScannedBarcode('');
+    setAdminInspectionNote('');
   };
 
   // Open Service Modal (Add or Edit)
@@ -765,6 +933,140 @@ export const ServiceRateCardManager: React.FC = () => {
             </div>
           </div>
 
+          {/* ========================================================================= */}
+          {/* 📦 INCOMING TECHNICIAN RETURNS & BARCODE SCANNER QC SECTION                */}
+          {/* ========================================================================= */}
+          <div className="bg-slate-900 border border-amber-500/50 rounded-2xl overflow-hidden shadow-xl space-y-3 p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800 pb-2.5 gap-2">
+              <div className="flex items-center space-x-2">
+                <Scan className="w-5 h-5 text-amber-400" />
+                <div>
+                  <h4 className="font-extrabold text-xs text-amber-300">
+                    ফিল্ড টেকনিশিয়ান রিটার্ন পার্সেল ও বারকোড QC স্ক্যানার (RMA Inward Hub)
+                  </h4>
+                  <p className="text-[10.5px] text-slate-400">
+                    টেকনিশিয়ানদের ফেরত পাঠানো অব্যবহৃত বা ড্যামেজ পার্টস বারকোড স্ক্যান করে রিসিভ করুন।
+                  </p>
+                </div>
+              </div>
+
+              <span className="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2.5 py-0.5 rounded-full font-bold self-start sm:self-auto font-mono">
+                {techReturns.filter(r => r.status === 'pending_admin_scan').length} টি পার্সেল অপেক্ষমান
+              </span>
+            </div>
+
+            <div className="space-y-2">
+              {techReturns.map(ret => {
+                const isPending = ret.status === 'pending_admin_scan';
+                const isRestocked = ret.status === 'received_restocked';
+                const isScrapped = ret.status === 'received_scrapped';
+
+                return (
+                  <div key={ret.id} className="p-3 bg-slate-950 rounded-xl border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                    <div>
+                      <div className="flex items-center space-x-2">
+                        <span className="font-mono text-[10.5px] font-black text-amber-400 bg-amber-950 px-2 py-0.5 rounded border border-amber-800">
+                          {ret.id}
+                        </span>
+                        <span className="font-extrabold text-slate-100">{ret.itemName}</span>
+                        <span className="text-slate-400 font-mono text-[11px]">(পরিমাণ: {ret.quantity} টি)</span>
+                        <span className={`text-[9px] px-1.5 py-0.2 rounded font-mono ${
+                          ret.reportedCondition === 'good_unused' ? 'text-emerald-300 bg-emerald-950 border border-emerald-800' : 'text-rose-300 bg-rose-950 border border-rose-800'
+                        }`}>
+                          {ret.reportedCondition === 'good_unused' ? 'টেক রিপোর্ট: ভালো' : 'টেক রিপোর্ট: নষ্ট/ড্যামেজ'}
+                        </span>
+                      </div>
+                      <p className="text-[10.5px] text-slate-400 mt-1 font-mono">
+                        প্রেরক: <strong className="text-slate-200">{ret.techName}</strong> • কোড/IMEI: <strong className="text-cyan-300">{ret.itemCodeOrImei}</strong> • তারিখ: {ret.date}
+                      </p>
+                      {ret.adminDecisionNote && (
+                        <p className="text-[10px] text-blue-300 mt-0.5">
+                          QC নোট: {ret.adminDecisionNote} ({ret.receivedAt})
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="flex items-center space-x-2 self-start sm:self-auto shrink-0">
+                      {isPending ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedReturnToScan(ret);
+                            setScannedBarcode(ret.itemCodeOrImei);
+                            setQcCondition(ret.reportedCondition === 'good_unused' ? 'good_restock' : 'damaged_wastage');
+                            setIsScanModalOpen(true);
+                          }}
+                          className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 text-white font-extrabold text-xs shadow-md shadow-amber-600/30 flex items-center space-x-1.5 transition active:scale-95 animate-pulse"
+                        >
+                          <Camera className="w-3.5 h-3.5" />
+                          <span>📷 বারকোড স্ক্যান ও QC রিসিভ</span>
+                        </button>
+                      ) : (
+                        <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${
+                          isRestocked
+                            ? 'bg-emerald-950 text-emerald-300 border-emerald-700'
+                            : 'bg-rose-950 text-rose-300 border-rose-700'
+                        }`}>
+                          {isRestocked ? '✅ সেন্ট্রাল স্টকে রিস্টক সম্পন্ন' : '🗑️ ওয়েস্টেজ লেজারে খালাসকৃত'}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* ========================================================================= */}
+          {/* 🗑️ WASTAGE & DAMAGE LOSS LEDGER (SCRAP WRITE-OFFS)                          */}
+          {/* ========================================================================= */}
+          <div className="bg-slate-900 border border-rose-500/40 rounded-2xl overflow-hidden shadow-xl p-4 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800 pb-2.5 gap-2">
+              <div className="flex items-center space-x-2">
+                <ShieldAlert className="w-5 h-5 text-rose-400" />
+                <div>
+                  <h4 className="font-extrabold text-xs text-rose-300">
+                    নষ্ট ও ড্যামেজ ওয়েস্টেজ লেজার (Wastage & Scrap Write-Off Ledger)
+                  </h4>
+                  <p className="text-[10.5px] text-slate-400">
+                    নষ্ট পার্টস ও ডিভাইস ইনভেন্টরিতে যোগ না করে আর্থিক ক্ষতির হিসাব রাখার অডিট ট্রেইল।
+                  </p>
+                </div>
+              </div>
+
+              <div className="text-right">
+                <span className="text-[10px] text-slate-400 block font-bold">মোট আর্থিক ওয়েস্টেজ লস:</span>
+                <span className="text-sm font-mono font-black text-rose-400">
+                  ৳ {wastageLogs.reduce((sum, w) => sum + w.totalLoss, 0).toLocaleString()}
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-1.5 text-xs font-sans">
+              {wastageLogs.map(w => (
+                <div key={w.id} className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <span className="font-mono text-[10px] font-black text-rose-400 bg-rose-950 px-2 py-0.2 rounded border border-rose-800">
+                        {w.id}
+                      </span>
+                      <span className="font-bold text-slate-200">{w.itemName}</span>
+                      <span className="font-mono text-slate-400">({w.quantity} টি)</span>
+                      <span className="font-mono text-rose-400 font-bold">-৳{w.totalLoss}</span>
+                    </div>
+                    <p className="text-[10.5px] text-slate-400 mt-0.5">
+                      {w.reason} • সারেন্ডারকারী: <b className="text-slate-300">{w.surrenderedByTech}</b> • ইন্সপেক্টর: {w.inspectedByAdmin} ({w.date})
+                    </p>
+                  </div>
+
+                  <span className="text-[9px] font-mono text-rose-300 bg-rose-950/80 px-2 py-0.5 rounded border border-rose-800 self-start sm:self-auto">
+                    স্ক্র্যাপ রাইট-অফ (০ ইনভেন্টরি)
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
           {/* Detailed Ledger Audit Table */}
           <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
             <div className="p-3.5 border-b border-slate-800 flex items-center justify-between">
@@ -1067,6 +1369,141 @@ export const ServiceRateCardManager: React.FC = () => {
               >
                 <Send className="w-4 h-4" />
                 <span>হ্যান্ডওভার কনফার্ম ও লেজারে রেকর্ড করুন</span>
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 📷 BARCODE SCAN & RETURN QC MODAL                                         */}
+      {/* ========================================================================= */}
+      {isScanModalOpen && selectedReturnToScan && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in select-none">
+          <div className="bg-slate-900 border border-amber-500/60 rounded-3xl max-w-md w-full p-5 shadow-2xl space-y-3.5">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+              <div className="flex items-center space-x-2">
+                <Scan className="w-5 h-5 text-amber-400" />
+                <h3 className="font-extrabold text-xs text-amber-300">
+                  বারকোড/IMEI স্ক্যান ও রিটার্ন কোয়ালিটি (QC) যাচাই
+                </h3>
+              </div>
+              <button 
+                onClick={() => {
+                  setIsScanModalOpen(false);
+                  setSelectedReturnToScan(null);
+                }} 
+                className="text-slate-400 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Target Item Details Banner */}
+            <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-1 text-xs">
+              <div className="flex justify-between items-center">
+                <span className="font-bold text-slate-100">{selectedReturnToScan.itemName}</span>
+                <span className="font-mono text-amber-400 font-black">{selectedReturnToScan.id}</span>
+              </div>
+              <div className="text-[10.5px] text-slate-400 grid grid-cols-2 gap-1 font-mono pt-1 border-t border-slate-800/80">
+                <div>প্রেরক টেক: <b className="text-slate-200">{selectedReturnToScan.techName}</b></div>
+                <div>পরিমাণ: <b className="text-cyan-300">{selectedReturnToScan.quantity} টি</b></div>
+                <div>মূল্য: <b className="text-emerald-400">৳{selectedReturnToScan.unitPrice * selectedReturnToScan.quantity}</b></div>
+                <div>তারিখ: <b className="text-slate-300">{selectedReturnToScan.date}</b></div>
+              </div>
+            </div>
+
+            <form onSubmit={handleProcessScanReceive} className="space-y-3 text-xs">
+              {/* Barcode Scanner Input with Beep Simulation */}
+              <div>
+                <label className="text-[10.5px] font-bold text-slate-300 block mb-1 flex items-center justify-between">
+                  <span>বারকোড / সিরিয়াল / IMEI নম্বর স্ক্যান *</span>
+                  <span className="text-[9.5px] text-emerald-400 font-mono">📷 স্ক্যানার রেডি</span>
+                </label>
+                <div className="flex space-x-2">
+                  <input
+                    type="text"
+                    required
+                    value={scannedBarcode}
+                    onChange={(e) => setScannedBarcode(e.target.value)}
+                    placeholder="বারকোড স্ক্যান করুন..."
+                    className="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-cyan-300 font-mono font-black focus:border-amber-500 focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setScannedBarcode(selectedReturnToScan.itemCodeOrImei);
+                      alert(`🔊 BEEP! বারকোড [${selectedReturnToScan.itemCodeOrImei}] স্ক্যান সম্পন্ন!`);
+                    }}
+                    className="px-3 py-2 bg-slate-800 hover:bg-slate-750 text-amber-300 font-bold text-xs rounded-xl border border-slate-700 flex items-center space-x-1"
+                  >
+                    <QrCode className="w-3.5 h-3.5" />
+                    <span>অটো স্ক্যান</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* QC Verification Radio */}
+              <div>
+                <label className="text-[10.5px] font-bold text-slate-300 block mb-1">
+                  সুপার অ্যাডমিন QC ভেরিফিকেশন সিদ্ধান্ত *
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setQcCondition('good_restock')}
+                    className={`p-2.5 rounded-2xl border text-left space-y-1 transition ${
+                      qcCondition === 'good_restock' 
+                        ? 'bg-emerald-950/80 border-emerald-500 text-emerald-200 ring-1 ring-emerald-500' 
+                        : 'bg-slate-950 border-slate-800 text-slate-400'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-1.5 font-bold text-xs">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>✅ ভালো কন্ডিশন</span>
+                    </div>
+                    <p className="text-[9.5px] leading-tight">সেন্ট্রাল স্টকে যুক্ত হবে (+{selectedReturnToScan.quantity}) ও টেকনিশিয়ান লেজার থেকে মাইনাস হবে।</p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setQcCondition('damaged_wastage')}
+                    className={`p-2.5 rounded-2xl border text-left space-y-1 transition ${
+                      qcCondition === 'damaged_wastage' 
+                        ? 'bg-rose-950/80 border-rose-500 text-rose-200 ring-1 ring-rose-500' 
+                        : 'bg-slate-950 border-slate-800 text-slate-400'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-1.5 font-bold text-xs">
+                      <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
+                      <span>❌ নষ্ট / ড্যামেজ</span>
+                    </div>
+                    <p className="text-[9.5px] leading-tight">স্টকে যুক্ত হবে না। ওয়েস্টেজ লেজারে এন্ট্রি হবে ও টেকনিশিয়ান খালাস পাবে।</p>
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10.5px] font-bold text-slate-300 block mb-1">ইন্সপেকশন নোট / অডিট মন্তব্য</label>
+                <input
+                  type="text"
+                  placeholder="যেমন: ফিজিক্যাল চেকিং সম্পন্ন, স্টকে জমা / স্ক্র্যাপ সারেন্ডার"
+                  value={adminInspectionNote}
+                  onChange={(e) => setAdminInspectionNote(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 focus:border-amber-500 focus:outline-none"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className={`w-full py-2.5 rounded-xl text-white font-extrabold text-xs flex items-center justify-center space-x-1.5 shadow-lg transition active:scale-95 ${
+                  qcCondition === 'good_restock' 
+                    ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 shadow-emerald-600/30'
+                    : 'bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 shadow-rose-600/30'
+                }`}
+              >
+                <Check className="w-4 h-4" />
+                <span>{qcCondition === 'good_restock' ? 'ভেরিফাই ও সেন্ট্রাল স্টকে জমা করুন' : 'ওয়েস্টেজ লেজারে খালাস নিশ্চিত করুন'}</span>
               </button>
             </form>
           </div>

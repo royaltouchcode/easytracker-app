@@ -72,6 +72,37 @@ export const TechnicianPortalView: React.FC = () => {
   const [techPartPrice, setTechPartPrice] = useState<number>(200);
   const [techPartWarrantyDays, setTechPartWarrantyDays] = useState<number>(15);
 
+  // Return to Central Warehouse Modal & Shipments State
+  const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
+  const [returnItemType, setReturnItemType] = useState<'spare_part' | 'gps_device'>('spare_part');
+  const [returnItemName, setReturnItemName] = useState('12V 40A হেভি ডিউটি রিলে (RELAY-40A)');
+  const [returnCodeOrImei, setReturnCodeOrImei] = useState('RELAY-40A');
+  const [returnQuantity, setReturnQuantity] = useState<number>(1);
+  const [returnCondition, setReturnCondition] = useState<'good_unused' | 'defective_damaged'>('good_unused');
+  const [returnReason, setReturnReason] = useState('');
+
+  const [techReturnShipments, setTechReturnShipments] = useState<any[]>(() => {
+    const saved = localStorage.getItem('gps_tech_return_shipments');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return [
+      {
+        id: 'RET-881',
+        date: '25 Aug 2026, 03:30 PM',
+        techName: 'আব্দুল করিম (গুলশান হাব)',
+        itemType: 'spare_part',
+        itemName: '12V 40A হেভি ডিউটি রিলে',
+        itemCodeOrImei: 'RELAY-40A',
+        quantity: 1,
+        unitPrice: 200,
+        reportedCondition: 'good_unused',
+        reason: 'অব্যবহৃত অতিরিক্ত পার্টস সেন্ট্রাল স্টকে ফেরত',
+        status: 'pending_admin_scan'
+      }
+    ];
+  });
+
   const isSuperAdmin = user?.administrator || user?.role === 'super_admin';
 
   // Work Orders Queue state
@@ -741,13 +772,24 @@ export const TechnicianPortalView: React.FC = () => {
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-slate-800 pb-2.5">
               <div className="flex items-center space-x-2">
                 <Package className="w-4 h-4 text-cyan-400" />
-                <h3 className="font-extrabold text-xs text-cyan-300">
-                  আমার টুলব্যাগ ও ফিল্ড স্পেয়ার পার্টস স্টক (Handover Inventory)
-                </h3>
+                <div>
+                  <h3 className="font-extrabold text-xs text-cyan-300">
+                    আমার টুলব্যাগ ও ফিল্ড স্পেয়ার পার্টস স্টক (Handover Inventory)
+                  </h3>
+                  <span className="text-[10px] text-slate-400 font-mono">
+                    সেন্ট্রাল স্টক থেকে সর্বশেষ হস্তান্তর: আজ, ১১:৩০ AM
+                  </span>
+                </div>
               </div>
-              <span className="text-[10px] text-slate-400 font-mono">
-                সেন্ট্রাল স্টক থেকে সর্বশেষ হস্তান্তর: আজ, ১১:৩০ AM
-              </span>
+
+              <button
+                type="button"
+                onClick={() => setIsReturnModalOpen(true)}
+                className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 text-white font-extrabold text-xs flex items-center space-x-1.5 shadow-md shadow-amber-600/30 transition active:scale-95"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>📤 সেন্ট্রাল ওয়্যারহাউসে রিটার্ন পাঠান</span>
+              </button>
             </div>
 
             <p className="text-[11px] text-slate-400">
@@ -780,6 +822,57 @@ export const TechnicianPortalView: React.FC = () => {
               ))}
             </div>
 
+            {/* My Dispatched Return Packages to Central Warehouse */}
+            {techReturnShipments.length > 0 && (
+              <div className="bg-slate-950 p-3 rounded-2xl border border-amber-500/40 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10.5px] font-bold text-amber-300 uppercase tracking-wider flex items-center space-x-1.5">
+                    <RotateCcw className="w-3.5 h-3.5 text-amber-400" />
+                    <span>সেন্ট্রাল ওয়্যারহাউসে প্রেরিত রিটার্ন পার্সেল ট্র্যাকিং:</span>
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-mono">{techReturnShipments.length} টি চালান</span>
+                </div>
+
+                <div className="space-y-1.5 text-xs font-sans">
+                  {techReturnShipments.map(ret => {
+                    const isPending = ret.status === 'pending_admin_scan';
+                    const isRestocked = ret.status === 'received_restocked';
+
+                    return (
+                      <div key={ret.id} className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div>
+                          <div className="flex items-center space-x-2">
+                            <span className="font-mono text-[10px] font-black text-amber-400 bg-amber-950 px-2 py-0.2 rounded border border-amber-800">
+                              {ret.id}
+                            </span>
+                            <span className="font-bold text-slate-200">{ret.itemName} (x{ret.quantity})</span>
+                            <span className={`text-[9px] px-1.5 py-0.2 rounded font-mono ${
+                              ret.reportedCondition === 'good_unused' ? 'text-emerald-300 bg-emerald-950 border border-emerald-800' : 'text-rose-300 bg-rose-950 border border-rose-800'
+                            }`}>
+                              {ret.reportedCondition === 'good_unused' ? 'ভালো কন্ডিশন' : 'ত্রুটিপূর্ণ/নষ্ট'}
+                            </span>
+                          </div>
+                          <span className="text-[10px] text-slate-400 block font-mono mt-0.5">
+                            {ret.reason} • প্রেরণের তারিখ: {ret.date}
+                          </span>
+                        </div>
+
+                        <span className={`text-[9.5px] font-bold px-2 py-0.5 rounded-full border self-start sm:self-auto shrink-0 ${
+                          isPending 
+                            ? 'bg-amber-950 text-amber-300 border-amber-700 animate-pulse'
+                            : isRestocked 
+                              ? 'bg-emerald-950 text-emerald-300 border-emerald-700'
+                              : 'bg-rose-950 text-rose-300 border-rose-700'
+                        }`}>
+                          {isPending ? '⏳ ইন-ট্রানজিট (অ্যাডমিন স্ক্যানের অপেক্ষায়)' : isRestocked ? '✅ রিসিভড ও সেন্ট্রাল স্টকে জমা' : '🗑️ রিসিভড ও ওয়েস্টেজ লেজারে এন্ট্রি'}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Recent Parts Consumption Log */}
             <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-2">
               <span className="text-[10.5px] font-bold text-slate-300 uppercase tracking-wider block">
@@ -798,6 +891,150 @@ export const TechnicianPortalView: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {/* ========================================================================= */}
+          {/* 📤 INITIATE RETURN MODAL                                                   */}
+          {/* ========================================================================= */}
+          {isReturnModalOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in select-none">
+              <div className="bg-slate-900 border border-amber-500/50 rounded-3xl max-w-md w-full p-5 shadow-2xl space-y-3.5">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+                  <div className="flex items-center space-x-2">
+                    <RotateCcw className="w-4 h-4 text-amber-400" />
+                    <h3 className="font-extrabold text-xs text-amber-300">
+                      সেন্ট্রাল ওয়্যারহাউসে পার্টস/ডিভাইস রিটার্ন চালান তৈরি
+                    </h3>
+                  </div>
+                  <button onClick={() => setIsReturnModalOpen(false)} className="text-slate-400 hover:text-white">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <form 
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const newRet = {
+                      id: `RET-${Math.floor(100 + Math.random() * 900)}`,
+                      date: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+                      techName: user?.name || 'আব্দুল করিম (গুলশান হাব)',
+                      itemType: returnItemType,
+                      itemName: returnItemName,
+                      itemCodeOrImei: returnCodeOrImei,
+                      quantity: Number(returnQuantity),
+                      unitPrice: returnItemType === 'gps_device' ? 3500 : 200,
+                      reportedCondition: returnCondition,
+                      reason: returnReason.trim() || (returnCondition === 'good_unused' ? 'অব্যবহৃত অতিরিক্ত পার্টস সেন্ট্রাল স্টকে ফেরত' : 'কাস্টমার গাড়ির ত্রুটিপূর্ণ পার্টস ফেরত'),
+                      status: 'pending_admin_scan'
+                    };
+
+                    const updatedReturns = [newRet, ...techReturnShipments];
+                    setTechReturnShipments(updatedReturns);
+                    localStorage.setItem('gps_tech_return_shipments', JSON.stringify(updatedReturns));
+                    setIsReturnModalOpen(false);
+                    setReturnReason('');
+                    alert(`✅ রিটার্ন চালান (${newRet.id}) তৈরি হয়েছে!\nসুপার অ্যাডমিন পার্সেল রিসিভ করে বারকোড স্ক্যান করার পর আপনার লেজার থেকে স্বয়ংক্রিয়ভাবে মাইনাস হয়ে যাবে।`);
+                  }}
+                  className="space-y-3 text-xs"
+                >
+                  <div>
+                    <label className="text-[10.5px] font-bold text-slate-300 block mb-1">রিটার্ন আইটেমের ধরন *</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setReturnItemType('spare_part');
+                          setReturnItemName('12V 40A হেভি ডিউটি রিলে (RELAY-40A)');
+                          setReturnCodeOrImei('RELAY-40A');
+                        }}
+                        className={`p-2 rounded-xl border text-center font-bold transition ${
+                          returnItemType === 'spare_part' ? 'bg-cyan-950 border-cyan-500 text-cyan-200' : 'bg-slate-950 border-slate-800 text-slate-400'
+                        }`}
+                      >
+                        📦 স্পেয়ার পার্টস
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setReturnItemType('gps_device');
+                          setReturnItemName('ইজিট্র্যাকার ৪জি মিনি ওয়াটারপ্রুফ প্রো');
+                          setReturnCodeOrImei('864720058291034');
+                        }}
+                        className={`p-2 rounded-xl border text-center font-bold transition ${
+                          returnItemType === 'gps_device' ? 'bg-purple-950 border-purple-500 text-purple-200' : 'bg-slate-950 border-slate-800 text-slate-400'
+                        }`}
+                      >
+                        🚗 GPS ট্র্যাকার ডিভাইস
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[10.5px] font-bold text-slate-300 block mb-1">পার্টস বা ডিভাইসের কোড / IMEI *</label>
+                    <input
+                      type="text"
+                      required
+                      value={returnCodeOrImei}
+                      onChange={(e) => setReturnCodeOrImei(e.target.value)}
+                      placeholder="যেমন: RELAY-40A অথবা 864720058291034"
+                      className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 font-mono font-bold focus:border-amber-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[10.5px] font-bold text-slate-300 block mb-1">পরিমাণ (Qty) *</label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="20"
+                        required
+                        value={returnQuantity}
+                        onChange={(e) => setReturnQuantity(Number(e.target.value))}
+                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 font-mono font-bold focus:border-amber-500 focus:outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[10.5px] font-bold text-slate-300 block mb-1">টেকনিশিয়ানের পর্যবেক্ষণ *</label>
+                      <select
+                        value={returnCondition}
+                        onChange={(e: any) => setReturnCondition(e.target.value)}
+                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-2 text-slate-100 font-bold focus:border-amber-500 focus:outline-none"
+                      >
+                        <option value="good_unused">✅ ভালো / অব্যবহৃত</option>
+                        <option value="defective_damaged">❌ নষ্ট / ত্রুটিপূর্ণ</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[10.5px] font-bold text-slate-300 block mb-1">রিটার্ন কারণ / নোট</label>
+                    <input
+                      type="text"
+                      value={returnReason}
+                      onChange={(e) => setReturnReason(e.target.value)}
+                      placeholder="যেমন: অতিরিক্ত স্টক ফেরত অথবা কাস্টমার আনইনস্টলড ডিভাইস"
+                      className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 focus:border-amber-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="p-2.5 rounded-xl bg-amber-950/40 border border-amber-500/30 text-[10.5px] text-amber-300 flex items-center space-x-1.5">
+                    <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span>সুপার অ্যাডমিন স্ক্যান করে গ্রহণ করলেই আপনার ব্যক্তিগত জিম্মা থেকে খালাস হবে।</span>
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 text-white font-extrabold text-xs flex items-center justify-center space-x-1.5 shadow-lg shadow-amber-600/30 transition active:scale-95"
+                  >
+                    <Send className="w-4 h-4" />
+                    <span>চালান তৈরি করুন ও ওয়্যারহাউসে প্রেরণ নিশ্চিত করুন</span>
+                  </button>
+                </form>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -1001,7 +1238,7 @@ export const TechnicianPortalView: React.FC = () => {
       {/* ========================================================================= */}
       {/* 🔓 SCENARIO 2: ACTIVE JOB IN PROGRESS (DIAGNOSTICS & SETTINGS UNLOCKED)  */}
       {/* ========================================================================= */}
-      {activeJob && (
+      {activeTabMode === 'install_diagnostic' && activeJob && (
         <div className="space-y-4 animate-in fade-in">
           {/* Active Job Target Banner */}
           <div className="bg-gradient-to-r from-purple-950/60 via-slate-900 to-slate-900 border border-purple-500/60 rounded-3xl p-4 shadow-xl space-y-2">
@@ -1211,40 +1448,42 @@ export const TechnicianPortalView: React.FC = () => {
       )}
 
       {/* Work Orders Ledger */}
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl space-y-3">
-        <span className="text-xs font-bold uppercase tracking-wider text-slate-300 block">
-          টেকনিশিয়ান জব ও সার্ভিস ফি হিস্ট্রি ({workOrders.length})
-        </span>
+      {activeTabMode === 'install_diagnostic' && (
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl space-y-3">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-300 block">
+            টেকনিশিয়ান জব ও সার্ভিস ফি হিস্ট্রি ({workOrders.length})
+          </span>
 
-        <div className="space-y-2">
-          {workOrders.map((j) => (
-            <div key={j.id} className="p-3 bg-slate-950/80 border border-slate-800 rounded-2xl flex items-center justify-between text-xs">
-              <div>
-                <div className="font-extrabold text-slate-100 flex items-center space-x-2">
-                  <span>{j.vehicleName}</span>
-                  <span className="text-slate-400 font-mono text-[10px]">({j.customerName})</span>
+          <div className="space-y-2">
+            {workOrders.map((j) => (
+              <div key={j.id} className="p-3 bg-slate-950/80 border border-slate-800 rounded-2xl flex items-center justify-between text-xs">
+                <div>
+                  <div className="font-extrabold text-slate-100 flex items-center space-x-2">
+                    <span>{j.vehicleName}</span>
+                    <span className="text-slate-400 font-mono text-[10px]">({j.customerName})</span>
+                  </div>
+                  <div className="text-[10px] text-slate-400 mt-0.5">
+                    IMEI: {j.trackerImei} • প্লেট: {j.plateNumber}
+                  </div>
                 </div>
-                <div className="text-[10px] text-slate-400 mt-0.5">
-                  IMEI: {j.trackerImei} • প্লেট: {j.plateNumber}
+
+                <div className="text-right">
+                  <div className={`text-[9.5px] font-bold px-2 py-0.5 rounded-full border ${
+                    j.status === 'approved_paid' ? 'bg-emerald-950 text-emerald-300 border-emerald-700' :
+                    j.status === 'completed_pending_approval' ? 'bg-amber-950 text-amber-300 border-amber-700' :
+                    'bg-purple-950 text-purple-300 border-purple-700 animate-pulse'
+                  }`}>
+                    {j.status === 'approved_paid' ? '৳৩০০ পেইড' :
+                     j.status === 'completed_pending_approval' ? 'পেন্ডিং ভেরিফিকেশন (৳৩০০)' :
+                     'চলমান কাজ'}
+                  </div>
+                  <div className="text-[9px] text-slate-500 mt-0.5">{j.assignedDate}</div>
                 </div>
               </div>
-
-              <div className="text-right">
-                <div className={`text-[9.5px] font-bold px-2 py-0.5 rounded-full border ${
-                  j.status === 'approved_paid' ? 'bg-emerald-950 text-emerald-300 border-emerald-700' :
-                  j.status === 'completed_pending_approval' ? 'bg-amber-950 text-amber-300 border-amber-700' :
-                  'bg-purple-950 text-purple-300 border-purple-700 animate-pulse'
-                }`}>
-                  {j.status === 'approved_paid' ? '৳৩০০ পেইড' :
-                   j.status === 'completed_pending_approval' ? 'পেন্ডিং ভেরিফিকেশন (৳৩০০)' :
-                   'চলমান কাজ'}
-                </div>
-                <div className="text-[9px] text-slate-500 mt-0.5">{j.assignedDate}</div>
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       <UniversalSaleModal
         isOpen={isSaleModalOpen}
