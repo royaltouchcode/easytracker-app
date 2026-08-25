@@ -599,28 +599,47 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
               </div>
 
               {/* Referral Code & Copy Box */}
-              <div className="bg-slate-950/90 border border-purple-500/40 rounded-xl p-2.5 flex items-center justify-between">
-                <div>
-                  <span className="text-[9px] text-slate-400 block font-semibold">আপনার ইউনিক রেফারেল কোড:</span>
-                  <span className="text-sm font-mono font-black text-purple-300 tracking-wider">
+              <div className="bg-slate-950/90 border border-purple-500/40 rounded-xl p-2.5 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[9px] text-slate-400 font-semibold">আপনার ইউনিক রেফারেল কোড:</span>
+                  <span className="text-xs font-mono font-black text-purple-300 tracking-wider">
                     {`EASY-${(selectedDevice?.id || 1).toString().padStart(4, '0')}`}
                   </span>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    const code = `EASY-${(selectedDevice?.id || 1).toString().padStart(4, '0')}`;
-                    if (typeof navigator !== 'undefined' && navigator.clipboard) {
-                      navigator.clipboard.writeText(code);
-                      alert(`✅ রেফারেল কোড "${code}" কপি হয়েছে!`);
-                    }
-                  }}
-                  className="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs flex items-center space-x-1 transition active:scale-95 shadow-md shadow-purple-600/30"
-                >
-                  <Copy className="w-3.5 h-3.5" />
-                  <span>কপি</span>
-                </button>
+                <div className="flex space-x-1.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const code = `EASY-${(selectedDevice?.id || 1).toString().padStart(4, '0')}`;
+                      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+                        navigator.clipboard.writeText(code);
+                        alert(`✅ রেফারেল কোড "${code}" কপি হয়েছে!`);
+                      }
+                    }}
+                    className="flex-1 py-1.5 rounded-lg bg-purple-600/80 hover:bg-purple-600 text-white font-bold text-[10.5px] flex items-center justify-center space-x-1 transition active:scale-95 shadow-sm"
+                  >
+                    <Copy className="w-3 h-3" />
+                    <span>কোড কপি</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const code = `EASY-${(selectedDevice?.id || 1).toString().padStart(4, '0')}`;
+                      const base = appConfig.referralBaseUrl || appConfig.website || (typeof window !== 'undefined' ? window.location.origin : 'https://easytracker.net');
+                      const link = `${base.replace(/\/$/, '')}/?ref=${code}`;
+                      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+                        navigator.clipboard.writeText(link);
+                        alert(`🔗 ডায়নামিক রেফারেল লিংক কপি হয়েছে:\n${link}`);
+                      }
+                    }}
+                    className="flex-1 py-1.5 rounded-lg bg-indigo-600/80 hover:bg-indigo-600 text-white font-bold text-[10.5px] flex items-center justify-center space-x-1 transition active:scale-95 shadow-sm"
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                    <span>লিংক কপি</span>
+                  </button>
+                </div>
               </div>
 
               {/* Live Referral Stats */}
@@ -645,7 +664,9 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
                   type="button"
                   onClick={() => {
                     const code = `EASY-${(selectedDevice?.id || 1).toString().padStart(4, '0')}`;
-                    const msg = `*🚗 EasyTracker GPS Tracker Special Offer!*\n\nআমার রেফারেল কোড *${code}* ব্যবহার করে নতুন ট্র্যাকার বা সাবস্ক্রিপশন কিনলেই পাচ্ছেন ৳১০০ নগদ ছাড় ও ফ্রি ডোরস্টেপ ইনস্টলেশন!\n\nভিজিট করুন: ${appConfig.website}`;
+                    const base = appConfig.referralBaseUrl || appConfig.website || (typeof window !== 'undefined' ? window.location.origin : 'https://easytracker.net');
+                    const link = `${base.replace(/\/$/, '')}/?ref=${code}`;
+                    const msg = `*🚗 EasyTracker GPS Tracker Special Offer!*\n\nআমার ডায়নামিক রেফারেল লিংক ব্যবহার করে নতুন ট্র্যাকার বা সাবস্ক্রিপশন কিনলেই পাচ্ছেন ৳১০০ নগদ ছাড় ও ফ্রি ডোরস্টেপ ইনস্টলেশন!\n\nঅর্ডার করতে ভিজিট করুন: ${link}`;
                     const waUrl = `https://wa.me/?text=${encodeURIComponent(msg)}`;
                     if (typeof window !== 'undefined') window.open(waUrl, '_blank');
                   }}
@@ -658,8 +679,10 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
                   type="button"
                   onClick={() => {
                     const code = `EASY-${(selectedDevice?.id || 1).toString().padStart(4, '0')}`;
-                    const quote = `🚗 EasyTracker GPS Tracker Special Offer! আমার রেফারেল কোড "${code}" দিয়ে নতুন ট্র্যাকার বা সাবস্ক্রিপশন নিলেই পাচ্ছেন ৳১০০ নগদ ছাড়!`;
-                    const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(appConfig.website)}&quote=${encodeURIComponent(quote)}`;
+                    const base = appConfig.referralBaseUrl || appConfig.website || (typeof window !== 'undefined' ? window.location.origin : 'https://easytracker.net');
+                    const link = `${base.replace(/\/$/, '')}/?ref=${code}`;
+                    const quote = `🚗 EasyTracker GPS Tracker Special Offer! আমার রেফারেল লিংক থেকে নতুন ট্র্যাকার বা সাবস্ক্রিপশন নিলেই পাচ্ছেন ৳১০০ নগদ ছাড়!`;
+                    const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(link)}&quote=${encodeURIComponent(quote)}`;
                     if (typeof window !== 'undefined') window.open(fbUrl, '_blank');
                   }}
                   className="py-2.5 px-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs flex items-center justify-center space-x-1.5 shadow-md shadow-blue-600/30 transition active:scale-95"

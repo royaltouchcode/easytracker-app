@@ -13,6 +13,7 @@ export interface AppConfig {
   refundWhatsapp: string;
   officeAddress: string;
   website: string;
+  referralBaseUrl: string;
   privacyPolicyUrl: string;
   termsUrl: string;
   logoUrl: string;
@@ -35,6 +36,7 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
   refundWhatsapp: '+8801700000000',
   officeAddress: 'Dhaka, Bangladesh',
   website: 'https://easysoftsolution.net',
+  referralBaseUrl: 'https://easysoftsolution.net',
   privacyPolicyUrl: 'https://easysoftsolution.net/privacy',
   termsUrl: 'https://easysoftsolution.net/terms',
   logoUrl: '/logo.svg',

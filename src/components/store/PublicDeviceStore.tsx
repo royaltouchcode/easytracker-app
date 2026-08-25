@@ -32,6 +32,7 @@ import {
   Crosshair,
   Building2,
   Wrench,
+  AlertTriangle,
   Info
 } from 'lucide-react';
 import { VehicleType } from '../../types/traccar';
@@ -441,10 +442,46 @@ export const PublicDeviceStore: React.FC<PublicDeviceStoreProps> = ({ isOpen, on
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [district, setDistrict] = useState('ঢাকা');
   const [referralCode, setReferralCode] = useState('');
+  const [inputReferralCode, setInputReferralCode] = useState('');
+  const [referralSource, setReferralSource] = useState<'url' | 'manual' | 'error' | 'none'>('none');
+  const [referralMessage, setReferralMessage] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'advance_online' | 'after_install_online' | 'cash_on_install'>('advance_online');
 
   const [createdOrder, setCreatedOrder] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Auto-detect ?ref= dynamic referral parameter from URL on load
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlRef = new URLSearchParams(window.location.search).get('ref');
+      if (urlRef && urlRef.trim()) {
+        const cleanRef = urlRef.trim().toUpperCase();
+        setReferralCode(cleanRef);
+        setInputReferralCode(cleanRef);
+        setReferralSource('url');
+        setReferralMessage(`🔗 ডায়নামিক রেফারেল লিংক থেকে ৳১০০ নগদ ছাড় স্বয়ংক্রিয়ভাবে অ্যাক্টিভ হয়েছে! (কোড: ${cleanRef})`);
+      }
+    }
+  }, []);
+
+  const handleApplyManualReferral = (codeToApply: string) => {
+    const clean = codeToApply.trim().toUpperCase();
+    if (!clean) {
+      setReferralMessage('');
+      setReferralSource('none');
+      setReferralCode('');
+      return;
+    }
+    if (clean.length < 4) {
+      setReferralMessage('❌ রেফারেল কোডটি কমপক্ষে ৪ অক্ষরের হতে হবে।');
+      setReferralSource('error');
+      setReferralCode('');
+      return;
+    }
+    setReferralCode(clean);
+    setReferralSource('manual');
+    setReferralMessage(`🎉 রেফারেল কোড "${clean}" সফলভাবে অ্যাপ্লাই করা হয়েছে! আপনি পাচ্ছেন ৳১০০ ক্যাশব্যাক ছাড়।`);
+  };
 
   // Auto select first device when category changes
   useEffect(() => {
@@ -1216,6 +1253,58 @@ export const PublicDeviceStore: React.FC<PublicDeviceStoreProps> = ({ isOpen, on
           {currentStep === 4 && (
             <div className="space-y-3.5 animate-in fade-in">
               
+              {/* Promo / Referral Code Box */}
+              <div className="bg-slate-950 border border-purple-500/40 rounded-3xl p-3.5 space-y-2.5 shadow-lg">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-1.5 text-purple-300">
+                    <Gift className="w-4 h-4 text-purple-400" />
+                    <span className="text-xs font-black uppercase tracking-wider">
+                      রেফারেল বা প্রমো কোড (Promo / Referral Code)
+                    </span>
+                  </div>
+                  <span className="text-[9.5px] font-bold text-purple-300 bg-purple-950 px-2 py-0.5 rounded-full border border-purple-700 font-mono">
+                    ৳১০০ ডিসকাউন্ট
+                  </span>
+                </div>
+
+                <div className="flex space-x-2">
+                  <input
+                    type="text"
+                    value={inputReferralCode}
+                    onChange={(e) => setInputReferralCode(e.target.value.toUpperCase())}
+                    placeholder="বন্ধুর রেফারেল কোড লিখুন (যেমন: EASY-0001)"
+                    className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono font-bold text-purple-200 uppercase focus:outline-none focus:border-purple-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleApplyManualReferral(inputReferralCode)}
+                    className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs transition active:scale-95 shadow-md shadow-purple-600/20 shrink-0"
+                  >
+                    অ্যাপ্লাই করুন
+                  </button>
+                </div>
+
+                {/* Distinct Status Feedback: URL vs Manual vs Error */}
+                {referralMessage && (
+                  <div className={`p-2.5 rounded-xl border text-[11px] font-bold flex items-center space-x-2 animate-in fade-in ${
+                    referralSource === 'url'
+                      ? 'bg-blue-950/80 border-blue-500/60 text-blue-200'
+                      : referralSource === 'manual'
+                        ? 'bg-emerald-950/80 border-emerald-500/60 text-emerald-200'
+                        : 'bg-rose-950/80 border-rose-500/60 text-rose-200'
+                  }`}>
+                    {referralSource === 'url' ? (
+                      <Sparkles className="w-4 h-4 text-blue-400 shrink-0" />
+                    ) : referralSource === 'manual' ? (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    ) : (
+                      <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+                    )}
+                    <span>{referralMessage}</span>
+                  </div>
+                )}
+              </div>
+
               {/* Order Breakdown Card */}
               <div className="bg-slate-950 border border-slate-800 rounded-3xl p-3.5 space-y-2 text-xs">
                 <div className="font-extrabold text-slate-200 border-b border-slate-800 pb-1.5 flex justify-between">

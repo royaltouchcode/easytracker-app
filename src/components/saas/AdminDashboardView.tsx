@@ -201,6 +201,25 @@ export const AdminDashboardView: React.FC = () => {
     triggerManualAlert('subscription_reminder', '🔄 ডেমো ডাটা সফলভাবে রিস্টোর হয়েছে!');
   };
 
+  // Referral Base Domain state
+  const [adminReferralUrl, setAdminReferralUrl] = useState<string>(() => {
+    return APP_CONFIG.referralBaseUrl || APP_CONFIG.website || (typeof window !== 'undefined' ? window.location.origin : 'https://easysoftsolution.net');
+  });
+
+  const handleSaveReferralDomain = () => {
+    if (!adminReferralUrl.trim()) return;
+    try {
+      const savedConfig = localStorage.getItem('gps_remote_app_config');
+      const parsed = savedConfig ? JSON.parse(savedConfig) : {};
+      parsed.referralBaseUrl = adminReferralUrl.trim();
+      parsed.website = adminReferralUrl.trim();
+      localStorage.setItem('gps_remote_app_config', JSON.stringify(parsed));
+      alert(`✅ রেফারেল ও পাবলিক ডোমেন "${adminReferralUrl.trim()}" সফলভাবে সেভ হয়েছে!`);
+    } catch (e) {
+      alert('ডোমেন সেভ করতে সমস্যা হয়েছে।');
+    }
+  };
+
   // Sales Leads Queue state
   const [salesLeads, setSalesLeads] = useState<SalesLeadEntry[]>(() => {
     const saved = localStorage.getItem('gps_sales_leads_queue');
@@ -640,6 +659,58 @@ export const AdminDashboardView: React.FC = () => {
                     {APP_CONFIG.publisherDomain}
                   </div>
                   <div className="text-[9.5px] text-emerald-400 mt-1">SSL সিকিউরড গেটওয়ে</div>
+                </div>
+              </div>
+
+              {/* Dynamic Referral Link & Public Website Domain Settings */}
+              <div className="bg-gradient-to-br from-purple-950/40 via-slate-900 to-indigo-950/40 border border-purple-500/40 rounded-3xl p-4 shadow-xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Globe className="w-4 h-4 text-purple-400" />
+                    <div>
+                      <h3 className="text-xs font-bold text-white uppercase tracking-wider">
+                        ডায়নামিক রেফারেল লিংক ও পাবলিক ল্যান্ডিং ডোমেন কনফিগারেশন
+                      </h3>
+                      <p className="text-[10px] text-slate-400">
+                        কাস্টমাররা যখন হোয়াটসঅ্যাপ বা ফেসবুকে রেফারেল লিংক শেয়ার করবে, তখন কোন ডোমেন ব্যবহার হবে তা নির্ধারণ করুন
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-[9.5px] font-mono text-purple-300 bg-purple-950 px-2 py-0.5 rounded-full border border-purple-700 font-bold">
+                    DOMAIN ROUTING
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+                  <div className="md:col-span-2">
+                    <label className="text-[11px] text-slate-300 block mb-1 font-semibold">
+                      রেফারেল টার্গেট ডোমেন / URL (Referral Base URL)
+                    </label>
+                    <div className="flex space-x-2">
+                      <input
+                        type="url"
+                        value={adminReferralUrl}
+                        onChange={(e) => setAdminReferralUrl(e.target.value)}
+                        placeholder="e.g. https://easysoftsolution.net অথবা https://app.easysoftsolution.net"
+                        className="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-purple-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleSaveReferralDomain}
+                        className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-md shadow-purple-600/30 transition active:scale-95 shrink-0"
+                      >
+                        সেভ করুন
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-950/80 p-3 rounded-2xl border border-slate-800 flex flex-col justify-between">
+                    <span className="text-[10px] text-slate-400 block">স্যাম্পল লাইভ রেফারেল লিংক:</span>
+                    <span className="text-xs font-mono font-bold text-emerald-400 truncate mt-1">
+                      {`${(adminReferralUrl || 'https://easysoftsolution.net').replace(/\/$/, '')}/?ref=EASY-0001`}
+                    </span>
+                    <span className="text-[9px] text-slate-500 mt-1">অটোমেটিক ?ref= প্যারামিটার ইনজেকশন</span>
+                  </div>
                 </div>
               </div>
 

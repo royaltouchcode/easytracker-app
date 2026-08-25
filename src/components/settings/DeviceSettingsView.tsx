@@ -39,6 +39,7 @@ import {
   Share2,
   CreditCard,
   DollarSign,
+  ExternalLink,
   X
 } from 'lucide-react';
 import { VehicleType, Geofence, AlertFeedbackMode } from '../../types/traccar';
@@ -1155,18 +1156,18 @@ export const DeviceSettingsView: React.FC = () => {
               </div>
             </div>
 
-            {/* Customer's Referral Code Card */}
-            <div className="bg-slate-950 p-3.5 rounded-2xl border border-slate-800 space-y-2">
+            {/* Customer's Referral Code & Dynamic Link Card */}
+            <div className="bg-slate-950 p-3.5 rounded-2xl border border-purple-500/40 space-y-2">
               <div className="text-[11px] font-bold text-slate-300 flex items-center justify-between">
                 <span>আপনার ইউনিক রেফারেল কোড:</span>
                 <span className="text-[10px] text-purple-400 font-mono">লাইফটাইম সক্রিয়</span>
               </div>
 
-              <div className="flex items-center space-x-2">
-                <div className="flex-1 bg-slate-900 border border-purple-500/50 rounded-xl py-2 px-3 text-center font-mono font-black text-base text-purple-300 tracking-wider">
-                  {`EASY-${selectedDevice.id.toString().padStart(4, '0')}`}
-                </div>
+              <div className="bg-slate-900 border border-purple-500/50 rounded-xl py-2 px-3 text-center font-mono font-black text-base text-purple-300 tracking-wider">
+                {`EASY-${selectedDevice.id.toString().padStart(4, '0')}`}
+              </div>
 
+              <div className="flex space-x-2 pt-0.5">
                 <button
                   type="button"
                   onClick={() => {
@@ -1176,10 +1177,27 @@ export const DeviceSettingsView: React.FC = () => {
                       alert(`✅ রেফারেল কোড "${code}" কপি হয়েছে!`);
                     }
                   }}
-                  className="px-3.5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs flex items-center space-x-1 transition active:scale-95 shadow-md"
+                  className="flex-1 py-2 rounded-xl bg-purple-600/80 hover:bg-purple-600 text-white font-bold text-xs flex items-center justify-center space-x-1.5 transition active:scale-95 shadow-md shadow-purple-600/20"
                 >
                   <Copy className="w-3.5 h-3.5" />
-                  <span>কপি</span>
+                  <span>কোড কপি</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const code = `EASY-${selectedDevice.id.toString().padStart(4, '0')}`;
+                    const base = APP_CONFIG.referralBaseUrl || APP_CONFIG.website || (typeof window !== 'undefined' ? window.location.origin : 'https://easytracker.net');
+                    const link = `${base.replace(/\/$/, '')}/?ref=${code}`;
+                    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+                      navigator.clipboard.writeText(link);
+                      alert(`🔗 ডায়নামিক রেফারেল লিংক কপি হয়েছে:\n${link}`);
+                    }
+                  }}
+                  className="flex-1 py-2 rounded-xl bg-indigo-600/80 hover:bg-indigo-600 text-white font-bold text-xs flex items-center justify-center space-x-1.5 transition active:scale-95 shadow-md shadow-indigo-600/20"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>লিংক কপি</span>
                 </button>
               </div>
             </div>
@@ -1206,7 +1224,9 @@ export const DeviceSettingsView: React.FC = () => {
                 type="button"
                 onClick={() => {
                   const code = `EASY-${selectedDevice.id.toString().padStart(4, '0')}`;
-                  const msg = `*🚗 EasyTracker GPS Tracker Special Offer!*\n\nআমার রেফারেল কোড *${code}* ব্যবহার করে নতুন ট্র্যাকার বা সাবস্ক্রিপশন কিনলেই পাচ্ছেন ৳১০০ নগদ ছাড় ও ফ্রি ডোরস্টেপ ইনস্টলেশন!\n\nভিজিট করুন: ${APP_CONFIG.website}`;
+                  const base = APP_CONFIG.referralBaseUrl || APP_CONFIG.website || (typeof window !== 'undefined' ? window.location.origin : 'https://easytracker.net');
+                  const link = `${base.replace(/\/$/, '')}/?ref=${code}`;
+                  const msg = `*🚗 EasyTracker GPS Tracker Special Offer!*\n\nআমার ডায়নামিক রেফারেল লিংক ব্যবহার করে নতুন ট্র্যাকার বা সাবস্ক্রিপশন কিনলেই পাচ্ছেন ৳১০০ নগদ ছাড় ও ফ্রি ডোরস্টেপ ইনস্টলেশন!\n\nঅর্ডার করতে ভিজিট করুন: ${link}`;
                   const waUrl = `https://wa.me/?text=${encodeURIComponent(msg)}`;
                   if (typeof window !== 'undefined') window.open(waUrl, '_blank');
                 }}
@@ -1219,8 +1239,10 @@ export const DeviceSettingsView: React.FC = () => {
                 type="button"
                 onClick={() => {
                   const code = `EASY-${selectedDevice.id.toString().padStart(4, '0')}`;
-                  const quote = `🚗 EasyTracker GPS Tracker Special Offer! আমার রেফারেল কোড "${code}" দিয়ে নতুন ট্র্যাকার বা সাবস্ক্রিপশন নিলেই পাচ্ছেন ৳১০০ নগদ ছাড়!`;
-                  const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(APP_CONFIG.website)}&quote=${encodeURIComponent(quote)}`;
+                  const base = APP_CONFIG.referralBaseUrl || APP_CONFIG.website || (typeof window !== 'undefined' ? window.location.origin : 'https://easytracker.net');
+                  const link = `${base.replace(/\/$/, '')}/?ref=${code}`;
+                  const quote = `🚗 EasyTracker GPS Tracker Special Offer! আমার রেফারেল লিংক থেকে নতুন ট্র্যাকার বা সাবস্ক্রিপশন নিলেই পাচ্ছেন ৳১০০ নগদ ছাড়!`;
+                  const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(link)}&quote=${encodeURIComponent(quote)}`;
                   if (typeof window !== 'undefined') window.open(fbUrl, '_blank');
                 }}
                 className="py-2.5 px-2 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black text-xs flex items-center justify-center space-x-1.5 shadow-lg shadow-blue-600/30 transition active:scale-95"
