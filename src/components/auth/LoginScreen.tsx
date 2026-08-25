@@ -12,7 +12,8 @@ import {
   Radio,
   ArrowRight,
   Building2,
-  Briefcase
+  Briefcase,
+  ShoppingBag
 } from 'lucide-react';
 import { ServerConfig } from '../../types/traccar';
 
@@ -35,6 +36,7 @@ import { APP_CONFIG } from '../../config/appConfig';
 import { PrivacyPolicyModal } from '../compliance/PrivacyPolicyModal';
 import { RefundPolicyModal } from '../compliance/RefundPolicyModal';
 import { PartnerRegistrationModal } from './PartnerRegistrationModal';
+import { PublicDeviceStore } from '../store/PublicDeviceStore';
 
 export const LoginScreen: React.FC = () => {
   const { 
@@ -55,6 +57,7 @@ export const LoginScreen: React.FC = () => {
   const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
   const [isRefundModalOpen, setIsRefundModalOpen] = useState(false);
   const [isPartnerModalOpen, setIsPartnerModalOpen] = useState(false);
+  const [isDeviceStoreOpen, setIsDeviceStoreOpen] = useState(false);
   const [policyAccepted, setPolicyAccepted] = useState(() => {
     return localStorage.getItem('gps_policy_accepted') === 'true';
   });
@@ -297,6 +300,22 @@ export const LoginScreen: React.FC = () => {
               </div>
             </div>
 
+            {/* 🛒 Direct Guest Store & Telco Subscription Booking (No Login Required) */}
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => setIsDeviceStoreOpen(true)}
+                className="w-full py-3 px-3 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-xs flex items-center justify-center space-x-2 transition active:scale-95 shadow-xl shadow-emerald-600/30 ring-1 ring-emerald-400/50"
+              >
+                <ShoppingBag className="w-4 h-4 text-emerald-100" />
+                <span>
+                  {language === 'bn' 
+                    ? '🛒 নতুন ট্র্যাকার কিনুন ও প্যাকেজ দেখুন (লগইন ছাড়াই)' 
+                    : '🛒 Buy Tracker & View Plans (No Login Required)'}
+                </span>
+              </button>
+            </div>
+
             {/* B2B Partner / Staff Registration Entry Button */}
             <div className="pt-1">
               <button
@@ -421,6 +440,12 @@ export const LoginScreen: React.FC = () => {
       <PartnerRegistrationModal
         isOpen={isPartnerModalOpen}
         onClose={() => setIsPartnerModalOpen(false)}
+      />
+
+      {/* Guest Direct Device Store & Telco Subscription Booking Modal */}
+      <PublicDeviceStore
+        isOpen={isDeviceStoreOpen}
+        onClose={() => setIsDeviceStoreOpen(false)}
       />
     </div>
   );

@@ -317,7 +317,7 @@ export const LiveTrackingMap: React.FC = () => {
 
     // 2. Render / update markers for all active displayDevices
     displayDevices.forEach(dev => {
-      const pos = positions[dev.id];
+      const pos = positions[dev.id] || (dev.id === selectedDevice?.id ? selectedPosition : null);
       if (!pos || !pos.latitude || !pos.longitude || (pos.latitude === 0 && pos.longitude === 0)) return;
 
       const speed = Math.round(pos.speed || 0);
@@ -328,29 +328,29 @@ export const LiveTrackingMap: React.FC = () => {
       const heading = pos.course || 0;
 
       const statusGlow = isMoving 
-        ? 'rgba(16, 185, 129, 0.4)' 
+        ? 'rgba(16, 185, 129, 0.5)' 
         : isIgnition 
-          ? 'rgba(245, 158, 11, 0.4)' 
-          : 'rgba(59, 130, 246, 0.3)';
+          ? 'rgba(245, 158, 11, 0.5)' 
+          : 'rgba(239, 68, 68, 0.4)';
 
       const customHtml = `
-        <div class="relative flex flex-col items-center justify-center pointer-events-none select-none" style="width: 140px; height: 120px; margin-left: -48px; margin-top: -42px;">
+        <div class="relative flex flex-col items-center justify-center pointer-events-none select-none" style="width: 140px; margin-left: -46px; margin-top: -36px;">
           <!-- 1. Sleek Floating Micro-Pill (Always Horizontal, Non-Rotated) -->
-          <div class="mb-1.5 bg-slate-900/90 backdrop-blur-md text-white border border-slate-700/80 rounded-full px-2.5 py-0.5 shadow-2xl flex items-center space-x-1.5 whitespace-nowrap text-[9.5px] font-extrabold ring-1 ring-white/10">
-            <span class="w-2 h-2 rounded-full ${isMoving ? 'bg-emerald-400 animate-pulse' : isIgnition ? 'bg-amber-400' : 'bg-rose-400'}"></span>
+          <div class="mb-1.5 bg-slate-900/95 backdrop-blur-md text-white border border-slate-700 rounded-full px-2.5 py-0.5 shadow-2xl flex items-center space-x-1.5 whitespace-nowrap text-[9.5px] font-extrabold ring-1 ring-white/20">
+            <span class="w-2 h-2 rounded-full ${isMoving ? 'bg-emerald-400 animate-ping' : isIgnition ? 'bg-amber-400' : 'bg-rose-400'}"></span>
             <span class="text-slate-100 max-w-[70px] truncate">${dev.name}</span>
             <span class="text-emerald-400 font-mono font-black">${isMoving ? `${speed} km/h` : isIgnition ? 'Idle' : '🅿️ Parked'}</span>
           </div>
 
           <!-- 2. Translucent Halo Radar Pulse & Rotatable 3D Vehicle -->
-          <div class="relative w-12 h-12 flex items-center justify-center">
+          <div class="relative w-14 h-14 flex items-center justify-center">
             <!-- Pulsing Radar Glow Disc -->
-            <div class="absolute inset-0 rounded-full ${isMoving ? 'animate-ping' : ''}" style="background-color: ${statusGlow}; transform: scale(${isMoving ? '1.5' : '1.2'});"></div>
+            <div class="absolute inset-0 rounded-full ${isMoving ? 'animate-ping' : ''}" style="background-color: ${statusGlow}; transform: scale(${isMoving ? '1.4' : '1.1'});"></div>
 
             <!-- Sleek Rotatable Vehicle Model with Forward Heading Arrow -->
-            <div class="relative w-11 h-11 rounded-full flex items-center justify-center shadow-2xl transition-transform duration-300 drop-shadow-2xl" style="transform: rotate(${heading}deg);">
+            <div class="relative w-12 h-12 rounded-full flex items-center justify-center shadow-2xl transition-transform duration-300 drop-shadow-2xl" style="transform: rotate(${heading}deg);">
               <!-- Heading Pointer Indicator -->
-              <div class="absolute -top-2.5 text-cyan-400 text-[11px] font-black drop-shadow-md">▲</div>
+              <div class="absolute -top-3 text-cyan-400 text-[12px] font-black drop-shadow-md">▲</div>
               ${getVehicleMarkerSvg(dev.category, color)}
             </div>
           </div>
@@ -360,19 +360,25 @@ export const LiveTrackingMap: React.FC = () => {
       const icon = L.divIcon({
         html: customHtml,
         className: 'vehicle-div-icon',
-        iconSize: [44, 44],
-        iconAnchor: [22, 22]
+        iconSize: [48, 48],
+        iconAnchor: [24, 24]
       });
 
       if (markersRef.current[dev.id]) {
         const marker = markersRef.current[dev.id];
         marker.setLatLng([pos.latitude, pos.longitude]);
         marker.setIcon(icon);
+        marker.setZIndexOffset(dev.id === selectedDevice?.id ? 1000 : 500);
       } else {
-        const marker = L.marker([pos.latitude, pos.longitude], { icon: icon }).addTo(map);
+        const marker = L.marker([pos.latitude, pos.longitude], {
+          icon,
+          zIndexOffset: dev.id === selectedDevice?.id ? 1000 : 500
+        }).addTo(map);
+
         marker.on('click', () => {
-          setSelectedDeviceId(dev.id);
+          selectDevice(dev.id);
         });
+
         markersRef.current[dev.id] = marker;
       }
     });

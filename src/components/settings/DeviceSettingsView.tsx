@@ -30,9 +30,10 @@ import {
   PhoneForwarded,
   Zap,
   Bot,
-  Sparkles,
   Flame,
-  Users
+  Users,
+  ShoppingBag,
+  Gift
 } from 'lucide-react';
 import { VehicleType, Geofence, AlertFeedbackMode } from '../../types/traccar';
 import { GeofenceModal } from '../geofence/GeofenceModal';
@@ -42,6 +43,7 @@ import { DataDeletionModal } from '../compliance/DataDeletionModal';
 import { VehicleSpecSelectorModal } from './VehicleSpecSelectorModal';
 import { PinVerificationModal } from '../commands/PinVerificationModal';
 import { EmergencyRescueModal } from '../emergency/EmergencyRescueModal';
+import { PublicDeviceStore } from '../store/PublicDeviceStore';
 import { APP_CONFIG } from '../../config/appConfig';
 import { VehicleIcon, getVehicleMarkerSvg } from '../../utils/vehicleIcons';
 
@@ -96,6 +98,8 @@ export const DeviceSettingsView: React.FC = () => {
   const [sos1, setSos1] = useState<string>(selectedDevice?.attributes?.sos1 || '');
   const [sos2, setSos2] = useState<string>(selectedDevice?.attributes?.sos2 || '');
   const [sos3, setSos3] = useState<string>(selectedDevice?.attributes?.sos3 || '');
+  const [fatherName, setFatherName] = useState<string>(selectedDevice?.attributes?.fatherName || '');
+  const [motherName, setMotherName] = useState<string>(selectedDevice?.attributes?.motherName || '');
   const [speedLimit, setSpeedLimit] = useState<number>(selectedDevice?.attributes?.speedLimit || 60);
 
   // Security Master PIN Modal State
@@ -117,6 +121,9 @@ export const DeviceSettingsView: React.FC = () => {
 
   // Emergency Rescue Modal State
   const [isEmergencyModalOpen, setIsEmergencyModalOpen] = useState(false);
+
+  // Direct Device Store Modal State
+  const [isDeviceStoreOpen, setIsDeviceStoreOpen] = useState(false);
 
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [sosSyncing, setSosSyncing] = useState(false);
@@ -194,6 +201,8 @@ export const DeviceSettingsView: React.FC = () => {
           plateNumber: plateNumber.trim(),
           driverName: driverName.trim(),
           driverPhone: driverPhone.trim(),
+          fatherName: fatherName.trim(),
+          motherName: motherName.trim(),
           phone: devicePhone.trim(),
           simNumber: devicePhone.trim(),
           commandPin: commandPin.trim(),
@@ -235,6 +244,52 @@ export const DeviceSettingsView: React.FC = () => {
             </p>
           </div>
         </div>
+      </div>
+
+      {/* 🛍️ Customer Quick Actions: Add Another Vehicle & Referral Program */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+        <button
+          type="button"
+          onClick={() => setIsDeviceStoreOpen(true)}
+          className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-950/80 via-slate-900 to-slate-900 border-2 border-emerald-500/60 hover:border-emerald-400 text-left flex items-center justify-between transition active:scale-95 shadow-lg group"
+        >
+          <div className="flex items-center space-x-2.5">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center justify-center shrink-0">
+              <ShoppingBag className="w-5 h-5" />
+            </div>
+            <div>
+              <span className="text-xs font-black text-white block">🛒 নতুন গাড়ি বা ট্র্যাকার কিনুন</span>
+              <span className="text-[10px] text-slate-400">ডোরস্টেপ টেকনিশিয়ান ইনস্টলেশন সহ</span>
+            </div>
+          </div>
+          <span className="text-[9.5px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded-full font-mono shrink-0 ml-2">
+            BUY STORE
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            if (typeof navigator !== 'undefined' && navigator.clipboard) {
+              navigator.clipboard.writeText(`ইজিট্র্যাকারে রেফারেল কোড FRIEND100 ব্যবহার করে ট্র্যাকার কিনলে পাবেন ৳১০০ ডিসকাউন্ট! ডাউনলোড করুন: ${APP_CONFIG.website}`);
+              alert('🎁 আপনার রেফারেল লিংক কপি হয়েছে! বন্ধুদের সাথে শেয়ার করুন।');
+            }
+          }}
+          className="p-3.5 rounded-2xl bg-gradient-to-r from-purple-950/80 via-slate-900 to-slate-900 border-2 border-purple-500/60 hover:border-purple-400 text-left flex items-center justify-between transition active:scale-95 shadow-lg group"
+        >
+          <div className="flex items-center space-x-2.5">
+            <div className="w-10 h-10 rounded-xl bg-purple-500/20 text-purple-300 border border-purple-500/40 flex items-center justify-center shrink-0">
+              <Gift className="w-5 h-5 text-purple-300" />
+            </div>
+            <div>
+              <span className="text-xs font-black text-white block">🎁 বন্ধুকে রেফার করুন ও ক্যাশব্যাক পান</span>
+              <span className="text-[10px] text-purple-300/80">প্রতি সফল অর্ডারে ১ মাস ফ্রি সার্ভিস!</span>
+            </div>
+          </div>
+          <span className="text-[9.5px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/40 px-2 py-0.5 rounded-full font-mono shrink-0 ml-2">
+            REFERRAL
+          </span>
+        </button>
       </div>
 
       <form onSubmit={handleTriggerSaveProfile} className="space-y-4">
@@ -774,6 +829,41 @@ export const DeviceSettingsView: React.FC = () => {
             </div>
           </div>
 
+          {/* Mandatory Family KYC for Emergency Rescue & Police Verification */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 border-t border-slate-800/80">
+            <div className="bg-slate-950 p-2.5 rounded-2xl border border-blue-500/30 space-y-1">
+              <label className="text-[11px] font-extrabold text-blue-300 flex items-center justify-between">
+                <span>👤 পিতার নাম (Father's Name) *</span>
+                <span className="text-[9px] text-amber-400 font-bold uppercase">বাধ্যতামূলক</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={fatherName}
+                onChange={(e) => setFatherName(e.target.value)}
+                placeholder={language === 'bn' ? 'পিতার পুরো নাম লিখুন' : "Father's Full Name"}
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-blue-400"
+              />
+              <span className="text-[9px] text-slate-400 block">রেসকিউ হটলাইন ও পুলিশ জিডি ভেরিফিকেশনে ব্যবহৃত হবে</span>
+            </div>
+
+            <div className="bg-slate-950 p-2.5 rounded-2xl border border-blue-500/30 space-y-1">
+              <label className="text-[11px] font-extrabold text-blue-300 flex items-center justify-between">
+                <span>👤 মাতার নাম (Mother's Name) *</span>
+                <span className="text-[9px] text-amber-400 font-bold uppercase">বাধ্যতামূলক</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={motherName}
+                onChange={(e) => setMotherName(e.target.value)}
+                placeholder={language === 'bn' ? 'মাতার পুরো নাম লিখুন' : "Mother's Full Name"}
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-blue-400"
+              />
+              <span className="text-[9px] text-slate-400 block">জরুরি মালিকানা ও রেসকিউ বাইপাসে প্রয়োজনীয়</span>
+            </div>
+          </div>
+
           {/* Speed Limit */}
           <div className="pt-2">
             <div className="flex justify-between text-xs mb-1">
@@ -1001,6 +1091,12 @@ export const DeviceSettingsView: React.FC = () => {
       <EmergencyRescueModal
         isOpen={isEmergencyModalOpen}
         onClose={() => setIsEmergencyModalOpen(false)}
+      />
+
+      {/* Direct Device Store & Add Vehicle Modal */}
+      <PublicDeviceStore
+        isOpen={isDeviceStoreOpen}
+        onClose={() => setIsDeviceStoreOpen(false)}
       />
     </div>
   );
