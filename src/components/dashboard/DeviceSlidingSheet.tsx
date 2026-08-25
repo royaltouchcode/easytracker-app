@@ -472,7 +472,7 @@ export const DeviceSlidingSheet: React.FC = () => {
             </div>
 
             <button
-              onClick={() => setIsCustomCommandOpen(true)}
+              onClick={() => setIsCustomCmdModalOpen(true)}
               className="px-2 py-0.5 rounded-lg bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/40 font-bold text-[9.5px] flex items-center space-x-1 transition active:scale-95 shrink-0 ml-1.5"
             >
               <RefreshCw className="w-2.5 h-2.5 text-purple-300" />
