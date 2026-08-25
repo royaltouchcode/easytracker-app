@@ -31,10 +31,15 @@ import {
   TechnicianLedgerConfig,
   TechnicianTransaction,
   DigitalPaymentOffer,
-  StaffCommissionEntry,
   DeviceInventoryItem,
   SimInventoryItem,
-  AppTheme
+  AppTheme,
+  ReturnLogEntry,
+  ReturnChannel,
+  ReturnCondition,
+  ReturnResolution,
+  ReturnOwnership,
+  ReturnItemType
 } from '../types/traccar';
 import { traccarApi } from '../services/traccarApi';
 import { traccarSocket } from '../services/traccarSocket';
@@ -283,6 +288,10 @@ interface AppContextType {
 
   appTheme: AppTheme;
   setAppTheme: (theme: AppTheme) => void;
+  returnLogs: ReturnLogEntry[];
+  initiateReturnLog: (entry: Omit<ReturnLogEntry, 'id' | 'challanNumber' | 'returnDate'>) => ReturnLogEntry;
+  updateReturnLog: (id: string, updates: Partial<ReturnLogEntry>) => void;
+  resolveReturnLog: (id: string, resolution: ReturnResolution, refundAmount?: number, qcNotes?: string) => void;
   language: Language;
   setLanguage: (lang: Language) => void;
   t: (key: string) => string;
@@ -2338,6 +2347,178 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     triggerManualAlert('geofenceEnter', `📡 বাল্ক স্ক্যানে ${sims.length} টি সিম কার্ড ইনভেন্টরিতে যুক্ত হয়েছে!`);
   };
 
+  // 🔄 Reverse Logistics & Return / RMA Management State
+  const [returnLogs, setReturnLogs] = useState<ReturnLogEntry[]>(() => {
+    const saved = localStorage.getItem('gps_saas_return_logs');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) { console.error(e); }
+    }
+    return [
+      {
+        id: 'RET-LOG-9001',
+        challanNumber: 'CH-TECH-2026-081',
+        returnDate: '24 Aug 2026',
+        channel: 'technician',
+        itemType: 'bundle',
+        imei: '860192039485712',
+        deviceModel: 'Micodus MV720 Relay',
+        simMsisdn: '01811-223344',
+        simIccid: '8988018001234567890',
+        ownership: 'partner',
+        partnerId: 'PRT-8801',
+        partnerName: 'ঢাকা সেন্ট্রাল ট্র্যাকিং হাব',
+        technicianName: 'ইঞ্জিঃ মোঃ জাহিদুল ইসলাম',
+        previousVehiclePlate: 'DHAKA METRO-HA 19-8821',
+        previousCustomerName: 'তানভীর আহমেদ',
+        previousCustomerPhone: '01712-334455',
+        currentCustodian: 'Tech: জাহিদুল ইসলাম (Field Bag)',
+        condition: 'working_good',
+        qcNotes: 'বাইক সেল করায় আনবাইন্ড করা হয়েছে। টেস্টে জিপিএস ও রিলে ১০০% ওকে।',
+        resolution: 'restocked_reusable',
+        financialStatus: 'none',
+        resolvedAt: '24 Aug 2026'
+      },
+      {
+        id: 'RET-LOG-9002',
+        challanNumber: 'CH-QC-2026-082',
+        returnDate: '23 Aug 2026',
+        channel: 'support_qc',
+        itemType: 'device',
+        imei: '863920192847561',
+        deviceModel: 'Coban TK303G GPS',
+        ownership: 'easytracker_central',
+        partnerId: 'PRT-8801',
+        partnerName: 'ঢাকা সেন্ট্রাল ট্র্যাকিং হাব',
+        currentCustodian: 'EasyTracker QC Lab (Testing Room)',
+        condition: 'hardware_damaged',
+        qcNotes: 'পাওয়ার সেকশন বার্ন হয়েছে। ম্যানুফ্যাকচারার ওয়ারেন্টি রিপ্লেসমেন্টে পাঠানো প্রয়োজন।',
+        resolution: 'rma_supplier',
+        financialStatus: 'pending_approval'
+      },
+      {
+        id: 'RET-LOG-9003',
+        challanNumber: 'CH-SHOP-2026-083',
+        returnDate: '22 Aug 2026',
+        channel: 'partner_shop',
+        itemType: 'bundle',
+        imei: '354778343153899',
+        deviceModel: 'Concox GT06N',
+        simMsisdn: '01700-112233',
+        ownership: 'partner',
+        partnerId: 'PRT-8801',
+        partnerName: 'ঢাকা সেন্ট্রাল ট্র্যাকিং হাব',
+        previousVehiclePlate: 'DHAKA METRO-GA 11-2233',
+        previousCustomerName: 'কবির হোসেন',
+        previousCustomerPhone: '01819-887766',
+        currentCustodian: 'Partner Outlet (Uttara Branch)',
+        condition: 'working_good',
+        qcNotes: 'কাস্টমার বাইক চেঞ্জ করেছে। পার্টনারের রি-ইনস্টল স্টকে সংরক্ষিত।',
+        resolution: 'refunded_credit',
+        refundAmountBdt: 1200,
+        financialStatus: 'credited',
+        resolvedAt: '22 Aug 2026'
+      },
+      {
+        id: 'RET-LOG-9004',
+        challanNumber: 'CH-HQ-2026-084',
+        returnDate: '21 Aug 2026',
+        channel: 'central_office',
+        itemType: 'device',
+        imei: '864720058291044',
+        deviceModel: 'Teltonika FMB920',
+        ownership: 'easytracker_central',
+        currentCustodian: 'EasyTracker Central Warehouse (HQ Shelf A-4)',
+        condition: 'working_good',
+        qcNotes: 'সেন্ট্রাল হেড অফিসে রিসিভ ও বারকোড ভেরিফিকেশন সম্পন্ন।',
+        resolution: 'restocked_reusable',
+        financialStatus: 'none',
+        resolvedAt: '21 Aug 2026'
+      }
+    ];
+  });
+
+  const initiateReturnLog = (entry: Omit<ReturnLogEntry, 'id' | 'challanNumber' | 'returnDate'>) => {
+    const channelPrefix = 
+      entry.channel === 'technician' ? 'TECH' :
+      entry.channel === 'support_qc' ? 'QC' :
+      entry.channel === 'partner_shop' ? 'SHOP' : 'HQ';
+    
+    const newEntry: ReturnLogEntry = {
+      ...entry,
+      id: `RET-LOG-${Date.now().toString().slice(-4)}`,
+      challanNumber: `CH-${channelPrefix}-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`,
+      returnDate: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+    };
+
+    setReturnLogs(prev => {
+      const next = [newEntry, ...prev];
+      localStorage.setItem('gps_saas_return_logs', JSON.stringify(next));
+      return next;
+    });
+
+    // Also update Device / SIM status if applicable
+    if (entry.imei) {
+      setDeviceInventory(prev => prev.map(d => {
+        if (d.imei === entry.imei) {
+          const newStatus = entry.resolution === 'restocked_reusable' ? 'returned_reinstall' :
+                           entry.resolution === 'rma_supplier' ? 'rma_repair' :
+                           entry.resolution === 'scrapped' ? 'damaged_scrap' : 'returned_reinstall';
+          return { ...d, status: newStatus, assignedVehiclePlate: undefined, assignedCustomerName: undefined };
+        }
+        return d;
+      }));
+    }
+
+    if (entry.simMsisdn) {
+      setSimInventory(prev => prev.map(s => {
+        if (s.msisdn === entry.simMsisdn) {
+          return { ...s, status: 'unsubscribed_unpaired', pairedImei: undefined, assignedVehiclePlate: undefined };
+        }
+        return s;
+      }));
+    }
+
+    triggerManualAlert(
+      'geofenceEnter',
+      `🔄 নতুন রিটার্ন ও কাস্টডি রেকর্ড তৈরি হয়েছে! চালান নং: ${newEntry.challanNumber}`
+    );
+
+    return newEntry;
+  };
+
+  const updateReturnLog = (id: string, updates: Partial<ReturnLogEntry>) => {
+    setReturnLogs(prev => {
+      const next = prev.map(r => r.id === id ? { ...r, ...updates } : r);
+      localStorage.setItem('gps_saas_return_logs', JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const resolveReturnLog = (id: string, resolution: ReturnResolution, refundAmount?: number, qcNotes?: string) => {
+    setReturnLogs(prev => {
+      const next = prev.map(r => {
+        if (r.id === id) {
+          return {
+            ...r,
+            resolution,
+            refundAmountBdt: refundAmount !== undefined ? refundAmount : r.refundAmountBdt,
+            qcNotes: qcNotes || r.qcNotes,
+            financialStatus: refundAmount ? 'credited' : r.financialStatus || 'none',
+            resolvedAt: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+          };
+        }
+        return r;
+      });
+      localStorage.setItem('gps_saas_return_logs', JSON.stringify(next));
+      return next;
+    });
+
+    triggerManualAlert(
+      'subscription_reminder',
+      `✅ রিটার্ন ডিসপ্যাচ সমাধান সম্পন্ন হয়েছে (${resolution})!`
+    );
+  };
+
   // Update Partner Tier Pricing & Auto-Settlement Channels
   const updatePartnerTierPricing = (
     partnerId: string, 
@@ -3273,6 +3454,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         bulkImportDevices,
         bulkImportSims,
         updatePartnerTierPricing,
+        returnLogs,
+        initiateReturnLog,
+        updateReturnLog,
+        resolveReturnLog,
         appTheme,
         setAppTheme,
         language,

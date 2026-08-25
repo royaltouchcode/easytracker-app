@@ -40,7 +40,8 @@ import {
   Receipt,
   Tag,
   Boxes,
-  Radio
+  Radio,
+  RotateCcw
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Device, PartnerRegistrationEntry, SaasRole } from '../../types/traccar';
@@ -52,6 +53,7 @@ type PartnerSectionType =
   | 'device_inventory'
   | 'sim_inventory'
   | 'sales_log'
+  | 'returns_rma'
   | 'pricing_plans'
   | 'finance'
   | 'staff'
@@ -274,6 +276,7 @@ export const PartnerPortalView: React.FC = () => {
     { id: 'device_inventory', labelBn: 'ট্র্যাকার ডিভাইস ইনভেন্টরি', labelEn: 'Device Inventory', icon: Cpu, badge: 'Hardware', badgeColor: 'bg-cyan-500/20 text-cyan-300' },
     { id: 'sim_inventory', labelBn: 'টেলিমেটিক্স সিম ইনভেন্টরি', labelEn: 'SIM Inventory', icon: Radio, badge: 'M2M SIM', badgeColor: 'bg-purple-500/20 text-purple-300' },
     { id: 'sales_log', labelBn: 'সেলস ও ইনস্টলেশন হিস্ট্রি', labelEn: 'Sales & Dispatch Log', icon: FileSpreadsheet, badge: 'BRTA', badgeColor: 'bg-emerald-500/20 text-emerald-300' },
+    { id: 'returns_rma', labelBn: 'রিটার্ন ও আরএমএ কাস্টডি', labelEn: 'Returns & RMA Log', icon: RotateCcw, badge: 'RMA', badgeColor: 'bg-amber-500/20 text-amber-300' },
     { id: 'pricing_plans', labelBn: 'সাবস্ক্রিপশন প্যাকেজ ও প্রাইসিং', labelEn: 'Subscription Plans', icon: Tag, badge: 'Config', badgeColor: 'bg-emerald-500/20 text-emerald-300' },
     { id: 'finance', labelBn: 'ফ্লোটিং লেজার ও পে-আউট', labelEn: 'Finance & Ledger', icon: CreditCard, badge: `৳${floatingDue}`, badgeColor: 'bg-rose-500/20 text-rose-300' },
     { id: 'staff', labelBn: 'স্টাফ ও টেকনিশিয়ান টিম', labelEn: 'Staff & Team', icon: Users, badge: '৩ জন', badgeColor: 'bg-purple-500/20 text-purple-300' },
@@ -1069,6 +1072,40 @@ export const PartnerPortalView: React.FC = () => {
 
                 <EnterpriseInventoryManager 
                   standaloneMode="sales_log"
+                  partnerIdFilter={partnerProfile.partnerId || user?.partnerId} 
+                  isPartnerPortal={true} 
+                />
+              </div>
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* 🔄 TAB 6: DEDICATED REVERSE LOGISTICS, RETURNS & RMA CUSTODY GATEWAY      */}
+          {/* ========================================================================= */}
+          {activeSection === 'returns_rma' && (
+            <div className="space-y-4 animate-in fade-in duration-150">
+              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 sm:p-5 shadow-xl">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3 mb-4">
+                  <div className="flex items-center space-x-2.5">
+                    <div className="w-9 h-9 rounded-2xl bg-amber-600/30 border border-amber-500/50 flex items-center justify-center text-amber-300 shadow-md">
+                      <RotateCcw className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-extrabold text-sm text-white">
+                        🔄 রিভার্স লজিস্টিক্স, ডিভাইস/সিম রিটার্ন ও কাস্টডি চালান
+                      </h3>
+                      <p className="text-[10.5px] text-slate-400">
+                        টেকনিশিয়ান আনবাইন্ড, পার্টনার শপ রিসিভিং, কিউসি ল্যাব টেস্ট ও সেন্ট্রাল ওয়্যারহাউজ হ্যান্ডওভার রেকর্ড।
+                      </p>
+                    </div>
+                  </div>
+                  <span className="px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 font-extrabold text-xs border border-amber-500/40 shrink-0 self-start sm:self-auto">
+                    ৪-চ্যানেল কাস্টডি
+                  </span>
+                </div>
+
+                <EnterpriseInventoryManager 
+                  standaloneMode="returns_rma"
                   partnerIdFilter={partnerProfile.partnerId || user?.partnerId} 
                   isPartnerPortal={true} 
                 />

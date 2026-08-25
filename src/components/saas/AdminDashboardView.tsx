@@ -34,7 +34,8 @@ import {
   Building2,
   UserCheck,
   Car,
-  Cpu
+  Cpu,
+  RotateCcw
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { APP_CONFIG } from '../../config/appConfig';
@@ -53,6 +54,7 @@ type AdminSectionType =
   | 'device_inventory'
   | 'sim_inventory'
   | 'sales_log'
+  | 'returns_rma'
   | 'sales_queue'
   | 'dealer_quotas'
   | 'rate_cards'
@@ -390,6 +392,7 @@ export const AdminDashboardView: React.FC = () => {
     { id: 'device_inventory', labelBn: 'ট্র্যাকার ডিভাইস ERP', labelEn: 'Device Inventory', icon: Cpu, badge: 'Hardware', badgeColor: 'bg-cyan-500/20 text-cyan-300' },
     { id: 'sim_inventory', labelBn: 'টেলিমেটিক্স সিম ERP', labelEn: 'SIM Inventory', icon: Radio, badge: 'M2M SIM', badgeColor: 'bg-purple-500/20 text-purple-300' },
     { id: 'sales_log', labelBn: 'সেলস ও ইনস্টলেশন হিস্ট্রি', labelEn: 'Sales & Dispatch Log', icon: FileSpreadsheet, badge: 'BRTA', badgeColor: 'bg-emerald-500/20 text-emerald-300' },
+    { id: 'returns_rma', labelBn: 'রিটার্ন ও আরএমএ কাস্টডি', labelEn: 'Returns & RMA', icon: RotateCcw, badge: 'Reverse', badgeColor: 'bg-amber-500/20 text-amber-300' },
     { id: 'sales_queue', labelBn: 'সেলস অনবোর্ডিং কিউ', labelEn: 'Sales Leads Queue', icon: Smartphone, badge: pendingLeads.length > 0 ? `${pendingLeads.length}` : undefined, badgeColor: 'bg-amber-500/30 text-amber-300' },
     { id: 'dealer_quotas', labelBn: 'ডিলার পে-ওয়াল ও লেজার', labelEn: 'Dealer Quota & Ledger', icon: Building2 },
     { id: 'rate_cards', labelBn: 'সার্ভিস রেট ও পার্টস কার্ড', labelEn: 'Rate Cards & Spares', icon: CreditCard },
@@ -930,6 +933,36 @@ export const AdminDashboardView: React.FC = () => {
                 </div>
 
                 <EnterpriseInventoryManager standaloneMode="sales_log" isPartnerPortal={false} />
+              </div>
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* VIEW: CENTRAL REVERSE LOGISTICS, RETURNS & RMA CUSTODY GATEWAY            */}
+          {/* ========================================================================= */}
+          {activeSection === 'returns_rma' && (
+            <div className="space-y-4 animate-in fade-in duration-150">
+              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3 mb-4">
+                  <div className="flex items-center space-x-2.5">
+                    <div className="w-10 h-10 rounded-2xl bg-amber-600/30 border border-amber-500/50 flex items-center justify-center text-amber-300 shadow-md">
+                      <RotateCcw className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-extrabold text-sm text-white">
+                        🔄 সেন্ট্রাল রিভার্স লজিস্টিক্স, রিটার্ন ও কাস্টডি অডিট লেজার
+                      </h3>
+                      <p className="text-[11px] text-slate-400">
+                        ৪-চ্যানেল রিসিভিং (টেকনিশিয়ান, সেন্ট্রাল অফিস, সাপোর্ট কিউসি ল্যাব ও পার্টনার শপ), ডিজিটাল গেট পাস এবং লেজার রিফান্ড।
+                      </p>
+                    </div>
+                  </div>
+                  <span className="px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 font-extrabold text-xs border border-amber-500/40 shrink-0 self-start sm:self-auto">
+                    ৪-চ্যানেল কাস্টডি ERP
+                  </span>
+                </div>
+
+                <EnterpriseInventoryManager standaloneMode="returns_rma" isPartnerPortal={false} />
               </div>
             </div>
           )}

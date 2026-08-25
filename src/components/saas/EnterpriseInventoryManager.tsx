@@ -27,10 +27,15 @@ import {
   User,
   Calendar,
   FileText,
-  Printer,
-  Eye,
-  Activity,
-  CheckSquare
+  CheckSquare,
+  Building2,
+  Wrench,
+  Truck,
+  FileSpreadsheet,
+  DollarSign,
+  PackageOpen,
+  Undo2,
+  Package
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { 
@@ -38,13 +43,19 @@ import {
   SimInventoryItem, 
   DeviceInventoryStatus, 
   SimInventoryStatus, 
-  SimType 
+  SimType,
+  ReturnLogEntry,
+  ReturnChannel,
+  ReturnCondition,
+  ReturnResolution,
+  ReturnOwnership,
+  ReturnItemType
 } from '../../types/traccar';
 
 interface EnterpriseInventoryManagerProps {
   partnerIdFilter?: string;
   isPartnerPortal?: boolean;
-  standaloneMode?: 'devices' | 'sims' | 'sales_log' | 'all';
+  standaloneMode?: 'devices' | 'sims' | 'sales_log' | 'returns_rma' | 'all';
 }
 
 export const EnterpriseInventoryManager: React.FC<EnterpriseInventoryManagerProps> = ({ 
@@ -55,6 +66,10 @@ export const EnterpriseInventoryManager: React.FC<EnterpriseInventoryManagerProp
   const {
     deviceInventory,
     simInventory,
+    returnLogs,
+    initiateReturnLog,
+    updateReturnLog,
+    resolveReturnLog,
     addDeviceToInventory,
     updateDeviceInventoryItem,
     deleteDeviceInventoryItem,
@@ -66,8 +81,8 @@ export const EnterpriseInventoryManager: React.FC<EnterpriseInventoryManagerProp
     user
   } = useApp();
 
-  // Active Sub-Tabs: Devices, SIMs, Sales & Install Log, Scrap/Damaged
-  const [activeTab, setActiveTab] = useState<'devices' | 'sims' | 'sales_log' | 'scrap'>(
+  // Active Sub-Tabs: Devices, SIMs, Sales & Install Log, Returns/RMA, Scrap/Damaged
+  const [activeTab, setActiveTab] = useState<'devices' | 'sims' | 'sales_log' | 'returns_rma' | 'scrap'>(
     standaloneMode && standaloneMode !== 'all' ? standaloneMode : 'devices'
   );
 
@@ -125,6 +140,34 @@ export const EnterpriseInventoryManager: React.FC<EnterpriseInventoryManagerProp
     status: 'in_stock_ready',
     partnerId: partnerIdFilter || user?.partnerId || 'PRT-8801',
     notes: 'টেলিমেটিক্স আইওটি ডেটা সিম'
+  });
+
+  // Return & RMA State
+  const [isAddReturnOpen, setIsAddReturnOpen] = useState(false);
+  const [selectedReturnSlip, setSelectedReturnSlip] = useState<ReturnLogEntry | null>(null);
+  const [channelFilter, setChannelFilter] = useState<string>('all');
+  const [selectedReturnToResolve, setSelectedReturnToResolve] = useState<ReturnLogEntry | null>(null);
+
+  const [newReturn, setNewReturn] = useState<Omit<ReturnLogEntry, 'id' | 'challanNumber' | 'returnDate'>>({
+    channel: 'technician',
+    itemType: 'bundle',
+    imei: '864720058291088',
+    deviceModel: 'GT06N Smart Tracker',
+    simMsisdn: '01811-223344',
+    simIccid: '8988018001234567890',
+    ownership: 'partner',
+    partnerId: partnerIdFilter || user?.partnerId || 'PRT-8801',
+    partnerName: 'ঢাকা সেন্ট্রাল ট্র্যাকিং হাব',
+    technicianName: 'ইঞ্জিঃ মোঃ জাহিদুল ইসলাম',
+    previousVehiclePlate: 'DHAKA METRO-HA 12-3456',
+    previousCustomerName: 'কাস্টমার রিকভারি',
+    previousCustomerPhone: '01711-223344',
+    currentCustodian: 'Tech: জাহিদুল ইসলাম (Field Bag)',
+    condition: 'working_good',
+    qcNotes: 'আনবাইন্ড করা হয়েছে। টেস্ট ওকে।',
+    resolution: 'restocked_reusable',
+    refundAmountBdt: 0,
+    financialStatus: 'none'
   });
 
   // Copy helper
@@ -222,10 +265,29 @@ export const EnterpriseInventoryManager: React.FC<EnterpriseInventoryManagerProp
       });
   }, [deviceInventory, simInventory, partnerIdFilter]);
 
+  // Filtered Reverse Logistics & Return Logs
+  const filteredReturns = useMemo(() => {
+    return returnLogs.filter(r => {
+      if (!isBelongingToScope(r.partnerId)) return false;
+      if (channelFilter !== 'all' && r.channel !== channelFilter) return false;
+      if (searchTerm) {
+        const query = searchTerm.toLowerCase();
+        const matchImei = r.imei?.toLowerCase().includes(query);
+        const matchSim = r.simMsisdn?.toLowerCase().includes(query);
+        const matchChallan = r.challanNumber.toLowerCase().includes(query);
+        const matchPlate = r.previousVehiclePlate?.toLowerCase().includes(query);
+        const matchCust = r.currentCustodian.toLowerCase().includes(query);
+        if (!matchImei && !matchSim && !matchChallan && !matchPlate && !matchCust) return false;
+      }
+      return true;
+    });
+  }, [returnLogs, channelFilter, searchTerm, partnerIdFilter]);
+
   // Metrics (scoped to current partner/view)
   const metrics = useMemo(() => {
     const scopedDevs = deviceInventory.filter(d => isBelongingToScope(d.partnerId));
     const scopedSims = simInventory.filter(s => isBelongingToScope(s.partnerId));
+    const scopedReturns = returnLogs.filter(r => isBelongingToScope(r.partnerId));
 
     const totalDevs = scopedDevs.length;
     const inStockDevs = scopedDevs.filter(d => d.status === 'in_stock').length;
@@ -238,6 +300,12 @@ export const EnterpriseInventoryManager: React.FC<EnterpriseInventoryManagerProp
     const activeSims = scopedSims.filter(s => s.status === 'paired_with_device' || s.status === 'active_live').length;
     const scrapSims = scopedSims.filter(s => s.status === 'damaged_lost').length;
 
+    const techReturns = scopedReturns.filter(r => r.channel === 'technician').length;
+    const qcReturns = scopedReturns.filter(r => r.channel === 'support_qc').length;
+    const shopReturns = scopedReturns.filter(r => r.channel === 'partner_shop').length;
+    const centralReturns = scopedReturns.filter(r => r.channel === 'central_office').length;
+    const totalRefundedBdt = scopedReturns.reduce((sum, r) => sum + (r.refundAmountBdt || 0), 0);
+
     return {
       totalDevs,
       inStockDevs,
@@ -248,9 +316,15 @@ export const EnterpriseInventoryManager: React.FC<EnterpriseInventoryManagerProp
       readySims,
       activeSims,
       scrapSims,
-      totalSoldInstall: scopedDevs.filter(d => d.status === 'sold_active' || d.assignedVehiclePlate).length
+      totalSoldInstall: scopedDevs.filter(d => d.status === 'sold_active' || d.assignedVehiclePlate).length,
+      techReturns,
+      qcReturns,
+      shopReturns,
+      centralReturns,
+      totalReturns: scopedReturns.length,
+      totalRefundedBdt
     };
-  }, [deviceInventory, simInventory, partnerIdFilter]);
+  }, [deviceInventory, simInventory, returnLogs, partnerIdFilter]);
 
   // Quick Barcode Scan Handler
   const handleBarcodeScanned = (code: string) => {
@@ -397,6 +471,70 @@ export const EnterpriseInventoryManager: React.FC<EnterpriseInventoryManagerProp
         </div>
       )}
 
+      {/* SLOT C ONLY: IN RETURNS & RMA STANDALONE MODE */}
+      {standaloneMode === 'returns_rma' && (
+        <div className="w-full">
+          <div className="p-4 rounded-3xl bg-gradient-to-br from-amber-950/80 via-slate-900 to-slate-900 border border-amber-500/40 shadow-xl flex flex-col justify-between space-y-3">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-2xl bg-amber-600/30 border border-amber-500/50 flex items-center justify-center text-amber-300 shadow-md">
+                  <RotateCcw className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="text-[10px] font-black uppercase tracking-wider text-amber-300">রিভার্স লজিস্টিক্স ও কাস্টডি গেটওয়ে</span>
+                  <h4 className="font-extrabold text-sm text-white">নতুন রিটার্ন ও কাস্টডি চালান এন্ট্রি</h4>
+                  <p className="text-[10.5px] text-slate-400">টেকনিশিয়ান, সেন্ট্রাল অফিস, সাপোর্ট ল্যাব ও ফ্র্যাঞ্চাইজি শপের রিসিভিং ও কাস্টডি রেকর্ড</p>
+                </div>
+              </div>
+              <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                মোট রিটার্ন: {metrics.totalReturns} টি
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+              <div className="p-2 bg-slate-950/60 rounded-xl border border-slate-800 text-center">
+                <div className="text-[10px] text-slate-400">👨‍🔧 ফিল্ড টেকনিশিয়ান</div>
+                <div className="font-mono font-bold text-amber-300 text-sm">{metrics.techReturns} টি</div>
+              </div>
+              <div className="p-2 bg-slate-950/60 rounded-xl border border-slate-800 text-center">
+                <div className="text-[10px] text-slate-400">🧪 সাপোর্ট / QC ল্যাব</div>
+                <div className="font-mono font-bold text-rose-300 text-sm">{metrics.qcReturns} টি</div>
+              </div>
+              <div className="p-2 bg-slate-950/60 rounded-xl border border-slate-800 text-center">
+                <div className="text-[10px] text-slate-400">🏪 পার্টনার শপ</div>
+                <div className="font-mono font-bold text-emerald-300 text-sm">{metrics.shopReturns} টি</div>
+              </div>
+              <div className="p-2 bg-slate-950/60 rounded-xl border border-slate-800 text-center">
+                <div className="text-[10px] text-slate-400">🏢 সেন্ট্রাল অফিস</div>
+                <div className="font-mono font-bold text-cyan-300 text-sm">{metrics.centralReturns} টি</div>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2 pt-1">
+              <button
+                onClick={() => setIsAddReturnOpen(true)}
+                className="flex-1 py-2.5 px-3 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-extrabold text-xs shadow-md shadow-amber-600/30 flex items-center justify-center space-x-1.5 transition active:scale-95"
+              >
+                <Plus className="w-4 h-4" />
+                <span>+ নতুন রিটার্ন এন্ট্রি ও কাস্টডি চালান</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setScannerMode('device');
+                  setIsScanning(true);
+                }}
+                className="px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-xs border border-slate-700 flex items-center space-x-1 transition"
+                title="চালান / বারকোড স্ক্যান"
+              >
+                <Scan className="w-4 h-4" />
+                <span>স্ক্যান</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ========================================================================= */}
       {/* 2. SUMMARY METRICS BAR (SCOPED & ACCURATE)                                */}
       {/* ========================================================================= */}
@@ -434,15 +572,15 @@ export const EnterpriseInventoryManager: React.FC<EnterpriseInventoryManagerProp
           <span className="text-[9.5px] text-purple-200">M2M ও রেগুলার সিম রেডি</span>
         </div>
 
-        <div className="p-3.5 rounded-2xl bg-gradient-to-br from-cyan-950/60 to-slate-900 border border-cyan-500/30">
+        <div className="p-3.5 rounded-2xl bg-gradient-to-br from-amber-950/60 to-slate-900 border border-amber-500/30">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-black uppercase text-cyan-300">রি-ইনস্টল স্টক</span>
-            <RotateCcw className="w-4 h-4 text-cyan-400" />
+            <span className="text-[10px] font-black uppercase text-amber-300">রিটার্ন ও কাস্টডি রেকর্ড</span>
+            <RotateCcw className="w-4 h-4 text-amber-400" />
           </div>
-          <div className="text-xl font-black font-mono text-cyan-300 mt-1">
-            {metrics.reinstallDevs} <span className="text-xs font-normal text-slate-400">টি</span>
+          <div className="text-xl font-black font-mono text-amber-300 mt-1">
+            {metrics.totalReturns} <span className="text-xs font-normal text-slate-400">টি</span>
           </div>
-          <span className="text-[9.5px] text-cyan-200">আনবাইন্ড ও পুনর্ব্যবহারযোগ্য</span>
+          <span className="text-[9.5px] text-amber-200">৪ চ্যানেল রিভার্স ট্র্যাকিং</span>
         </div>
       </div>
 
@@ -485,7 +623,19 @@ export const EnterpriseInventoryManager: React.FC<EnterpriseInventoryManagerProp
               }`}
             >
               <ClipboardList className="w-3.5 h-3.5" />
-              <span>📑 সেলস ও ইনস্টলেশন হিস্ট্রি ({salesAndInstallRecords.length})</span>
+              <span>📑 সেলস ও ইনস্টলেশন ({salesAndInstallRecords.length})</span>
+            </button>
+
+            <button
+              onClick={() => { setActiveTab('returns_rma'); setChannelFilter('all'); }}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-black transition flex items-center justify-center space-x-1.5 shrink-0 ${
+                activeTab === 'returns_rma' 
+                  ? 'bg-amber-600 text-white shadow-md' 
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>🔄 রিটার্ন ও RMA ({filteredReturns.length})</span>
             </button>
 
             <button
@@ -958,6 +1108,208 @@ export const EnterpriseInventoryManager: React.FC<EnterpriseInventoryManagerProp
                             title="আনবাইন্ড"
                           >
                             আনবাইন্ড
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 🔄 TAB: REVERSE LOGISTICS, RETURNS & RMA CUSTODY GATEWAY                  */}
+      {/* ========================================================================= */}
+      {activeTab === 'returns_rma' && (
+        <div className="bg-slate-900 border border-amber-900/40 rounded-3xl p-4 sm:p-5 shadow-xl space-y-4 animate-in fade-in">
+          
+          {/* Header & Sub-filters */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+            <div className="flex items-center space-x-2.5">
+              <div className="w-9 h-9 rounded-2xl bg-amber-600/30 border border-amber-500/50 flex items-center justify-center text-amber-300 shadow-md">
+                <RotateCcw className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-sm text-white">
+                  🔄 রিভার্স লজিস্টিক্স, রিটার্ন ও কাস্টডি অডিট লেজার
+                </h3>
+                <p className="text-[10.5px] text-slate-400">
+                  ৪-চ্যানেল রিসিভিং (টেকনিশিয়ান, সেন্ট্রাল অফিস, সাপোর্ট ল্যাব, পার্টনার শপ) ও ডিজিটাল কাস্টডি ট্র্যাকিং।
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setIsAddReturnOpen(true)}
+              className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-extrabold text-xs shadow-md shadow-amber-600/30 flex items-center space-x-1.5 transition active:scale-95 shrink-0 self-start sm:self-auto"
+            >
+              <Plus className="w-4 h-4" />
+              <span>+ নতুন রিটার্ন এন্ট্রি</span>
+            </button>
+          </div>
+
+          {/* 4 Inward Channels Filter Pills */}
+          <div className="flex items-center space-x-1.5 p-1 bg-slate-950 rounded-xl border border-slate-800/80 overflow-x-auto">
+            {[
+              { id: 'all', label: `সবগুলো রিটার্ন (${returnLogs.length})` },
+              { id: 'technician', label: `👨‍🔧 টেকনিশিয়ান রিকভারি (${metrics.techReturns})` },
+              { id: 'support_qc', label: `🧪 সাপোর্ট / QC ল্যাব (${metrics.qcReturns})` },
+              { id: 'partner_shop', label: `🏪 পার্টনার শপ কাউন্টার (${metrics.shopReturns})` },
+              { id: 'central_office', label: `🏢 সেন্ট্রাল হেড অফিস (${metrics.centralReturns})` },
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setChannelFilter(tab.id)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 shrink-0 ${
+                  channelFilter === tab.id
+                    ? 'bg-amber-600 text-white shadow-md'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <span>{tab.label}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Table Container */}
+          <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-950/60">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="border-b border-slate-800 bg-slate-900/80 text-[10.5px] font-black uppercase text-slate-400">
+                  <th className="p-3">চালান ও তারিখ</th>
+                  <th className="p-3">আইটেম ও পূর্বের বাহন</th>
+                  <th className="p-3">রিটার্ন চ্যানেল ও মালিকানা</th>
+                  <th className="p-3">বর্তমান কাস্টডি ও লোকেশন</th>
+                  <th className="p-3">কোয়ালিটি শর্ত</th>
+                  <th className="p-3">রেজোলিউশন ও রিফান্ড</th>
+                  <th className="p-3 text-right">একশন</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800/60">
+                {filteredReturns.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="p-8 text-center text-slate-500 text-xs">
+                      🔍 নির্বাচিত চ্যানেলে কোনো রিটার্ন রেকর্ড পাওয়া যায়নি।
+                    </td>
+                  </tr>
+                ) : (
+                  filteredReturns.map((item) => (
+                    <tr key={item.id} className="hover:bg-slate-850/50 transition">
+                      <td className="p-3">
+                        <div className="font-mono font-bold text-amber-300 text-xs flex items-center space-x-1">
+                          <span>{item.challanNumber}</span>
+                          <button 
+                            onClick={() => handleCopy(item.challanNumber, item.id)}
+                            className="p-1 hover:text-white text-slate-500"
+                            title="কপি চালান"
+                          >
+                            {copiedId === item.id ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                          </button>
+                        </div>
+                        <div className="text-[10px] text-slate-400 font-mono mt-0.5">{item.returnDate}</div>
+                      </td>
+
+                      <td className="p-3">
+                        {item.imei && (
+                          <div className="font-mono font-bold text-white text-xs">
+                            IMEI: {item.imei}
+                          </div>
+                        )}
+                        {item.deviceModel && (
+                          <div className="text-[10px] text-indigo-300 font-medium">{item.deviceModel}</div>
+                        )}
+                        {item.simMsisdn && (
+                          <div className="text-[10px] text-purple-300 font-mono">SIM: {item.simMsisdn}</div>
+                        )}
+                        {item.previousVehiclePlate && (
+                          <div className="text-[9.5px] text-slate-400 mt-0.5 font-mono">
+                            🚗 {item.previousVehiclePlate} ({item.previousCustomerName || 'Customer'})
+                          </div>
+                        )}
+                      </td>
+
+                      <td className="p-3">
+                        <span className={`inline-flex items-center space-x-1 px-2 py-0.5 rounded-full text-[9.5px] font-bold border ${
+                          item.channel === 'technician' ? 'bg-amber-500/20 text-amber-300 border-amber-500/30' :
+                          item.channel === 'support_qc' ? 'bg-rose-500/20 text-rose-300 border-rose-500/30' :
+                          item.channel === 'partner_shop' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' :
+                          'bg-cyan-500/20 text-cyan-300 border-cyan-500/30'
+                        }`}>
+                          <span>
+                            {item.channel === 'technician' ? '👨‍🔧 টেকনিশিয়ান' :
+                             item.channel === 'support_qc' ? '🧪 QC ল্যাব' :
+                             item.channel === 'partner_shop' ? '🏪 পার্টনার শপ' : '🏢 সেন্ট্রাল HQ'}
+                          </span>
+                        </span>
+                        <div className="mt-1">
+                          <span className="text-[9px] font-mono text-slate-400">
+                            মালিক: {item.ownership === 'easytracker_central' ? '🏢 EasyTracker HQ' : `🏪 ${item.partnerName || 'Partner'}`}
+                          </span>
+                        </div>
+                      </td>
+
+                      <td className="p-3">
+                        <div className="font-bold text-slate-200 text-xs flex items-center space-x-1">
+                          <Package className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                          <span>{item.currentCustodian}</span>
+                        </div>
+                        {item.technicianName && (
+                          <div className="text-[9.5px] text-slate-400 mt-0.5">টেক: {item.technicianName}</div>
+                        )}
+                      </td>
+
+                      <td className="p-3">
+                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold border ${
+                          item.condition === 'working_good' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' :
+                          item.condition === 'needs_inspection' ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' :
+                          item.condition === 'hardware_damaged' ? 'bg-rose-500/20 text-rose-300 border-rose-500/40' :
+                          'bg-purple-500/20 text-purple-300 border-purple-500/40'
+                        }`}>
+                          {item.condition === 'working_good' ? '✅ ত্রুটিমুক্ত / Good' :
+                           item.condition === 'needs_inspection' ? '⚠️ পরীক্ষা প্রয়োজন' :
+                           item.condition === 'hardware_damaged' ? '❌ ড্যামেজ / ত্রুটিযুক্ত' : '📶 সিম স্লিপ মোড'}
+                        </span>
+                        {item.qcNotes && (
+                          <div className="text-[9.5px] text-slate-400 mt-1 max-w-xs truncate" title={item.qcNotes}>
+                            {item.qcNotes}
+                          </div>
+                        )}
+                      </td>
+
+                      <td className="p-3">
+                        <div className="font-bold text-xs text-white">
+                          {item.resolution === 'restocked_reusable' ? '🔄 রি-ইনস্টল স্টকে যুক্ত' :
+                           item.resolution === 'refunded_credit' ? '💳 ওয়ালেটে রিফান্ড/ক্রেডিট' :
+                           item.resolution === 'rma_supplier' ? '🛠️ RMA ওয়ারেন্টি ক্লেইম' :
+                           item.resolution === 'scrapped' ? '🗑️ স্ক্র্যাপ / অপচয়' : '⏳ বিবেচনাধীন'}
+                        </div>
+                        {item.refundAmountBdt ? (
+                          <div className="text-[10px] text-emerald-400 font-mono font-bold mt-0.5">
+                            + ৳ {item.refundAmountBdt.toLocaleString()}
+                          </div>
+                        ) : null}
+                      </td>
+
+                      <td className="p-3 text-right">
+                        <div className="flex items-center justify-end space-x-1.5">
+                          <button
+                            onClick={() => setSelectedReturnSlip(item)}
+                            className="px-2.5 py-1.5 rounded-xl bg-amber-600/30 hover:bg-amber-600/50 text-amber-300 border border-amber-500/40 text-[10.5px] font-bold transition flex items-center space-x-1"
+                            title="চালান ও গেট পাস স্লিপ"
+                          >
+                            <FileText className="w-3 h-3" />
+                            <span>চালান স্লিপ</span>
+                          </button>
+
+                          <button
+                            onClick={() => setSelectedReturnToResolve(item)}
+                            className="px-2 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10.5px] font-bold transition"
+                            title="রেজোলিউশন আপডেট"
+                          >
+                            ⚙️
                           </button>
                         </div>
                       </td>
@@ -1517,6 +1869,398 @@ export const EnterpriseInventoryManager: React.FC<EnterpriseInventoryManagerProp
                 className="w-full py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold"
               >
                 বন্ধ করুন
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 15. MODAL: INITIATE NEW RETURN & CUSTODY CHALLAN                          */}
+      {/* ========================================================================= */}
+      {isAddReturnOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 animate-in fade-in overflow-y-auto">
+          <div className="bg-slate-900 border border-amber-500/40 rounded-3xl p-5 w-full max-w-xl shadow-2xl space-y-4 animate-in zoom-in-95 my-8 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center space-x-2.5">
+                <div className="w-9 h-9 rounded-2xl bg-amber-600/30 border border-amber-500/50 flex items-center justify-center text-amber-300 shadow-md">
+                  <RotateCcw className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-sm text-white">নতুন রিটার্ন ও কাস্টডি চালান এন্ট্রি</h3>
+                  <p className="text-[10.5px] text-slate-400">৪-চ্যানেল রিভার্স লজিস্টিক্স ও রিকভারি হ্যান্ডওভার</p>
+                </div>
+              </div>
+              <button onClick={() => setIsAddReturnOpen(false)} className="text-slate-400 hover:text-white p-1">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                initiateReturnLog(newReturn);
+                setIsAddReturnOpen(false);
+              }}
+              className="space-y-4 text-xs"
+            >
+              {/* STEP 1: SELECT RETURN INWARD CHANNEL (4 OPTIONS) */}
+              <div>
+                <label className="text-[11px] font-black text-amber-300 uppercase tracking-wider block mb-2">
+                  ১. রিটার্ন ইনওয়ার্ড চ্যানেল নির্বাচন করুন:
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {[
+                    { id: 'technician' as ReturnChannel, label: '👨‍🔧 টেকনিশিয়ান', sub: 'ফিল্ড রিকভারি ও আনবাইন্ড', color: 'border-amber-500 bg-amber-950/40' },
+                    { id: 'support_qc' as ReturnChannel, label: '🧪 QC ল্যাব', sub: 'সাপোর্ট টেস্ট ও RMA ক্লেইম', color: 'border-rose-500 bg-rose-950/40' },
+                    { id: 'partner_shop' as ReturnChannel, label: '🏪 পার্টনার শপ', sub: 'ফ্র্যাঞ্চাইজি কাউন্টার রিটার্ন', color: 'border-emerald-500 bg-emerald-950/40' },
+                    { id: 'central_office' as ReturnChannel, label: '🏢 সেন্ট্রাল HQ', sub: 'হেড অফিস ওয়্যারহাউজ ইনওয়ার্ড', color: 'border-cyan-500 bg-cyan-950/40' },
+                  ].map(c => (
+                    <div
+                      key={c.id}
+                      onClick={() => {
+                        let autoCustodian = newReturn.currentCustodian;
+                        if (c.id === 'technician') autoCustodian = 'Tech: জাহিদুল ইসলাম (Field Bag)';
+                        else if (c.id === 'support_qc') autoCustodian = 'EasyTracker QC Lab (Testing Room)';
+                        else if (c.id === 'partner_shop') autoCustodian = 'Partner Outlet Counter';
+                        else autoCustodian = 'EasyTracker Central Warehouse (HQ Shelf)';
+
+                        setNewReturn({ ...newReturn, channel: c.id, currentCustodian: autoCustodian });
+                      }}
+                      className={`p-2.5 rounded-2xl border cursor-pointer transition text-left space-y-1 ${
+                        newReturn.channel === c.id 
+                          ? `${c.color} ring-2 ring-amber-500/50 shadow-md` 
+                          : 'bg-slate-950/60 border-slate-800 hover:border-slate-700'
+                      }`}
+                    >
+                      <div className="font-extrabold text-xs text-white">{c.label}</div>
+                      <div className="text-[9.5px] text-slate-400">{c.sub}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* STEP 2: ITEM TYPE & HARDWARE DETAILS */}
+              <div className="p-3.5 bg-slate-950 rounded-2xl border border-slate-800 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-black text-slate-300 uppercase">২. আইটেম টাইপ ও বিবরণী</span>
+                  <div className="flex items-center space-x-2">
+                    {(['bundle', 'device', 'sim'] as ReturnItemType[]).map(t => (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => setNewReturn({ ...newReturn, itemType: t })}
+                        className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase transition ${
+                          newReturn.itemType === t 
+                            ? 'bg-amber-600 text-white' 
+                            : 'bg-slate-900 text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        {t === 'bundle' ? '📦+📶 বান্ডেল' : t === 'device' ? '📦 ট্র্যাকার' : '📶 সিম'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {(newReturn.itemType === 'bundle' || newReturn.itemType === 'device') && (
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-300 block mb-1">ডিভাইস IMEI (15-Digit)</label>
+                      <input
+                        type="text"
+                        value={newReturn.imei || ''}
+                        onChange={(e) => setNewReturn({ ...newReturn, imei: e.target.value })}
+                        placeholder="যেমন: 864720058291088"
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 font-mono text-white focus:outline-none"
+                      />
+                    </div>
+                  )}
+
+                  {(newReturn.itemType === 'bundle' || newReturn.itemType === 'sim') && (
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-300 block mb-1">সিম নম্বর (MSISDN)</label>
+                      <input
+                        type="text"
+                        value={newReturn.simMsisdn || ''}
+                        onChange={(e) => setNewReturn({ ...newReturn, simMsisdn: e.target.value })}
+                        placeholder="যেমন: 01811-223344"
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 font-mono text-white focus:outline-none"
+                      />
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-300 block mb-1">পূর্বের গাড়ি প্লেট (যদি থাকে)</label>
+                    <input
+                      type="text"
+                      value={newReturn.previousVehiclePlate || ''}
+                      onChange={(e) => setNewReturn({ ...newReturn, previousVehiclePlate: e.target.value })}
+                      placeholder="যেমন: DHAKA METRO-HA 12-3456"
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 font-mono text-white focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-300 block mb-1">গ্রাহকের নাম ও ফোন</label>
+                    <input
+                      type="text"
+                      value={newReturn.previousCustomerName || ''}
+                      onChange={(e) => setNewReturn({ ...newReturn, previousCustomerName: e.target.value })}
+                      placeholder="গ্রাহকের নাম"
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-white focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* STEP 3: OWNERSHIP & CUSTODIAN */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10.5px] font-bold text-slate-300 block mb-1">আসল মালিকানা (Ownership)</label>
+                  <select
+                    value={newReturn.ownership}
+                    onChange={(e) => setNewReturn({ ...newReturn, ownership: e.target.value as ReturnOwnership })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-white focus:outline-none"
+                  >
+                    <option value="partner">🏪 পার্টনার / ফ্র্যাঞ্চাইজি স্টক (Partner Owned)</option>
+                    <option value="easytracker_central">🏢 EasyTracker সেন্ট্রাল ওয়্যারহাউজ (Central Stock)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[10.5px] font-bold text-slate-300 block mb-1">বর্তমান কাস্টডি ও অবস্থান (Current Custodian)</label>
+                  <input
+                    type="text"
+                    value={newReturn.currentCustodian}
+                    onChange={(e) => setNewReturn({ ...newReturn, currentCustodian: e.target.value })}
+                    placeholder="যেমন: Tech: জাহিদুল ইসলাম (Field Bag)"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-white focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* STEP 4: CONDITION & RESOLUTION */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10.5px] font-bold text-slate-300 block mb-1">কোয়ালিটি ও শর্ত (QC Status)</label>
+                  <select
+                    value={newReturn.condition}
+                    onChange={(e) => setNewReturn({ ...newReturn, condition: e.target.value as ReturnCondition })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-white focus:outline-none"
+                  >
+                    <option value="working_good">✅ ত্রুটিমুক্ত / Good (রি-ইনস্টল উপযোগী)</option>
+                    <option value="needs_inspection">⚠️ প্রাথমিক টেস্ট ও পরীক্ষা প্রয়োজন</option>
+                    <option value="hardware_damaged">❌ হার্ডওয়্যার ড্যামেজ / ত্রুটিযুক্ত</option>
+                    <option value="sim_sleep">📶 সিম সাসপেন্ড / স্লিপ মোড</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[10.5px] font-bold text-slate-300 block mb-1">গৃহীত পদক্ষেপ (Resolution)</label>
+                  <select
+                    value={newReturn.resolution}
+                    onChange={(e) => setNewReturn({ ...newReturn, resolution: e.target.value as ReturnResolution })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-white focus:outline-none"
+                  >
+                    <option value="restocked_reusable">🔄 রি-ইনস্টল স্টকে জমা (Restock Reusable)</option>
+                    <option value="refunded_credit">💳 পার্টনার লেজারে রিফান্ড / ক্রেডিট</option>
+                    <option value="rma_supplier">🛠️ ম্যানুফ্যাকচারার RMA ওয়ারেন্টি ক্লেইম</option>
+                    <option value="scrapped">🗑️ স্ক্র্যাপ / ড্যামেজ অপচয়</option>
+                  </select>
+                </div>
+              </div>
+
+              {newReturn.resolution === 'refunded_credit' && (
+                <div>
+                  <label className="text-[10.5px] font-bold text-emerald-400 block mb-1">রিফান্ড / ক্রেডিট টাকার পরিমাণ (BDT)</label>
+                  <input
+                    type="number"
+                    value={newReturn.refundAmountBdt || 0}
+                    onChange={(e) => setNewReturn({ ...newReturn, refundAmountBdt: Number(e.target.value) })}
+                    className="w-full bg-slate-950 border border-emerald-500/50 rounded-xl p-2 font-mono text-emerald-300 font-bold focus:outline-none"
+                  />
+                </div>
+              )}
+
+              <div>
+                <label className="text-[10.5px] font-bold text-slate-300 block mb-1">কিউসি নোট / মন্তব্য</label>
+                <textarea
+                  value={newReturn.qcNotes || ''}
+                  onChange={(e) => setNewReturn({ ...newReturn, qcNotes: e.target.value })}
+                  placeholder="ডিভাইসের অবস্থা, আনবাইন্ডের কারণ বা হ্যান্ডওভারের বিবরণ..."
+                  rows={2}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-white focus:outline-none"
+                />
+              </div>
+
+              <div className="flex justify-end space-x-2 pt-2 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setIsAddReturnOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold"
+                >
+                  বাতিল
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-extrabold shadow-lg shadow-amber-600/30 flex items-center space-x-1.5"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>চালান ইস্যু ও সেভ করুন</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 16. MODAL: DIGITAL RETURN HANDOVER GATE PASS & CHALLAN SLIP               */}
+      {/* ========================================================================= */}
+      {selectedReturnSlip && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 animate-in fade-in">
+          <div className="bg-slate-900 border border-amber-500/40 rounded-3xl p-5 w-full max-w-lg shadow-2xl space-y-4 animate-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 rounded-xl bg-amber-600/30 border border-amber-500/50 flex items-center justify-center text-amber-300">
+                  <FileText className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-sm text-white">ডিজিটাল রিটার্ন ও কাস্টডি হ্যান্ডওভার চালান</h3>
+                  <p className="text-[10px] text-slate-400">Reverse Logistics & Custody Gate Pass</p>
+                </div>
+              </div>
+              <button onClick={() => setSelectedReturnSlip(null)} className="text-slate-400 hover:text-white p-1">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-4 bg-slate-950 border border-amber-500/30 rounded-2xl space-y-3 text-xs">
+              <div className="text-center border-b border-slate-800 pb-2">
+                <h4 className="font-extrabold text-amber-300 text-sm">EasyTracker Reverse Logistics Gate Pass</h4>
+                <div className="text-[11px] font-mono font-bold text-white mt-0.5">চালান নং: {selectedReturnSlip.challanNumber}</div>
+                <p className="text-[9.5px] text-slate-400">হ্যান্ডওভার তারিখ: {selectedReturnSlip.returnDate}</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2.5 text-[11px]">
+                <div><span className="text-slate-500">ইনওয়ার্ড চ্যানেল:</span> <strong className="text-amber-300 uppercase">{selectedReturnSlip.channel}</strong></div>
+                <div><span className="text-slate-500">আসল মালিকানা:</span> <strong className="text-white">{selectedReturnSlip.ownership === 'easytracker_central' ? 'EasyTracker HQ' : 'Partner Franchise'}</strong></div>
+                <div><span className="text-slate-500">বর্তমান কাস্টডি:</span> <strong className="text-emerald-400">{selectedReturnSlip.currentCustodian}</strong></div>
+                <div><span className="text-slate-500">হ্যান্ডওভার ব্যক্তি:</span> <strong className="text-slate-300">{selectedReturnSlip.technicianName || 'Authorized Staff'}</strong></div>
+                {selectedReturnSlip.imei && (
+                  <div><span className="text-slate-500">ডিভাইস IMEI:</span> <strong className="text-white font-mono">{selectedReturnSlip.imei}</strong></div>
+                )}
+                {selectedReturnSlip.simMsisdn && (
+                  <div><span className="text-slate-500">সিম নম্বর:</span> <strong className="text-purple-300 font-mono">{selectedReturnSlip.simMsisdn}</strong></div>
+                )}
+                {selectedReturnSlip.previousVehiclePlate && (
+                  <div><span className="text-slate-500">পূর্বের গাড়ি:</span> <strong className="text-slate-200 font-mono">{selectedReturnSlip.previousVehiclePlate}</strong></div>
+                )}
+                <div><span className="text-slate-500">গৃহীত পদক্ষেপ:</span> <strong className="text-amber-300">{selectedReturnSlip.resolution}</strong></div>
+              </div>
+
+              {selectedReturnSlip.qcNotes && (
+                <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-[10.5px]">
+                  <span className="text-slate-400 block mb-0.5 font-bold">কিউসি ও টেস্টিং নোট:</span>
+                  <span className="text-slate-200">{selectedReturnSlip.qcNotes}</span>
+                </div>
+              )}
+
+              <div className="p-2.5 rounded-xl bg-amber-950/40 border border-amber-500/20 text-[10px] text-amber-200 flex items-center space-x-2">
+                <CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0" />
+                <span>এই চালানের মাধ্যমে ডিভাইস ও সিমের কাস্টডি দায়িত্ব সফলভাবে রেকর্ড ও ট্রান্সফার করা হলো।</span>
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-2 pt-1 border-t border-slate-800">
+              <button
+                onClick={() => setSelectedReturnSlip(null)}
+                className="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold"
+              >
+                বন্ধ করুন
+              </button>
+              <button
+                onClick={() => window.print()}
+                className="px-4 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold flex items-center space-x-1.5 shadow-md shadow-amber-600/30"
+              >
+                <Printer className="w-3.5 h-3.5" />
+                <span>প্রিন্ট / চালান ডাউনলোড</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 17. MODAL: RESOLVE & UPDATE RETURN DISPATCH                               */}
+      {/* ========================================================================= */}
+      {selectedReturnToResolve && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 animate-in fade-in">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 w-full max-w-md shadow-2xl space-y-4 animate-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div>
+                <h3 className="font-extrabold text-sm text-white">রিটার্ন রেজোলিউশন ও ফিন্যান্সিয়াল আপডেট</h3>
+                <p className="text-[10px] text-slate-400">চালান: {selectedReturnToResolve.challanNumber}</p>
+              </div>
+              <button onClick={() => setSelectedReturnToResolve(null)} className="text-slate-400 hover:text-white p-1">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="text-[10.5px] font-bold text-slate-300 block mb-1">সমাধান নির্বাচন (Resolution)</label>
+                <select
+                  defaultValue={selectedReturnToResolve.resolution}
+                  id="res-select"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-white focus:outline-none"
+                >
+                  <option value="restocked_reusable">🔄 রি-ইনস্টল স্টকে স্থানান্তর (Restock Reusable)</option>
+                  <option value="refunded_credit">💳 পার্টনার লেজারে রিফান্ড / ক্রেডিট প্রদান</option>
+                  <option value="rma_supplier">🛠️ ম্যানুফ্যাকচারার RMA ওয়ারেন্টি রিপ্লেসমেন্ট</option>
+                  <option value="scrapped">🗑️ স্ক্র্যাপ / ড্যামেজ অপচয়</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[10.5px] font-bold text-slate-300 block mb-1">রিফান্ড / ক্রেডিট ব্যালেন্স (BDT)</label>
+                <input
+                  type="number"
+                  id="res-refund"
+                  defaultValue={selectedReturnToResolve.refundAmountBdt || 0}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 font-mono text-white focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-[10.5px] font-bold text-slate-300 block mb-1">আপডেটেড কিউসি নোট</label>
+                <textarea
+                  id="res-qc"
+                  defaultValue={selectedReturnToResolve.qcNotes || ''}
+                  rows={2}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-white focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-2 pt-2 border-t border-slate-800">
+              <button
+                onClick={() => setSelectedReturnToResolve(null)}
+                className="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold"
+              >
+                বাতিল
+              </button>
+              <button
+                onClick={() => {
+                  const resSelect = (document.getElementById('res-select') as HTMLSelectElement).value as ReturnResolution;
+                  const resRefund = Number((document.getElementById('res-refund') as HTMLInputElement).value) || 0;
+                  const resQc = (document.getElementById('res-qc') as HTMLTextAreaElement).value;
+                  resolveReturnLog(selectedReturnToResolve.id, resSelect, resRefund, resQc);
+                  setSelectedReturnToResolve(null);
+                }}
+                className="px-5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-md shadow-indigo-600/30"
+              >
+                আপডেট ও নিষ্পত্তি
               </button>
             </div>
           </div>

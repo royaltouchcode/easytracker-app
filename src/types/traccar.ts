@@ -543,3 +543,36 @@ export interface StaffCommissionEntry {
   paidAt?: string;
 }
 
+// 🔄 Reverse Logistics & Return / RMA Management Types
+export type ReturnChannel = 'technician' | 'support_qc' | 'partner_shop' | 'central_office';
+export type ReturnItemType = 'device' | 'sim' | 'bundle';
+export type ReturnOwnership = 'easytracker_central' | 'partner';
+export type ReturnCondition = 'working_good' | 'needs_inspection' | 'hardware_damaged' | 'sim_sleep';
+export type ReturnResolution = 'restocked_reusable' | 'refunded_credit' | 'rma_supplier' | 'scrapped' | 'pending_decision';
+
+export interface ReturnLogEntry {
+  id: string;
+  challanNumber: string;
+  returnDate: string;
+  channel: ReturnChannel;
+  itemType: ReturnItemType;
+  imei?: string;
+  deviceModel?: string;
+  simMsisdn?: string;
+  simIccid?: string;
+  ownership: ReturnOwnership;
+  partnerId?: string;
+  partnerName?: string;
+  technicianName?: string;
+  previousVehiclePlate?: string;
+  previousCustomerName?: string;
+  previousCustomerPhone?: string;
+  currentCustodian: string; // e.g., 'Tech Rahim', 'Support Lab', 'Uttara Franchise', 'Central Warehouse'
+  condition: ReturnCondition;
+  qcNotes?: string;
+  resolution: ReturnResolution;
+  refundAmountBdt?: number;
+  financialStatus?: 'credited' | 'none' | 'pending_approval';
+  resolvedAt?: string;
+}
+
