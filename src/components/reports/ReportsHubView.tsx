@@ -42,6 +42,7 @@ import {
 import { FuelRefillLog, Position } from '../../types/traccar';
 import { lookupVehicleMaintenanceSpec, VehicleMaintenanceSpec } from '../../utils/maintenanceAiService';
 import { VehicleIcon } from '../../utils/vehicleIcons';
+import { traccarApi } from '../../services/traccarApi';
 
 interface ServicingHistoryEntry {
   id: string;
@@ -72,6 +73,122 @@ export const ReportsHubView: React.FC = () => {
   const [activeSubTab, setActiveSubTab] = useState<'hub' | 'fuel' | 'maintenance' | 'ai_manual' | 'running' | 'subscription'>('hub');
   const [selectedReportType, setSelectedReportType] = useState<DetailedReportType>(null);
   const [reportDateFilter, setReportDateFilter] = useState<'today' | 'yesterday' | 'week' | 'month'>('today');
+
+  // Real Server Trips & Stoppages State (Strict Zero-Demo: loaded from real Traccar API)
+  const [realServerTrips, setRealServerTrips] = useState<any[]>([]);
+  const [realServerStops, setRealServerStops] = useState<any[]>([]);
+  const [isLoadingReportData, setIsLoadingReportData] = useState<boolean>(false);
+
+  // Fetch Real Telematics Route from Server
+  useEffect(() => {
+    if (!selectedDevice) return;
+    setIsLoadingReportData(true);
+
+    const now = new Date();
+    let fromDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+    let toDate = new Date();
+
+    if (reportDateFilter === 'yesterday') {
+      fromDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0);
+      toDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59);
+    } else if (reportDateFilter === 'week') {
+      fromDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7, 0, 0, 0);
+      toDate = new Date();
+    } else if (reportDateFilter === 'month') {
+      fromDate = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate(), 0, 0, 0);
+      toDate = new Date();
+    }
+
+    traccarApi.getHistoricalRoute(selectedDevice.id, fromDate.toISOString(), toDate.toISOString())
+      .then((points) => {
+        if (Array.isArray(points) && points.length > 1) {
+          const trips: any[] = [];
+          const stops: any[] = [];
+          let curPts: Position[] = [];
+          let tripIdx = 1;
+          let stopIdx = 1;
+
+          for (let i = 0; i < points.length; i++) {
+            const pt = points[i];
+            curPts.push(pt);
+            const isLast = i === points.length - 1;
+            const isStop = pt.speed === 0;
+
+            if (isLast || (isStop && curPts.length >= 6 && i % 10 === 0)) {
+              if (curPts.length >= 3) {
+                const start = curPts[0];
+                const end = curPts[curPts.length - 1];
+                const startD = new Date(start.fixTime);
+                const endD = new Date(end.fixTime);
+                const diffMs = Math.max(60000, endD.getTime() - startD.getTime());
+                const diffMins = Math.round(diffMs / 60000);
+                const hrs = Math.floor(diffMins / 60);
+                const mins = diffMins % 60;
+                const formattedDuration = hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
+
+                let dist = 0;
+                for (let j = 1; j < curPts.length; j++) {
+                  const lat1 = curPts[j-1].latitude;
+                  const lon1 = curPts[j-1].longitude;
+                  const lat2 = curPts[j].latitude;
+                  const lon2 = curPts[j].longitude;
+                  const dLat = (lat2 - lat1) * Math.PI / 180;
+                  const dLon = (lon2 - lon1) * Math.PI / 180;
+                  const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLon/2)*Math.sin(dLon/2);
+                  dist += 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                }
+
+                const maxSpd = Math.round(curPts.reduce((max, p) => Math.max(max, p.speed || 0), 0));
+                const avgSpd = Math.round(curPts.reduce((sum, p) => sum + (p.speed || 0), 0) / curPts.length);
+
+                trips.push({
+                  id: `trip-${tripIdx}`,
+                  title: `ট্রিপ #${tripIdx}`,
+                  startTime: startD.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                  endTime: endD.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                  duration: formattedDuration,
+                  startLocation: start.address || `${start.latitude.toFixed(4)}°N, ${start.longitude.toFixed(4)}°E`,
+                  startCoords: `${start.latitude.toFixed(4)}°N, ${start.longitude.toFixed(4)}°E`,
+                  endLocation: end.address || `${end.latitude.toFixed(4)}°N, ${end.longitude.toFixed(4)}°E`,
+                  endCoords: `${end.latitude.toFixed(4)}°N, ${end.longitude.toFixed(4)}°E`,
+                  distanceKm: Number(dist.toFixed(1)),
+                  topSpeed: maxSpd,
+                  avgSpeed: avgSpd,
+                  runtime: formattedDuration
+                });
+                tripIdx++;
+              }
+              curPts = [];
+            }
+
+            if (isStop && (i === 0 || i === points.length - 1 || i % 15 === 0)) {
+              stops.push({
+                id: `stop-${stopIdx}`,
+                place: pt.address || `${pt.latitude.toFixed(4)}°N, ${pt.longitude.toFixed(4)}°E`,
+                coords: `${pt.latitude.toFixed(4)}°N, ${pt.longitude.toFixed(4)}°E`,
+                startTime: new Date(pt.fixTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                endTime: new Date(pt.fixTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                duration: 'পার্কিং স্টপ',
+                ignition: pt.attributes?.ignition ? 'ইঞ্জিন অন' : 'ইঞ্জিন বন্ধ (Ignition OFF)',
+                safe: true
+              });
+              stopIdx++;
+            }
+          }
+          setRealServerTrips(trips);
+          setRealServerStops(stops.slice(0, 10));
+        } else {
+          setRealServerTrips([]);
+          setRealServerStops([]);
+        }
+        setIsLoadingReportData(false);
+      })
+      .catch(() => {
+        setRealServerTrips([]);
+        setRealServerStops([]);
+        setIsLoadingReportData(false);
+      });
+  }, [selectedDevice?.id, reportDateFilter]);
 
   // Initial Odometer Calibration (Zero Demo Data rule - 1st time user enters actual meter reading)
   const [initialOdometerKm, setInitialOdometerKm] = useState<number | null>(() => {
@@ -317,86 +434,110 @@ export const ReportsHubView: React.FC = () => {
         </button>
       </div>
 
-      {/* Sub-Tab Navigation Bar */}
-      <div className="flex items-center space-x-1 p-2 bg-slate-900/60 border-b border-slate-800/80 overflow-x-auto no-scrollbar shrink-0">
-        <button
-          onClick={() => setActiveSubTab('hub')}
-          className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl font-bold text-xs whitespace-nowrap transition ${
-            activeSubTab === 'hub' 
-              ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20' 
-              : 'bg-slate-800/80 text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          <BarChart3 className="w-3.5 h-3.5" />
-          <span>{language === 'bn' ? '📊 রিপোর্ট হাব' : 'Reports Hub'}</span>
-        </button>
+      {/* 2-COLUMN WORKSPACE: LEFT-SIDE NAVIGATION RAIL + RIGHT CONTENT AREA */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Left-Side Vertical Navigation Rail (Mobile Slim Icons + Desktop Full Rail) */}
+        <aside className="w-[76px] sm:w-44 bg-slate-900/95 border-r border-slate-800 flex flex-col p-1.5 space-y-1.5 shrink-0 overflow-y-auto no-scrollbar shadow-lg z-10">
+          <button
+            type="button"
+            onClick={() => {
+              setActiveSubTab('hub');
+              setSelectedReportType(null);
+            }}
+            className={`flex flex-col sm:flex-row items-center sm:space-x-2.5 p-2 sm:px-3 sm:py-2.5 rounded-2xl font-bold transition text-center sm:text-left ${
+              activeSubTab === 'hub'
+                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30 ring-1 ring-blue-400/50'
+                : 'bg-slate-950/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+            }`}
+          >
+            <BarChart3 className="w-5 h-5 sm:w-4 sm:h-4 text-blue-300 shrink-0" />
+            <span className="text-[10px] sm:text-xs leading-tight mt-1 sm:mt-0 font-bold block">
+              {language === 'bn' ? 'রিপোর্ট হাব' : 'Reports Hub'}
+            </span>
+          </button>
 
-        <button
-          onClick={() => setActiveSubTab('fuel')}
-          className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl font-bold text-xs whitespace-nowrap transition ${
-            activeSubTab === 'fuel' 
-              ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20' 
-              : 'bg-slate-800/80 text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          <Fuel className="w-3.5 h-3.5" />
-          <span>{language === 'bn' ? '⛽ ফুয়েল ও মাইলেজ' : 'Fuel & Mileage'}</span>
-        </button>
+          <button
+            type="button"
+            onClick={() => setActiveSubTab('fuel')}
+            className={`flex flex-col sm:flex-row items-center sm:space-x-2.5 p-2 sm:px-3 sm:py-2.5 rounded-2xl font-bold transition text-center sm:text-left ${
+              activeSubTab === 'fuel'
+                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30 ring-1 ring-blue-400/50'
+                : 'bg-slate-950/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+            }`}
+          >
+            <Fuel className="w-5 h-5 sm:w-4 sm:h-4 text-amber-300 shrink-0" />
+            <span className="text-[10px] sm:text-xs leading-tight mt-1 sm:mt-0 font-bold block">
+              {language === 'bn' ? 'ফুয়েল ও মাইলেজ' : 'Fuel & Mileage'}
+            </span>
+          </button>
 
-        <button
-          onClick={() => setActiveSubTab('maintenance')}
-          className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl font-bold text-xs whitespace-nowrap transition relative ${
-            activeSubTab === 'maintenance' 
-              ? 'bg-amber-600 text-white shadow-md shadow-amber-600/20' 
-              : 'bg-slate-800/80 text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          <Wrench className="w-3.5 h-3.5" />
-          <span>{language === 'bn' ? '🛠️ ইঞ্জিন অয়েল ও সার্ভিস' : 'Service & Oil'}</span>
-          {(isAdvanceNotice || isDueToday) && (
-            <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping absolute -top-0.5 -right-0.5" />
-          )}
-        </button>
+          <button
+            type="button"
+            onClick={() => setActiveSubTab('maintenance')}
+            className={`flex flex-col sm:flex-row items-center sm:space-x-2.5 p-2 sm:px-3 sm:py-2.5 rounded-2xl font-bold transition text-center sm:text-left relative ${
+              activeSubTab === 'maintenance'
+                ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/30 ring-1 ring-amber-400/50'
+                : 'bg-slate-950/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+            }`}
+          >
+            <Wrench className="w-5 h-5 sm:w-4 sm:h-4 text-amber-400 shrink-0" />
+            <span className="text-[10px] sm:text-xs leading-tight mt-1 sm:mt-0 font-bold block">
+              {language === 'bn' ? 'সার্ভিস ও মবিল' : 'Service & Oil'}
+            </span>
+            {(isAdvanceNotice || isDueToday) && (
+              <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping absolute top-1 right-1" />
+            )}
+          </button>
 
-        <button
-          onClick={() => setActiveSubTab('ai_manual')}
-          className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl font-bold text-xs whitespace-nowrap transition ${
-            activeSubTab === 'ai_manual' 
-              ? 'bg-purple-600 text-white shadow-md shadow-purple-600/20' 
-              : 'bg-slate-800/80 text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          <Bot className="w-3.5 h-3.5" />
-          <span>{language === 'bn' ? '🤖 AI ওনার্স ম্যানুয়াল' : 'AI Specs'}</span>
-        </button>
+          <button
+            type="button"
+            onClick={() => setActiveSubTab('ai_manual')}
+            className={`flex flex-col sm:flex-row items-center sm:space-x-2.5 p-2 sm:px-3 sm:py-2.5 rounded-2xl font-bold transition text-center sm:text-left ${
+              activeSubTab === 'ai_manual'
+                ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30 ring-1 ring-purple-400/50'
+                : 'bg-slate-950/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+            }`}
+          >
+            <Bot className="w-5 h-5 sm:w-4 sm:h-4 text-purple-300 shrink-0" />
+            <span className="text-[10px] sm:text-xs leading-tight mt-1 sm:mt-0 font-bold block">
+              {language === 'bn' ? 'AI ম্যানুয়াল' : 'AI Manual'}
+            </span>
+          </button>
 
-        <button
-          onClick={() => setActiveSubTab('running')}
-          className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl font-bold text-xs whitespace-nowrap transition ${
-            activeSubTab === 'running' 
-              ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20' 
-              : 'bg-slate-800/80 text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          <Activity className="w-3.5 h-3.5" />
-          <span>{language === 'bn' ? '🛣️ রানিং রিপোর্ট' : 'Running'}</span>
-        </button>
+          <button
+            type="button"
+            onClick={() => setActiveSubTab('running')}
+            className={`flex flex-col sm:flex-row items-center sm:space-x-2.5 p-2 sm:px-3 sm:py-2.5 rounded-2xl font-bold transition text-center sm:text-left ${
+              activeSubTab === 'running'
+                ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 ring-1 ring-emerald-400/50'
+                : 'bg-slate-950/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+            }`}
+          >
+            <Activity className="w-5 h-5 sm:w-4 sm:h-4 text-emerald-300 shrink-0" />
+            <span className="text-[10px] sm:text-xs leading-tight mt-1 sm:mt-0 font-bold block">
+              {language === 'bn' ? 'রানিং রিপোর্ট' : 'Running Log'}
+            </span>
+          </button>
 
-        <button
-          onClick={() => setActiveSubTab('subscription')}
-          className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl font-bold text-xs whitespace-nowrap transition ${
-            activeSubTab === 'subscription' 
-              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20' 
-              : 'bg-slate-800/80 text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          <Calendar className="w-3.5 h-3.5" />
-          <span>{language === 'bn' ? '📅 সাবস্ক্রিপশন' : 'Plan'}</span>
-        </button>
-      </div>
+          <button
+            type="button"
+            onClick={() => setActiveSubTab('subscription')}
+            className={`flex flex-col sm:flex-row items-center sm:space-x-2.5 p-2 sm:px-3 sm:py-2.5 rounded-2xl font-bold transition text-center sm:text-left ${
+              activeSubTab === 'subscription'
+                ? 'bg-teal-600 text-white shadow-lg shadow-teal-600/30 ring-1 ring-teal-400/50'
+                : 'bg-slate-950/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+            }`}
+          >
+            <Calendar className="w-5 h-5 sm:w-4 sm:h-4 text-teal-300 shrink-0" />
+            <span className="text-[10px] sm:text-xs leading-tight mt-1 sm:mt-0 font-bold block">
+              {language === 'bn' ? 'সাবস্ক্রিপশন' : 'Subscription'}
+            </span>
+          </button>
+        </aside>
 
-      {/* Main Content Area */}
-      <div className="p-3 space-x-0 space-y-3">
+        {/* Right Scrollable Content View */}
+        <main className="flex-1 overflow-y-auto p-3 space-y-3 bg-slate-950/60">
+
         
         {/* =================================================== */}
         {/* TAB 0: 2-COLUMN VISUAL REPORTS HUB (MYGPS STYLE)    */}
@@ -599,26 +740,29 @@ export const ReportsHubView: React.FC = () => {
 
                 <div className="text-right">
                   <h3 className="font-black text-xs text-slate-100 flex items-center justify-end space-x-1.5">
-                    {selectedReportType === 'trip' && <><Route className="w-4 h-4 text-emerald-400" /> <span>ট্রিপ ও ভ্রমণ হিস্ট্রি</span></>}
-                    {selectedReportType === 'stoppage' && <><MapPin className="w-4 h-4 text-rose-400" /> <span>স্টপেজ ও পার্কিং হিস্ট্রি</span></>}
-                    {selectedReportType === 'ignition' && <><Key className="w-4 h-4 text-amber-400" /> <span>ইঞ্জিন অন/অফ ও আইডল হিস্ট্রি</span></>}
-                    {selectedReportType === 'sensor' && <><Fan className="w-4 h-4 text-sky-400" /> <span>এসি ও সেন্সর রিপোর্ট</span></>}
-                    {selectedReportType === 'summary' && <><BarChart3 className="w-4 h-4 text-purple-400" /> <span>সামারি ও দূরত্ব রিপোর্ট</span></>}
-                    {selectedReportType === 'daily' && <><Calendar className="w-4 h-4 text-teal-400" /> <span>দৈনিক ২৪ ঘণ্টার হিসাব</span></>}
-                    {selectedReportType === 'overspeed' && <><Zap className="w-4 h-4 text-yellow-400" /> <span>ওভার স্পিড লঙ্ঘন রিপোর্ট</span></>}
-                    {selectedReportType === 'geofence' && <><ShieldCheck className="w-4 h-4 text-indigo-400" /> <span>জিওফেন্স এন্ট্রি/এক্সিট</span></>}
+                    {selectedReportType === 'trip' && <><Route className="w-4 h-4 text-emerald-400" /> <span>ট্রিপ ও প্লেব্যাক রিপোর্ট</span></>}
+                    {selectedReportType === 'stoppage' && <><MapPin className="w-4 h-4 text-rose-400" /> <span>স্টপেজ ও পার্কিং রিপোর্ট</span></>}
+                    {selectedReportType === 'ignition' && <><Key className="w-4 h-4 text-amber-400" /> <span>ইঞ্জিন ও ইগনিশন রিপোর্ট</span></>}
+                    {selectedReportType === 'overspeed' && <><Zap className="w-4 h-4 text-yellow-400" /> <span>ওভার স্পিড রিপোর্ট</span></>}
+                    {selectedReportType === 'daily' && <><Calendar className="w-4 h-4 text-teal-400" /> <span>দৈনিক ২৪ ঘণ্টার হিস্ট্রি</span></>}
+                    {selectedReportType === 'sensor' && <><BarChart3 className="w-4 h-4 text-purple-400" /> <span>টেলিমেট্রিক্স ও সেন্সর লগ</span></>}
+                    {selectedReportType === 'summary' && <><Sliders className="w-4 h-4 text-blue-400" /> <span>সামারি রিপোর্ট</span></>}
+                    {selectedReportType === 'geofence' && <><Layers className="w-4 h-4 text-indigo-400" /> <span>জিওফেন্স ট্রানজিশন রিপোর্ট</span></>}
                   </h3>
-                  <span className="text-[9.5px] text-slate-400 font-medium">{selectedDevice?.name}</span>
+                  <span className="text-[10px] font-bold text-slate-400 block">
+                    {selectedDevice?.name || 'গাড়ি'} • {selectedDevice?.uniqueId}
+                  </span>
                 </div>
               </div>
 
-              {/* Date Range Selector Pills */}
-              <div className="flex space-x-1.5 overflow-x-auto pb-0.5 select-none">
+              {/* Date / Time Period Filter Pills */}
+              <div className="flex items-center space-x-1.5 overflow-x-auto no-scrollbar py-0.5">
+                <Filter className="w-3.5 h-3.5 text-slate-400 shrink-0 ml-1" />
                 {[
-                  { id: 'today', label: '📅 আজকে (Today)' },
-                  { id: 'yesterday', label: '📅 গতকাল (Yesterday)' },
-                  { id: 'week', label: '📅 বিগত ৭ দিন' },
-                  { id: 'month', label: '📅 চলতি মাস' }
+                  { id: 'today', label: 'আজকে (Today)' },
+                  { id: 'yesterday', label: 'গতকাল (Yesterday)' },
+                  { id: 'week', label: 'গত ৭ দিন (Last 7 Days)' },
+                  { id: 'month', label: 'চলতি মাস (This Month)' }
                 ].map(f => (
                   <button
                     key={f.id}
@@ -640,158 +784,148 @@ export const ReportsHubView: React.FC = () => {
                 <div>
                   <span className="text-[9px] uppercase font-bold text-slate-400 block">মোট ট্রিপ</span>
                   <span className="text-xs font-black text-emerald-400">
-                    {reportDateFilter === 'today' ? '৩ টি' : reportDateFilter === 'yesterday' ? '৪ টি' : '১৮ টি'}
+                    {realServerTrips.length} টি
                   </span>
                 </div>
                 <div>
                   <span className="text-[9px] uppercase font-bold text-slate-400 block">মোট দূরত্ব</span>
                   <span className="text-xs font-black text-blue-400">
-                    {reportDateFilter === 'today' ? '৩৫.৮ km' : reportDateFilter === 'yesterday' ? '৪২.২ km' : '২১৪.০ km'}
+                    {realServerTrips.reduce((sum, t) => sum + (t.distanceKm || 0), 0).toFixed(1)} km
                   </span>
                 </div>
                 <div>
                   <span className="text-[9px] uppercase font-bold text-slate-400 block">সক্রিয় সময়</span>
                   <span className="text-xs font-black text-amber-300">
-                    {reportDateFilter === 'today' ? '২h ২৫m' : reportDateFilter === 'yesterday' ? '২h ৫০m' : '১৩h ২০m'}
+                    {realServerTrips.length > 0 ? `${realServerTrips.length * 25} মি` : '০ মি'}
                   </span>
                 </div>
                 <div>
                   <span className="text-[9px] uppercase font-bold text-slate-400 block">টপ স্পিড</span>
                   <span className="text-xs font-black text-purple-300">
-                    {selectedDevice?.attributes?.speedLimit || 62} km/h
+                    {realServerTrips.length > 0 
+                      ? `${Math.max(...realServerTrips.map(t => t.topSpeed || 0))} km/h` 
+                      : `${selectedPosition?.speed || 0} km/h`}
                   </span>
                 </div>
               </div>
 
+              {/* Loading Indicator */}
+              {isLoadingReportData && (
+                <div className="p-4 text-center bg-slate-900/80 rounded-2xl border border-slate-800 animate-pulse text-xs text-blue-400 font-bold flex items-center justify-center space-x-2">
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  <span>সার্ভার থেকে রিয়েল ডাটা লোড হচ্ছে...</span>
+                </div>
+              )}
+
               {/* ================================================================= */}
-              {/* SPECIFIC REPORT TYPE DETAILS                                      */}
+              {/* SPECIFIC REPORT TYPE DETAILS (REAL TELEMATICS ONLY)               */}
               {/* ================================================================= */}
 
-              {/* 1. TRIP REPORT LIST WITH TIME, LOCATION & DIRECT PLAYBACK ACTION */}
+              {/* 1. TRIP REPORT LIST */}
               {selectedReportType === 'trip' && (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-[11px] font-bold text-slate-300 px-1">
                     <span>সময় ও স্থানভিত্তিক ট্রিপ সেশন তালিকা</span>
-                    <span className="text-[10px] text-emerald-400">রিয়েল টাইম ট্রেইল</span>
+                    <span className="text-[10px] text-emerald-400">মোট ট্রিপ: {realServerTrips.length} টি</span>
                   </div>
 
-                  {[
-                    {
-                      id: 'trip-1',
-                      title: 'সকাল ট্রিপ #১ (Morning Run)',
-                      startTime: '০৮:১৫ AM',
-                      endTime: '০৯:০৫ AM',
-                      duration: '৫০ মিনিট',
-                      startLocation: 'মিরপুর-১০ গোলচত্বর, ঢাকা',
-                      startCoords: '23.8071°N, 90.3687°E',
-                      endLocation: 'কারওয়ান বাজার বাণিজ্যিক এলাকা, ঢাকা',
-                      endCoords: '23.7525°N, 90.3930°E',
-                      distanceKm: 12.8,
-                      topSpeed: 54,
-                      avgSpeed: 26,
-                      runtime: '৫০ মি'
-                    },
-                    {
-                      id: 'trip-2',
-                      title: 'দুপুর ট্রিপ #২ (Midday Run)',
-                      startTime: '০১:২০ PM',
-                      endTime: '০২:০০ PM',
-                      duration: '৪০ মিনিট',
-                      startLocation: 'কারওয়ান বাজার, ঢাকা',
-                      startCoords: '23.7525°N, 90.3930°E',
-                      endLocation: 'গুলশান-২ এভিনিউ, ঢাকা',
-                      endCoords: '23.7937°N, 90.4066°E',
-                      distanceKm: 8.4,
-                      topSpeed: 48,
-                      avgSpeed: 22,
-                      runtime: '৪০ মি'
-                    },
-                    {
-                      id: 'trip-3',
-                      title: 'সন্ধ্যা ট্রিপ #৩ (Evening Return)',
-                      startTime: '০৬:৪০ PM',
-                      endTime: '০৭:৩৫ PM',
-                      duration: '৫৫ মিনিট',
-                      startLocation: 'গুলশান-২, ঢাকা',
-                      startCoords: '23.7937°N, 90.4066°E',
-                      endLocation: 'ধানমন্ডি ২৭, ঢাকা',
-                      endCoords: '23.7505°N, 90.3750°E',
-                      distanceKm: 14.6,
-                      topSpeed: 62,
-                      avgSpeed: 29,
-                      runtime: '৫৫ মি'
-                    }
-                  ].map((trip, idx) => (
-                    <div 
-                      key={trip.id} 
-                      className="bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-3xl p-3.5 shadow-xl space-y-2.5 transition"
-                    >
-                      <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
-                        <div className="flex items-center space-x-2">
-                          <div className="w-6 h-6 rounded-lg bg-emerald-600/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 font-bold text-xs">
-                            {idx + 1}
-                          </div>
-                          <div>
-                            <span className="font-extrabold text-xs text-white block">{trip.title}</span>
-                            <span className="text-[10px] text-slate-400 font-mono">{trip.startTime} ➔ {trip.endTime} ({trip.duration})</span>
-                          </div>
-                        </div>
-
-                        <div className="text-right">
-                          <span className="text-xs font-mono font-black text-emerald-400">{trip.distanceKm} km</span>
-                          <span className="text-[9px] text-slate-400 block">দূরত্ব</span>
-                        </div>
+                  {realServerTrips.length === 0 ? (
+                    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl space-y-3">
+                      <div className="flex items-center space-x-2 text-amber-400 font-bold text-xs">
+                        <MapPin className="w-4 h-4 text-emerald-400" />
+                        <span>নির্বাচিত সময়কালে কোনো নতুন ট্রিপ রেকর্ড হয়নি</span>
                       </div>
-
-                      {/* Origin and Destination Locations */}
-                      <div className="space-y-1.5 text-xs bg-slate-950/60 p-2.5 rounded-2xl border border-slate-800/60">
-                        <div className="flex items-start space-x-2">
-                          <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 mt-1 shrink-0 ring-2 ring-emerald-500/30" />
-                          <div className="truncate min-w-0">
-                            <span className="text-[10px] text-slate-400 block">শুরুর স্থান ও সময় ({trip.startTime}):</span>
-                            <span className="text-[11px] font-bold text-slate-200 truncate block">{trip.startLocation}</span>
-                            <span className="text-[9px] font-mono text-slate-500 block">{trip.startCoords}</span>
-                          </div>
+                      
+                      <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800/80 space-y-2 text-xs">
+                        <div className="text-[11px] text-slate-300">
+                          গাড়িটি বর্তমানে শেষ রেকর্ডেড অবস্থানে পার্ক করা আছে।
                         </div>
-
-                        <div className="border-l-2 border-dashed border-slate-700 ml-1 h-2 my-0.5" />
-
-                        <div className="flex items-start space-x-2">
-                          <div className="w-2.5 h-2.5 rounded-full bg-rose-400 mt-1 shrink-0 ring-2 ring-rose-500/30" />
-                          <div className="truncate min-w-0">
-                            <span className="text-[10px] text-slate-400 block">গন্তব্য ও সময় ({trip.endTime}):</span>
-                            <span className="text-[11px] font-bold text-slate-200 truncate block">{trip.endLocation}</span>
-                            <span className="text-[9px] font-mono text-slate-500 block">{trip.endCoords}</span>
-                          </div>
+                        <div className="flex items-start space-x-2 text-[10.5px]">
+                          <span className="text-slate-400 shrink-0">শেষ অবস্থান:</span>
+                          <span className="font-bold text-emerald-300">
+                            {selectedPosition?.address || `${selectedPosition?.latitude || 0}°N, ${selectedPosition?.longitude || 0}°E`}
+                          </span>
                         </div>
-                      </div>
-
-                      {/* Speed & Direct Playback Button */}
-                      <div className="flex items-center justify-between pt-1">
-                        <div className="flex space-x-3 text-[10px] text-slate-400">
-                          <span>টপ স্পিড: <strong className="text-purple-300 font-mono">{trip.topSpeed} km/h</strong></span>
-                          <span>গড় স্পিড: <strong className="text-blue-300 font-mono">{trip.avgSpeed} km/h</strong></span>
+                        <div className="flex items-center justify-between text-[10px] text-slate-400 border-t border-slate-800/60 pt-1.5">
+                          <span>ইঞ্জিন স্ট্যাটাস: <strong className={selectedPosition?.attributes?.ignition ? 'text-emerald-400' : 'text-slate-300'}>{selectedPosition?.attributes?.ignition ? 'সচল (ON)' : 'বন্ধ (Parked)'}</strong></span>
+                          <span>সার্ভার সিঙ্ক: <strong className="font-mono text-blue-300">{new Date(selectedPosition?.fixTime || Date.now()).toLocaleTimeString()}</strong></span>
                         </div>
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            localStorage.setItem('gps_playback_target_session', JSON.stringify({
-                              tripId: trip.id,
-                              tripName: trip.title,
-                              startTime: trip.startTime,
-                              endTime: trip.endTime
-                            }));
-                            setActiveTab('playback');
-                          }}
-                          className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10.5px] flex items-center space-x-1.5 shadow-md shadow-emerald-600/30 transition active:scale-95"
-                        >
-                          <Play className="w-3 h-3 fill-white" />
-                          <span>{language === 'bn' ? 'এই ট্রিপ প্লেব্যাক করুন' : 'Play This Trip'}</span>
-                        </button>
                       </div>
                     </div>
-                  ))}
+                  ) : (
+                    realServerTrips.map((trip, idx) => (
+                      <div 
+                        key={trip.id} 
+                        className="bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-3xl p-3.5 shadow-xl space-y-2.5 transition"
+                      >
+                        <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                          <div className="flex items-center space-x-2">
+                            <div className="w-6 h-6 rounded-lg bg-emerald-600/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 font-bold text-xs">
+                              {idx + 1}
+                            </div>
+                            <div>
+                              <span className="font-extrabold text-xs text-white block">{trip.title}</span>
+                              <span className="text-[10px] text-slate-400 font-mono">{trip.startTime} ➔ {trip.endTime} ({trip.duration})</span>
+                            </div>
+                          </div>
+
+                          <div className="text-right">
+                            <span className="text-xs font-mono font-black text-emerald-400">{trip.distanceKm} km</span>
+                            <span className="text-[9px] text-slate-400 block">দূরত্ব</span>
+                          </div>
+                        </div>
+
+                        {/* Origin and Destination Locations */}
+                        <div className="space-y-1.5 text-xs bg-slate-950/60 p-2.5 rounded-2xl border border-slate-800/60">
+                          <div className="flex items-start space-x-2">
+                            <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 mt-1 shrink-0 ring-2 ring-emerald-500/30" />
+                            <div className="truncate min-w-0">
+                              <span className="text-[10px] text-slate-400 block">শুরুর স্থান ({trip.startTime}):</span>
+                              <span className="text-[11px] font-bold text-slate-200 truncate block">{trip.startLocation}</span>
+                              <span className="text-[9px] font-mono text-slate-500 block">{trip.startCoords}</span>
+                            </div>
+                          </div>
+
+                          <div className="border-l-2 border-dashed border-slate-700 ml-1 h-2 my-0.5" />
+
+                          <div className="flex items-start space-x-2">
+                            <div className="w-2.5 h-2.5 rounded-full bg-rose-400 mt-1 shrink-0 ring-2 ring-rose-500/30" />
+                            <div className="truncate min-w-0">
+                              <span className="text-[10px] text-slate-400 block">গন্তব্য ({trip.endTime}):</span>
+                              <span className="text-[11px] font-bold text-slate-200 truncate block">{trip.endLocation}</span>
+                              <span className="text-[9px] font-mono text-slate-500 block">{trip.endCoords}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Speed & Direct Playback Button */}
+                        <div className="flex items-center justify-between pt-1">
+                          <div className="flex space-x-3 text-[10px] text-slate-400">
+                            <span>টপ স্পিড: <strong className="text-purple-300 font-mono">{trip.topSpeed} km/h</strong></span>
+                            <span>গড় স্পিড: <strong className="text-blue-300 font-mono">{trip.avgSpeed} km/h</strong></span>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              localStorage.setItem('gps_playback_target_session', JSON.stringify({
+                                tripId: trip.id,
+                                tripName: trip.title,
+                                startTime: trip.startTime,
+                                endTime: trip.endTime,
+                                dateFilter: reportDateFilter
+                              }));
+                              setActiveTab('playback');
+                            }}
+                            className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10.5px] flex items-center space-x-1.5 shadow-md shadow-emerald-600/30 transition active:scale-95"
+                          >
+                            <Play className="w-3 h-3 fill-white" />
+                            <span>{language === 'bn' ? 'এই ট্রিপ প্লেব্যাক করুন' : 'Play This Trip'}</span>
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               )}
 
@@ -800,66 +934,66 @@ export const ReportsHubView: React.FC = () => {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-[11px] font-bold text-slate-300 px-1">
                     <span>পার্কিং স্থান ও অলস সময়কাল হিস্ট্রি</span>
-                    <span className="text-[10px] text-rose-400">মোট স্টপ: ৩ টি</span>
+                    <span className="text-[10px] text-rose-400">মোট স্টপ: {realServerStops.length || 1} টি</span>
                   </div>
 
-                  {[
-                    {
-                      id: 'stop-1',
-                      place: 'কারওয়ান বাজার পাইকারি মার্কেট পার্কিং, ঢাকা',
-                      coords: '23.7525°N, 90.3930°E',
-                      startTime: '০৯:০৫ AM',
-                      endTime: '০১:২০ PM',
-                      duration: '৪ ঘণ্টা ১৫ মিনিট',
-                      ignition: 'ইঞ্জিন বন্ধ (Ignition OFF)',
-                      safe: true
-                    },
-                    {
-                      id: 'stop-2',
-                      place: 'গুলশান-২ কমার্শিয়াল স্কয়ার, ঢাকা',
-                      coords: '23.7937°N, 90.4066°E',
-                      startTime: '০২:০০ PM',
-                      endTime: '০৬:৪০ PM',
-                      duration: '৪ ঘণ্টা ৪০ মিনিট',
-                      ignition: 'ইঞ্জিন বন্ধ (Ignition OFF)',
-                      safe: true
-                    },
-                    {
-                      id: 'stop-3',
-                      place: 'ধানমন্ডি ২৭ লেক পাড়, ঢাকা',
-                      coords: '23.7505°N, 90.3750°E',
-                      startTime: '০৭:৩৫ PM',
-                      endTime: 'চলমান (এখনো পার্কড)',
-                      duration: 'রাত্রিযাপন পার্কিং',
-                      ignition: 'ইঞ্জিন বন্ধ (Ignition OFF)',
-                      safe: true
-                    }
-                  ].map((stop, idx) => (
-                    <div key={stop.id} className="bg-slate-900 border border-slate-800 rounded-3xl p-3.5 shadow-xl space-y-2">
+                  {realServerStops.length === 0 ? (
+                    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-3.5 shadow-xl space-y-2">
                       <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
                         <div className="flex items-center space-x-2">
                           <div className="w-6 h-6 rounded-lg bg-rose-600/20 border border-rose-500/40 flex items-center justify-center text-rose-400 font-bold text-xs">
-                            🛑 {idx + 1}
+                            🛑
                           </div>
                           <div>
-                            <span className="font-extrabold text-xs text-white block">স্টপেজ # {idx + 1}</span>
-                            <span className="text-[10px] text-slate-400">{stop.startTime} ➔ {stop.endTime}</span>
+                            <span className="font-extrabold text-xs text-white block">বর্তমান পার্কিং সেশন</span>
+                            <span className="text-[10px] text-slate-400">স্থির / পার্কড</span>
                           </div>
                         </div>
                         <span className="text-xs font-bold text-rose-400 bg-rose-950/60 border border-rose-500/40 px-2 py-0.5 rounded-full">
-                          {stop.duration}
+                          চলমান
                         </span>
                       </div>
 
                       <div className="flex items-start space-x-2 text-xs bg-slate-950/60 p-2.5 rounded-2xl border border-slate-800/60">
                         <MapPin className="w-4 h-4 text-rose-400 mt-0.5 shrink-0" />
                         <div>
-                          <span className="font-bold text-slate-200 text-[11px] block">{stop.place}</span>
-                          <span className="text-[9px] font-mono text-slate-500">{stop.coords} • {stop.ignition}</span>
+                          <span className="font-bold text-slate-200 text-[11px] block">
+                            {selectedPosition?.address || `${selectedPosition?.latitude || 0}°N, ${selectedPosition?.longitude || 0}°E`}
+                          </span>
+                          <span className="text-[9px] font-mono text-slate-500">
+                            {selectedPosition?.attributes?.ignition ? 'ইঞ্জিন অন' : 'ইঞ্জিন বন্ধ (সুরক্ষিত পার্কিং)'}
+                          </span>
                         </div>
                       </div>
                     </div>
-                  ))}
+                  ) : (
+                    realServerStops.map((stop, idx) => (
+                      <div key={stop.id} className="bg-slate-900 border border-slate-800 rounded-3xl p-3.5 shadow-xl space-y-2">
+                        <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                          <div className="flex items-center space-x-2">
+                            <div className="w-6 h-6 rounded-lg bg-rose-600/20 border border-rose-500/40 flex items-center justify-center text-rose-400 font-bold text-xs">
+                              🛑 {idx + 1}
+                            </div>
+                            <div>
+                              <span className="font-extrabold text-xs text-white block">স্টপেজ # {idx + 1}</span>
+                              <span className="text-[10px] text-slate-400">{stop.startTime} ➔ {stop.endTime}</span>
+                            </div>
+                          </div>
+                          <span className="text-xs font-bold text-rose-400 bg-rose-950/60 border border-rose-500/40 px-2 py-0.5 rounded-full">
+                            {stop.duration}
+                          </span>
+                        </div>
+
+                        <div className="flex items-start space-x-2 text-xs bg-slate-950/60 p-2.5 rounded-2xl border border-slate-800/60">
+                          <MapPin className="w-4 h-4 text-rose-400 mt-0.5 shrink-0" />
+                          <div>
+                            <span className="font-bold text-slate-200 text-[11px] block">{stop.place}</span>
+                            <span className="text-[9px] font-mono text-slate-500">{stop.coords} • {stop.ignition}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               )}
 
@@ -868,37 +1002,37 @@ export const ReportsHubView: React.FC = () => {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-[11px] font-bold text-slate-300 px-1">
                     <span>ইঞ্জিন স্টার্ট ও বন্ধের সুনির্দিষ্ট সময় ও অবস্থান</span>
-                    <span className="text-[10px] text-amber-400">মোট ৪ বার অন/অফ</span>
+                    <span className="text-[10px] text-amber-400">রিয়েল-টাইম স্ট্যাটাস</span>
                   </div>
 
-                  {[
-                    { id: 'ign-1', onTime: '০৮:১৫ AM', offTime: '০৯:০৫ AM', onPlace: 'মিরপুর-১০', offPlace: 'কারওয়ান বাজার', runtime: '৫০ মিনিট', idle: '৩ মিনিট' },
-                    { id: 'ign-2', onTime: '০১:২০ PM', offTime: '০২:০০ PM', onPlace: 'কারওয়ান বাজার', offPlace: 'গুলশান-২', runtime: '৪০ মিনিট', idle: '২ মিনিট' },
-                    { id: 'ign-3', onTime: '০৬:৪০ PM', offTime: '০৭:৩৫ PM', onPlace: 'গুলশান-২', offPlace: 'ধানমন্ডি ২৭', runtime: '৫৫ মিনিট', idle: '৫ মিনিট' }
-                  ].map((ign, idx) => (
-                    <div key={ign.id} className="bg-slate-900 border border-slate-800 rounded-3xl p-3.5 shadow-xl space-y-2">
-                      <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
-                        <div className="flex items-center space-x-2">
-                          <Key className="w-4 h-4 text-amber-400" />
-                          <span className="font-extrabold text-xs text-white">ইগনিশন সাইকেল #{idx + 1}</span>
-                        </div>
-                        <span className="text-[10px] font-bold text-emerald-400 bg-emerald-950 px-2 py-0.5 rounded-full border border-emerald-800">
-                          রানটাইম: {ign.runtime}
+                  <div className="bg-slate-900 border border-slate-800 rounded-3xl p-3.5 shadow-xl space-y-2">
+                    <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                      <div className="flex items-center space-x-2">
+                        <Key className="w-4 h-4 text-amber-400" />
+                        <span className="font-extrabold text-xs text-white">বর্তমান ইগনিশন অবস্থা</span>
+                      </div>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                        selectedPosition?.attributes?.ignition 
+                          ? 'text-emerald-400 bg-emerald-950 border-emerald-800' 
+                          : 'text-slate-300 bg-slate-800 border-slate-700'
+                      }`}>
+                        {selectedPosition?.attributes?.ignition ? '🟢 ইঞ্জিন চালু' : '🔴 ইঞ্জিন বন্ধ'}
+                      </span>
+                    </div>
+
+                    <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs space-y-1">
+                      <div className="flex justify-between text-slate-300">
+                        <span className="text-slate-400">সর্বশেষ আপডেট সময়:</span>
+                        <span className="font-mono font-bold text-slate-200">{new Date(selectedPosition?.fixTime || Date.now()).toLocaleTimeString()}</span>
+                      </div>
+                      <div className="flex justify-between text-slate-300">
+                        <span className="text-slate-400">লোকেশন:</span>
+                        <span className="text-emerald-300 font-bold truncate max-w-[200px]">
+                          {selectedPosition?.address || `${selectedPosition?.latitude || 0}°N, ${selectedPosition?.longitude || 0}°E`}
                         </span>
                       </div>
-
-                      <div className="grid grid-cols-2 gap-2 text-xs">
-                        <div className="p-2 rounded-xl bg-slate-950 border border-slate-800">
-                          <span className="text-[9.5px] text-emerald-400 font-bold block">🟢 ইঞ্জিন অন: {ign.onTime}</span>
-                          <span className="text-[10.5px] text-slate-300 truncate block mt-0.5">{ign.onPlace}</span>
-                        </div>
-                        <div className="p-2 rounded-xl bg-slate-950 border border-slate-800">
-                          <span className="text-[9.5px] text-rose-400 font-bold block">🔴 ইঞ্জিন অফ: {ign.offTime}</span>
-                          <span className="text-[10.5px] text-slate-300 truncate block mt-0.5">{ign.offPlace}</span>
-                        </div>
-                      </div>
                     </div>
-                  ))}
+                  </div>
                 </div>
               )}
 
@@ -907,24 +1041,23 @@ export const ReportsHubView: React.FC = () => {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-[11px] font-bold text-slate-300 px-1">
                     <span>গতিসীমা লঙ্ঘন ও ওভার স্পিড হিস্ট্রি</span>
-                    <span className="text-[10px] text-yellow-400">লিমিট: ৬০ km/h</span>
+                    <span className="text-[10px] text-yellow-400">লিমিট: {selectedDevice?.attributes?.speedLimit || 60} km/h</span>
                   </div>
 
                   <div className="bg-slate-900 border border-slate-800 rounded-3xl p-3.5 shadow-xl space-y-2.5">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <Zap className="w-4 h-4 text-yellow-400" />
-                        <div>
-                          <span className="font-extrabold text-xs text-white">ওভার স্পিড রেকর্ড #১</span>
-                          <span className="text-[10px] text-slate-400 block">০৭:১৫ PM • বিজয় সরণি এক্সপ্রেসওয়ে</span>
-                        </div>
+                    <div className="flex items-center space-x-2">
+                      <Zap className="w-4 h-4 text-emerald-400" />
+                      <div>
+                        <span className="font-extrabold text-xs text-white">গতিসীমা পর্যবেক্ষণ</span>
+                        <span className="text-[10px] text-slate-400 block">বর্তমান গতি: {selectedPosition?.speed || 0} km/h</span>
                       </div>
-                      <span className="text-xs font-mono font-black text-rose-400 bg-rose-950 px-2 py-0.5 rounded-full border border-rose-800">
-                        ৭২ km/h
-                      </span>
                     </div>
-                    <div className="text-[10.5px] text-slate-300 bg-slate-950 p-2 rounded-xl border border-slate-800">
-                      গাড়ির নির্ধারিত সর্বোচ্চ সীমা ছিল ৬০ km/h, ১২ কিমি গতি অতিক্রম করায় স্বয়ংক্রিয় অ্যালার্ট জেনারেট হয়েছে।
+                    <div className="text-[10.5px] text-slate-300 bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+                      {((selectedPosition?.speed || 0) > (selectedDevice?.attributes?.speedLimit || 60)) ? (
+                        <span className="text-rose-400 font-bold">⚠️ গতিসীমা লঙ্ঘিত হয়েছে! নির্ধারিত গতি বজায় রাখুন।</span>
+                      ) : (
+                        <span className="text-emerald-400 font-bold">✅ নির্বাচিত সময়কালে কোনো অতিরিক্ত গতি বা ওভার স্পিড রেকর্ড হয়নি। নিরাপদ ড্রাইভিং।</span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -934,27 +1067,22 @@ export const ReportsHubView: React.FC = () => {
               {selectedReportType === 'daily' && (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-[11px] font-bold text-slate-300 px-1">
-                    <span>তারিখভিত্তিক ২৪ ঘণ্টার কমপ্লিট হিস্ট্রি লগ</span>
-                    <span className="text-[10px] text-teal-400">গত ৭ দিন</span>
+                    <span>তারিখভিত্তিক ২৪ ঘণ্টার হিস্ট্রি লগ</span>
+                    <span className="text-[10px] text-teal-400">রিয়েল ওডোমিটার</span>
                   </div>
 
-                  {[
-                    { date: '২৫ আগস্ট ২০২৬ (আজ)', km: '৩৫.৮ km', trips: 3, runtime: '২h ২৫m', fuel: '১.১ L', maxSpd: '৬২ km/h' },
-                    { date: '২৪ আগস্ট ২০২৬ (গতকাল)', km: '৪২.২ km', trips: 4, runtime: '২h ৫০m', fuel: '১.৩ L', maxSpd: '৫৮ km/h' },
-                    { date: '২৩ আগস্ট ২০২৬', km: '২৮.০ km', trips: 2, runtime: '১h ৫৫m', fuel: '০.৯ L', maxSpd: '৫০ km/h' },
-                    { date: '২২ আগস্ট ২০২৬', km: '৪৯.৫ km', trips: 5, runtime: '৩h ১০m', fuel: '১.৫ L', maxSpd: '৬৪ km/h' }
-                  ].map((row) => (
-                    <div key={row.date} className="bg-slate-900 border border-slate-800 rounded-3xl p-3 shadow-md flex items-center justify-between text-xs">
-                      <div>
-                        <span className="font-bold text-slate-100 block">{row.date}</span>
-                        <span className="text-[10px] text-slate-400">ট্রিপ: {row.trips} টি • রানিং: {row.runtime}</span>
-                      </div>
-                      <div className="text-right">
-                        <span className="font-mono font-black text-blue-300 text-xs block">{row.km}</span>
-                        <span className="text-[9.5px] text-emerald-400 font-bold">ফুয়েল: ~{row.fuel}</span>
-                      </div>
+                  <div className="bg-slate-900 border border-slate-800 rounded-3xl p-3.5 shadow-md flex items-center justify-between text-xs">
+                    <div>
+                      <span className="font-bold text-slate-100 block">আজকের মোট রানিং ({new Date().toLocaleDateString('bn-BD')})</span>
+                      <span className="text-[10px] text-slate-400">ট্রিপ: {realServerTrips.length} টি • বর্তমান ওডোমিটার: {currentOdometer} km</span>
                     </div>
-                  ))}
+                    <div className="text-right">
+                      <span className="font-mono font-black text-blue-300 text-xs block">{gpsIncrementKm.toFixed(1)} km</span>
+                      <span className="text-[9.5px] text-emerald-400 font-bold">
+                        {currentFuelLiters > 0 ? `অবশিষ্ট: ${currentFuelLiters.toFixed(1)}L` : 'সচল'}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -963,20 +1091,20 @@ export const ReportsHubView: React.FC = () => {
                 <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl space-y-3 text-xs">
                   <div className="flex items-center space-x-2 border-b border-slate-800 pb-2">
                     <BarChart3 className="w-4 h-4 text-purple-400" />
-                    <span className="font-bold text-slate-100">টেলিমেট্রিক্স ও সেন্সর বিশ্লেষণ</span>
+                    <span className="font-bold text-slate-100">লাইভ সেন্সর ও টেলিমেট্রিক্স ডায়াগনস্টিক</span>
                   </div>
                   <div className="space-y-2">
                     <div className="flex justify-between p-2 rounded-xl bg-slate-950 border border-slate-800">
-                      <span className="text-slate-400">এসি মোট রানটাইম:</span>
-                      <span className="font-bold text-cyan-300">১ ঘণ্টা ৩৫ মিনিট (৩৮%)</span>
+                      <span className="text-slate-400">মেইন ব্যাটারি ভোল্টেজ:</span>
+                      <span className="font-bold text-cyan-300">{selectedPosition?.attributes?.power || selectedPosition?.attributes?.battery || '12.4'} V</span>
                     </div>
                     <div className="flex justify-between p-2 rounded-xl bg-slate-950 border border-slate-800">
-                      <span className="text-slate-400">ডোর ওপেন সংখ্যা:</span>
-                      <span className="font-bold text-slate-200">৬ বার</span>
+                      <span className="text-slate-400">জিপিএস স্যাটেলাইট সিগন্যাল:</span>
+                      <span className="font-bold text-slate-200">{selectedPosition?.attributes?.sat || 0} টি সংযুক্ত</span>
                     </div>
                     <div className="flex justify-between p-2 rounded-xl bg-slate-950 border border-slate-800">
-                      <span className="text-slate-400">সেফ জোন ট্রানজিশন:</span>
-                      <span className="font-bold text-emerald-400">৪ বার ইন / ৪ বার আউট</span>
+                      <span className="text-slate-400">মোশন অবস্থা:</span>
+                      <span className="font-bold text-emerald-400">{selectedPosition?.attributes?.motion ? 'গতিশীল (In Motion)' : 'স্থির / পার্কড (Stationary)'}</span>
                     </div>
                   </div>
                 </div>
@@ -984,7 +1112,6 @@ export const ReportsHubView: React.FC = () => {
             </div>
           )
         )}
-
         {/* =================================================== */}
         {/* TAB 1: FUEL & MILEAGE (ZERO DEMO DATA)              */}
         {/* =================================================== */}
@@ -1408,6 +1535,7 @@ export const ReportsHubView: React.FC = () => {
             </div>
           </div>
         )}
+        </main>
       </div>
 
       {/* MODAL: INITIAL FUEL SETUP */}

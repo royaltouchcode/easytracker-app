@@ -25,6 +25,7 @@ export interface SelectedLocationData {
   union: string;
   unionBn: string;
   postCode?: string;
+  shopName?: string;
   streetAddress: string;
   fullFormattedAddress: string;
   lat: number;
@@ -37,8 +38,10 @@ interface BangladeshLocationPickerProps {
   initialUpazila?: string;
   initialUnion?: string;
   initialStreet?: string;
+  initialShopName?: string;
   initialLat?: number;
   initialLng?: number;
+  isBusinessLocation?: boolean;
   onChange: (data: SelectedLocationData) => void;
   label?: string;
   required?: boolean;
@@ -49,10 +52,12 @@ export const BangladeshLocationPicker: React.FC<BangladeshLocationPickerProps> =
   initialUpazila,
   initialUnion,
   initialStreet = '',
+  initialShopName = '',
   initialLat,
   initialLng,
+  isBusinessLocation = true,
   onChange,
-  label = 'লোকেশন ও ঠিকানা নির্বাচন (Courier Level Nested Filter)',
+  label = 'দোকান / আউটলেটের নেস্টেড লোকেশন ও গুগল ম্যাপ পিন',
   required = true
 }) => {
   // 1. Select District
@@ -92,7 +97,8 @@ export const BangladeshLocationPicker: React.FC<BangladeshLocationPickerProps> =
     return selectedUpazila?.unions[0] || selectedDistrict?.upazilas[0]?.unions[0];
   });
 
-  // 4. Street Address & Coords
+  // 4. Street Address, Shop Name & Coords
+  const [shopName, setShopName] = useState(initialShopName);
   const [streetAddress, setStreetAddress] = useState(initialStreet);
   const [currentLat, setCurrentLat] = useState<number>(initialLat || selectedUpazila?.lat || 23.8103);
   const [currentLng, setCurrentLng] = useState<number>(initialLng || selectedUpazila?.lng || 90.4125);
@@ -105,8 +111,9 @@ export const BangladeshLocationPicker: React.FC<BangladeshLocationPickerProps> =
 
     const unionName = selectedUnion ? selectedUnion.nameBn : '';
     const post = selectedUnion?.postCode ? `পোস্টকোড: ${selectedUnion.postCode}` : '';
+    const shopPrefix = shopName.trim() ? `${shopName.trim()}, ` : '';
     const streetPart = streetAddress.trim() ? `${streetAddress.trim()}, ` : '';
-    const fullFormatted = `${streetPart}${unionName ? `${unionName}, ` : ''}${selectedUpazila.nameBn}, ${selectedDistrict.nameBn}${post ? ` (${post})` : ''}`;
+    const fullFormatted = `${shopPrefix}${streetPart}${unionName ? `${unionName}, ` : ''}${selectedUpazila.nameBn}, ${selectedDistrict.nameBn}${post ? ` (${post})` : ''}`;
     const mapsUrl = `https://www.google.com/maps?q=${currentLat.toFixed(6)},${currentLng.toFixed(6)}`;
 
     onChange({
@@ -117,13 +124,14 @@ export const BangladeshLocationPicker: React.FC<BangladeshLocationPickerProps> =
       union: selectedUnion?.nameEn || '',
       unionBn: unionName,
       postCode: selectedUnion?.postCode,
+      shopName: shopName.trim(),
       streetAddress: streetAddress.trim(),
       fullFormattedAddress: fullFormatted,
       lat: currentLat,
       lng: currentLng,
       googleMapsUrl: mapsUrl
     });
-  }, [selectedDistrict, selectedUpazila, selectedUnion, streetAddress, currentLat, currentLng]);
+  }, [selectedDistrict, selectedUpazila, selectedUnion, shopName, streetAddress, currentLat, currentLng]);
 
   // Handle District Change
   const handleDistrictChange = (distId: string) => {
@@ -161,7 +169,7 @@ export const BangladeshLocationPicker: React.FC<BangladeshLocationPickerProps> =
     }
   };
 
-  // Auto-Detect Accurate GPS from Mobile Phone
+  // Auto-Detect Accurate GPS from Mobile Phone at the Shop
   const handleAutoDetectGPS = () => {
     if (typeof navigator !== 'undefined' && navigator.geolocation) {
       setIsDetectingGps(true);
@@ -176,7 +184,7 @@ export const BangladeshLocationPicker: React.FC<BangladeshLocationPickerProps> =
         },
         (err) => {
           setIsDetectingGps(false);
-          alert('মোবাইলের জিপিএস লোকেশন নেওয়া সম্ভব হয়নি। অনুগ্রহ করে পারমিশন চেক করুন।');
+          alert('মোবাইলের জিপিএস লোকেশন পাওয়া যায়নি। অনুগ্রহ করে পারমিশন দিয়ে চেষ্টা করুন।');
         },
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
       );
@@ -188,7 +196,20 @@ export const BangladeshLocationPicker: React.FC<BangladeshLocationPickerProps> =
   const googleMapsUrl = `https://www.google.com/maps?q=${currentLat.toFixed(6)},${currentLng.toFixed(6)}`;
 
   return (
-    <div className="p-3 bg-slate-950/90 border border-slate-800 rounded-2xl space-y-3 select-none">
+    <div className="p-3.5 bg-slate-950/90 border border-slate-800 rounded-3xl space-y-3 select-none">
+      {/* 🏢 CRITICAL PROMINENT WARNING BANNER (USER'S EXPLICIT RULE) */}
+      {isBusinessLocation && (
+        <div className="p-3 rounded-2xl bg-amber-950/40 border border-amber-500/50 text-amber-200 text-xs space-y-1">
+          <div className="flex items-center space-x-1.5 font-black text-amber-300">
+            <Building className="w-4 h-4 text-amber-400 shrink-0" />
+            <span>🏢 জরুরি নির্দেশনা (দোকান / বিজনেস লোকেশন):</span>
+          </div>
+          <p className="text-[11px] text-slate-300 leading-relaxed">
+            দয়া করে আপনার <strong>ব্যক্তিগত বাসা/ঘরের অবস্থান নয়</strong>, বরং আপনার <strong>অফিস, দোকান বা সার্ভিস সেন্টারে অবস্থানকালীন সময়ে</strong> নিচের <strong>‘📍 শপে অবস্থানকালে বিজনেস GPS ক্যাপচার’</strong> বাটনে চাপুন। এতে গ্রাহক ও সাপোর্ট টিম সরাসরি আপনার প্রতিষ্ঠানে সেবা নিতে আসতে পারবে।
+          </p>
+        </div>
+      )}
+
       <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
         <div className="flex items-center space-x-1.5 text-blue-400">
           <Compass className="w-4 h-4 text-emerald-400" />
@@ -199,11 +220,25 @@ export const BangladeshLocationPicker: React.FC<BangladeshLocationPickerProps> =
           type="button"
           onClick={handleAutoDetectGPS}
           disabled={isDetectingGps}
-          className="px-2.5 py-1 rounded-xl bg-emerald-600/25 hover:bg-emerald-600/40 border border-emerald-500/50 text-emerald-300 font-bold text-[10.5px] flex items-center space-x-1 transition active:scale-95 shadow-sm"
+          className="px-2.5 py-1.5 rounded-xl bg-emerald-600/30 hover:bg-emerald-600/50 border border-emerald-500/60 text-emerald-300 font-bold text-[11px] flex items-center space-x-1.5 transition active:scale-95 shadow-sm"
         >
-          <Navigation className={`w-3 h-3 text-emerald-400 ${isDetectingGps ? 'animate-spin' : ''}`} />
-          <span>{isDetectingGps ? 'ডিটেক্ট হচ্ছে...' : '📍 ফোনের GPS অটো-ডিটেক্ট'}</span>
+          <Navigation className={`w-3.5 h-3.5 text-emerald-400 ${isDetectingGps ? 'animate-spin' : ''}`} />
+          <span>{isDetectingGps ? 'GPS নেওয়া হচ্ছে...' : (gpsCaptured ? '✅ শপ GPS ক্যাপচার্ড' : '📍 শপে থাকাকালে GPS নিন')}</span>
         </button>
+      </div>
+
+      {/* Shop / Outlet Name */}
+      <div>
+        <label className="text-[10.5px] font-bold text-slate-300 block mb-1">
+          দোকান / শপ / বিজনেস সেন্টারের নাম {required ? '*' : ''}
+        </label>
+        <input
+          type="text"
+          value={shopName}
+          onChange={(e) => setShopName(e.target.value)}
+          placeholder="যেমন: ভাই ভাই অটো পার্টস অ্যান্ড সার্ভিসিং পয়েন্ট"
+          className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-bold focus:border-blue-500 focus:outline-none"
+        />
       </div>
 
       {/* Level 1 & Level 2: District & Thana/Upazila */}

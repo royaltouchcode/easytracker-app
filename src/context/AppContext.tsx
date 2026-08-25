@@ -35,6 +35,7 @@ import {
 import { traccarApi } from '../services/traccarApi';
 import { traccarSocket } from '../services/traccarSocket';
 import { audioAlertService } from '../services/audioAlertService';
+import { reverseGeocodeCoords } from '../utils/reverseGeocoding';
 
 export type TabType = 'map' | 'reports' | 'playback' | 'commands' | 'surveillance' | 'geofence' | 'alerts' | 'settings' | 'saas_admin' | 'saas_sales' | 'saas_technician' | 'saas_support' | 'saas_rescue';
 export type Language = 'en' | 'bn';
@@ -516,7 +517,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       altitude: 10,
       speed: 0,
       course: 0,
-      address: 'সার্ভারের শেষ পরিচিত অবস্থান (Last Known Location)',
+      address: 'অনন্যা শপিং কমপ্লেক্স, বারিধারা ডিওএইচএস, ঢাকা',
       accuracy: 5,
       attributes: {
         ignition: false,
@@ -637,6 +638,29 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     };
   });
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
+
+  // Auto Reverse Geocoding for current vehicle position
+  useEffect(() => {
+    const pos = positions[selectedDeviceId];
+    if (pos && pos.latitude && pos.longitude) {
+      if (!pos.address || pos.address.includes('Last Known Location') || pos.address.includes('Waiting for GPS')) {
+        reverseGeocodeCoords(pos.latitude, pos.longitude).then(resolvedAddr => {
+          if (resolvedAddr && resolvedAddr !== pos.address) {
+            setPositions(prev => {
+              if (!prev[selectedDeviceId]) return prev;
+              return {
+                ...prev,
+                [selectedDeviceId]: {
+                  ...prev[selectedDeviceId],
+                  address: resolvedAddr
+                }
+              };
+            });
+          }
+        });
+      }
+    }
+  }, [selectedDeviceId, positions[selectedDeviceId]?.latitude, positions[selectedDeviceId]?.longitude]);
 
   const [mapLayer, setMapLayer] = useState<MapLayerType>('google_hybrid');
   const [showTraffic, setShowTraffic] = useState(true);

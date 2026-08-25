@@ -44,10 +44,50 @@ interface SupportTicket {
 }
 
 const AVAILABLE_TECHNICIANS = [
-  { id: 'tech_1', name: 'আব্দুল করিম', phone: '01711-223344', area: 'ঢাকা সেন্ট্রাল ও গুলশান জোন' },
-  { id: 'tech_2', name: 'সুজন মিয়া', phone: '01733-445566', area: 'মিরপুর ও উত্তরা জোন' },
-  { id: 'tech_3', name: 'রফিকুল ইসলাম', phone: '01722-334455', area: 'মতিঝিল ও পুরান ঢাকা' },
-  { id: 'tech_4', name: 'শাহিদুল আলম', phone: '01744-556677', area: 'চট্টগ্রাম ও রিজিয়নাল' }
+  { 
+    id: 'tech_1', 
+    name: 'আব্দুল করিম', 
+    phone: '01711-223344', 
+    zone: 'ঢাকা উত্তর (বারিধারা/গুলশান)',
+    shopName: 'করিম অটো সার্ভিসিং হাব', 
+    shopAddress: 'দোকান ১২, ডিওএইচএস বাইপাস রোড, অনন্যা কমপ্লেক্স সংলগ্ন, বারিধারা, ঢাকা',
+    lat: 23.8103,
+    lng: 90.4125,
+    googleMapsUrl: 'https://maps.google.com/?q=23.8103,90.4125'
+  },
+  { 
+    id: 'tech_2', 
+    name: 'সুজন মিয়া', 
+    phone: '01733-445566', 
+    zone: 'মিরপুর ও উত্তরা জোন',
+    shopName: 'সুজন জিপিএস অ্যান্ড ওয়্যারিং পয়েন্ট', 
+    shopAddress: 'প্লট ৮, সেকশন ১০ গোলচত্বর, মিরপুর, ঢাকা',
+    lat: 23.8071,
+    lng: 90.3687,
+    googleMapsUrl: 'https://maps.google.com/?q=23.8071,90.3687'
+  },
+  { 
+    id: 'tech_3', 
+    name: 'রফিকুল ইসলাম', 
+    phone: '01722-334455', 
+    zone: 'মতিঝিল ও ধানমন্ডি জোন',
+    shopName: 'রফিক ইলেকট্রনিক্স অ্যান্ড অটো টেক', 
+    shopAddress: 'রোড ৪/এ, ধানমন্ডি ২৭, ঢাকা',
+    lat: 23.7505,
+    lng: 90.3750,
+    googleMapsUrl: 'https://maps.google.com/?q=23.7505,90.3750'
+  },
+  { 
+    id: 'tech_4', 
+    name: 'শাহিদুল আলম', 
+    phone: '01744-556677', 
+    zone: 'চট্টগ্রাম ও রিজিয়নাল',
+    shopName: 'আলম মটরস অ্যান্ড ট্র্যাকার পয়েন্ট', 
+    shopAddress: 'জিইসি মোড়, সিডিএ এভিনিউ, চট্টগ্রাম',
+    lat: 22.3585,
+    lng: 91.8215,
+    googleMapsUrl: 'https://maps.google.com/?q=22.3585,91.8215'
+  }
 ];
 
 export const SupportPortalView: React.FC = () => {
@@ -71,8 +111,11 @@ export const SupportPortalView: React.FC = () => {
   const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
   const [editStatus, setEditStatus] = useState<TicketStatus>('Pending');
   const [editPriority, setEditPriority] = useState<TicketPriority>('Medium');
+  const [selectedZone, setSelectedZone] = useState<string>('ঢাকা উত্তর (বারিধারা/গুলশান)');
+  const [ticketForwardTechId, setTicketForwardTechId] = useState<string>(AVAILABLE_TECHNICIANS[0].id);
   const [agentNoteInput, setAgentNoteInput] = useState('');
   const [statusUpdateSuccess, setStatusUpdateSuccess] = useState(false);
+  const [forwardSuccessMessage, setForwardSuccessMessage] = useState<string | null>(null);
 
   // Warranty Dispatch Modal State
   const [selectedWarrantyClaim, setSelectedWarrantyClaim] = useState<WarrantyClaimTicket | null>(null);
@@ -87,6 +130,7 @@ export const SupportPortalView: React.FC = () => {
     setEditStatus(ticket.status);
     setEditPriority(ticket.priority);
     setAgentNoteInput(ticket.agentNotes || '');
+    setForwardSuccessMessage(null);
   };
 
   const handleSaveTicketUpdate = (e: React.FormEvent) => {
@@ -100,6 +144,69 @@ export const SupportPortalView: React.FC = () => {
       setStatusUpdateSuccess(false);
       setSelectedTicket(null);
     }, 1000);
+  };
+
+  // Forward Ticket to Technician + Notify Customer with Shop Location
+  const handleForwardTicketToTechnician = () => {
+    if (!selectedTicket) return;
+
+    const tech = AVAILABLE_TECHNICIANS.find(t => t.id === ticketForwardTechId) || AVAILABLE_TECHNICIANS[0];
+    
+    // 1. Create a Work Order for Technician
+    const saved = localStorage.getItem('gps_tech_work_orders');
+    let orders: any[] = [];
+    if (saved) {
+      try { orders = JSON.parse(saved); } catch (e) {}
+    }
+
+    const newOrder = {
+      id: 'TKT-JOB-' + Date.now().toString().slice(-4),
+      type: 'troubleshoot_complaint',
+      ticketId: selectedTicket.id,
+      customerName: selectedTicket.customer,
+      customerPhone: selectedTicket.phone,
+      vehicleName: selectedTicket.vehicle,
+      issueDetails: selectedTicket.issue,
+      assignedTechName: tech.name,
+      assignedTechPhone: tech.phone,
+      shopName: tech.shopName,
+      shopAddress: tech.shopAddress,
+      googleMapsUrl: tech.googleMapsUrl,
+      feeBdt: 250,
+      status: 'in_progress',
+      assignedDate: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+    };
+
+    localStorage.setItem('gps_tech_work_orders', JSON.stringify([newOrder, ...orders]));
+
+    // 2. Prepare Customer Notification Message
+    const customerNotificationText = `প্রিয় ${selectedTicket.customer}, আপনার অভিযোগটি (টিকেট #${selectedTicket.id}) সফলভাবে টেকনিশিয়ান ${tech.name} (📞 ${tech.phone}, 🏢 ${tech.shopName}, ${tech.shopAddress})-এর কাছে ফরোয়ার্ড করা হয়েছে। ম্যাপে দোকানের অবস্থান: ${tech.googleMapsUrl}`;
+
+    // Store in customer notification center
+    const notifSaved = localStorage.getItem('gps_customer_notifications');
+    let notifs: any[] = [];
+    if (notifSaved) {
+      try { notifs = JSON.parse(notifSaved); } catch (e) {}
+    }
+    notifs.unshift({
+      id: 'NOTIF-' + Date.now(),
+      title: `টিকেট #${selectedTicket.id} টেকনিশিয়ানকে অ্যাসাইন করা হয়েছে`,
+      body: customerNotificationText,
+      mapsUrl: tech.googleMapsUrl,
+      time: new Date().toLocaleTimeString(),
+      date: new Date().toLocaleDateString()
+    });
+    localStorage.setItem('gps_customer_notifications', JSON.stringify(notifs));
+
+    // 3. Update Ticket in App
+    const updatedNote = `[${new Date().toLocaleTimeString()}] টেকনিশিয়ান ${tech.name} (${tech.shopName})-কে দায়িত্ব দেওয়া হয়েছে। কাস্টমারকে এসএমএস ও পুশ নোটিফিকেশন পাঠানো হয়েছে।\n${agentNoteInput}`;
+    updateSupportTicketStatus(selectedTicket.id, 'In Progress', updatedNote);
+
+    setForwardSuccessMessage(`টেকনিশিয়ান ${tech.name} (${tech.shopName})-এর কিউতে ফরোয়ার্ড ও কাস্টমারকে নোটিফাই করা হয়েছে!`);
+    setTimeout(() => {
+      setForwardSuccessMessage(null);
+      setSelectedTicket(null);
+    }, 2200);
   };
 
   // Warranty Dispatch Handler
@@ -427,7 +534,7 @@ export const SupportPortalView: React.FC = () => {
             <form onSubmit={handleConfirmWarrantyDispatch} className="space-y-3 text-xs">
               <div>
                 <label className="text-[10.5px] font-bold text-slate-300 block mb-1">
-                  ফিল্ড টেকনিশিয়ান নির্বাচন করুন *
+                  ফিল্ড টেকনিশিয়ান ও সার্ভিস সেন্টার নির্বাচন করুন *
                 </label>
                 <select
                   value={selectedTechId}
@@ -436,10 +543,32 @@ export const SupportPortalView: React.FC = () => {
                 >
                   {AVAILABLE_TECHNICIANS.map(t => (
                     <option key={t.id} value={t.id}>
-                      {t.name} ({t.phone}) - {t.area}
+                      {t.name} ({t.phone}) - {t.shopName} ({t.zone})
                     </option>
                   ))}
                 </select>
+                {/* Selected Tech Shop Details */}
+                {(() => {
+                  const tech = AVAILABLE_TECHNICIANS.find(t => t.id === selectedTechId);
+                  return tech ? (
+                    <div className="mt-1.5 p-2 rounded-xl bg-slate-900 border border-slate-800 text-[10.5px] text-slate-300 space-y-0.5">
+                      <div className="font-bold text-emerald-300 flex items-center space-x-1">
+                        <MapPin className="w-3 h-3 text-emerald-400 shrink-0" />
+                        <span>শপ: {tech.shopName}</span>
+                      </div>
+                      <div className="text-[10px] text-slate-400 truncate">{tech.shopAddress}</div>
+                      <a 
+                        href={tech.googleMapsUrl} 
+                        target="_blank" 
+                        rel="noreferrer"
+                        className="inline-flex items-center space-x-1 text-[9.5px] font-bold text-blue-400 hover:text-blue-300 pt-0.5"
+                      >
+                        <span>গুগল ম্যাপে শপ লোকেশন দেখুন</span>
+                        <ExternalLink className="w-2.5 h-2.5" />
+                      </a>
+                    </div>
+                  ) : null;
+                })()}
               </div>
 
               <div>
@@ -477,11 +606,11 @@ export const SupportPortalView: React.FC = () => {
       )}
 
       {/* ========================================================================= */}
-      {/* MODAL 2: SUPPORT TICKET EDIT MODAL                                        */}
+      {/* MODAL 2: SUPPORT TICKET EDIT & TECHNICIAN DISPATCH MODAL                   */}
       {/* ========================================================================= */}
       {selectedTicket && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-in fade-in select-none">
-          <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-sm w-full p-4 shadow-2xl space-y-3.5">
+          <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-sm w-full p-4 shadow-2xl space-y-3.5 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-800 pb-2">
               <span className="font-extrabold text-xs text-sky-300 flex items-center space-x-1.5">
                 <Edit3 className="w-4 h-4 text-sky-400" />
@@ -492,14 +621,117 @@ export const SupportPortalView: React.FC = () => {
               </button>
             </div>
 
-            <form onSubmit={handleSaveTicketUpdate} className="space-y-3 text-xs">
+            {/* Customer & Complaint Summary */}
+            <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-1.5 text-xs">
+              <div className="flex justify-between items-center">
+                <span className="font-extrabold text-white text-xs">{selectedTicket.customer}</span>
+                <span className="text-slate-400 font-mono text-[11px]">{selectedTicket.phone}</span>
+              </div>
+              <div className="text-slate-400 text-[10.5px]">যানবাহন: <strong className="text-slate-200">{selectedTicket.vehicle}</strong></div>
+              <div className="p-2 rounded-xl bg-slate-900/80 border border-slate-800 text-[11px] text-amber-300">
+                <strong>অভিযোগ:</strong> {selectedTicket.issue}
+              </div>
+            </div>
+
+            {/* Success Message Banner */}
+            {forwardSuccessMessage && (
+              <div className="p-2.5 rounded-2xl bg-emerald-950/80 border border-emerald-500 text-emerald-300 text-xs font-bold animate-in fade-in flex items-center space-x-1.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>{forwardSuccessMessage}</span>
+              </div>
+            )}
+
+            {/* SECTION 1: FORWARD TO TECHNICIAN WITH SHOP LOCATION */}
+            <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800 space-y-2.5 text-xs">
+              <div className="flex items-center space-x-1.5 font-bold text-emerald-400 border-b border-slate-800 pb-1.5">
+                <Wrench className="w-3.5 h-3.5" />
+                <span>টেকনিশিয়ান নিয়োগ ও শপ লোকেশন রাউটিং</span>
+              </div>
+
+              {/* Zone / Location Selector */}
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 block mb-1">
+                  সার্ভিস জোন / কাস্টমারের এলাকা:
+                </label>
+                <select
+                  value={selectedZone}
+                  onChange={(e) => {
+                    setSelectedZone(e.target.value);
+                    const matchingTech = AVAILABLE_TECHNICIANS.find(t => t.zone.includes(e.target.value) || e.target.value.includes(t.zone));
+                    if (matchingTech) setTicketForwardTechId(matchingTech.id);
+                  }}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-white font-bold focus:outline-none"
+                >
+                  <option value="ঢাকা উত্তর (বারিধারা/গুলশান)">ঢাকা উত্তর (বারিধারা/গুলশান)</option>
+                  <option value="মিরপুর ও উত্তরা জোন">মিরপুর ও উত্তরা জোন</option>
+                  <option value="মতিঝিল ও ধানমন্ডি জোন">মতিঝিল ও ধানমন্ডি জোন</option>
+                  <option value="চট্টগ্রাম ও রিজিয়নাল">চট্টগ্রাম ও রিজিয়নাল</option>
+                </select>
+              </div>
+
+              {/* Technician Dropdown */}
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 block mb-1">
+                  দায়িত্বপ্রাপ্ত টেকনিশিয়ান নির্বাচন করুন:
+                </label>
+                <select
+                  value={ticketForwardTechId}
+                  onChange={(e) => setTicketForwardTechId(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-white font-bold focus:outline-none"
+                >
+                  {AVAILABLE_TECHNICIANS.map(t => (
+                    <option key={t.id} value={t.id}>
+                      {t.name} ({t.phone}) - {t.shopName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Selected Tech Shop Details Card */}
+              {(() => {
+                const tech = AVAILABLE_TECHNICIANS.find(t => t.id === ticketForwardTechId);
+                return tech ? (
+                  <div className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-[10.5px] text-slate-300 space-y-1">
+                    <div className="font-bold text-emerald-300 flex items-center space-x-1">
+                      <MapPin className="w-3 h-3 text-rose-400 shrink-0" />
+                      <span>{tech.shopName}</span>
+                    </div>
+                    <div className="text-[10px] text-slate-400">{tech.shopAddress}</div>
+                    <div className="flex items-center justify-between pt-0.5">
+                      <span className="text-[9.5px] font-mono text-slate-400">📞 {tech.phone}</span>
+                      <a
+                        href={tech.googleMapsUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[9.5px] font-bold text-blue-400 hover:text-blue-300 flex items-center space-x-0.5"
+                      >
+                        <span>গুগল ম্যাপ</span>
+                        <ExternalLink className="w-2.5 h-2.5 ml-0.5" />
+                      </a>
+                    </div>
+                  </div>
+                ) : null;
+              })()}
+
+              <button
+                type="button"
+                onClick={handleForwardTicketToTechnician}
+                className="w-full py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-600/30 flex items-center justify-center space-x-1.5 transition active:scale-95"
+              >
+                <Send className="w-3.5 h-3.5" />
+                <span>🚀 টেকনিশিয়ানকে ফরোয়ার্ড করুন ও কাস্টমারকে জানান</span>
+              </button>
+            </div>
+
+            {/* SECTION 2: STATUS & AGENT NOTES */}
+            <form onSubmit={handleSaveTicketUpdate} className="space-y-2.5 text-xs">
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="text-[10.5px] font-bold text-slate-400 block mb-1">টিকেট স্ট্যাটাস:</label>
                   <select
                     value={editStatus}
                     onChange={(e) => setEditStatus(e.target.value as TicketStatus)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-2 text-white font-bold focus:outline-none"
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-white font-bold focus:outline-none"
                   >
                     <option value="Pending">🔴 পেন্ডিং (Pending)</option>
                     <option value="In Progress">🟡 কাজ চলছে (In Progress)</option>
@@ -514,7 +746,7 @@ export const SupportPortalView: React.FC = () => {
                   <select
                     value={editPriority}
                     onChange={(e) => setEditPriority(e.target.value as TicketPriority)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-2 text-white font-bold focus:outline-none"
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-white font-bold focus:outline-none"
                   >
                     <option value="Low">Low</option>
                     <option value="Medium">Medium</option>
@@ -525,13 +757,13 @@ export const SupportPortalView: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-[10.5px] font-bold text-slate-400 block mb-1">সাপোর্ট এজেন্টের নোট:</label>
+                <label className="text-[10.5px] font-bold text-slate-400 block mb-1">সাপোর্ট এজেন্টের অভ্যন্তরীণ নোট:</label>
                 <textarea
-                  rows={3}
+                  rows={2}
                   value={agentNoteInput}
                   onChange={(e) => setAgentNoteInput(e.target.value)}
                   placeholder="কী পদক্ষেপ গ্রহণ করা হয়েছে তা লিখুন..."
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-white focus:border-sky-500 focus:outline-none"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2 text-xs text-white focus:border-sky-500 focus:outline-none"
                 />
               </div>
 
@@ -539,16 +771,16 @@ export const SupportPortalView: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setSelectedTicket(null)}
-                  className="flex-1 py-2.5 rounded-2xl bg-slate-800 text-slate-300 font-bold text-xs"
+                  className="flex-1 py-2 rounded-xl bg-slate-800 text-slate-300 font-bold text-xs"
                 >
-                  বাতিল
+                  বন্ধ করুন
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 rounded-2xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs shadow-lg shadow-sky-600/30 flex items-center justify-center space-x-1.5"
+                  className="flex-1 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs shadow-md shadow-sky-600/30 flex items-center justify-center space-x-1.5"
                 >
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>{statusUpdateSuccess ? 'সংরক্ষিত হয়েছে!' : 'আপডেট সেভ করুন'}</span>
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>{statusUpdateSuccess ? 'সংরক্ষিত!' : 'আপডেট সেভ করুন'}</span>
                 </button>
               </div>
             </form>

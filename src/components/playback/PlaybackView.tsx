@@ -158,17 +158,7 @@ export const PlaybackView: React.FC = () => {
       }
     }
 
-    return sessions.length > 0 ? sessions : [{
-      id: 'session-1',
-      index: 1,
-      startTime: '08:00 AM',
-      endTime: '09:15 AM',
-      formattedDuration: '1h 15m',
-      distanceKm: 12.8,
-      maxSpeed: 54,
-      avgSpeed: 28,
-      points: allRoutePoints
-    }];
+    return sessions;
   }, [allRoutePoints]);
 
   // Active Points for current selection
@@ -182,9 +172,12 @@ export const PlaybackView: React.FC = () => {
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
 
+    const initialLat = selectedPosition?.latitude || 23.8103;
+    const initialLon = selectedPosition?.longitude || 90.4125;
+
     const map = L.map(mapContainerRef.current, {
-      center: [23.6992, 90.4681],
-      zoom: 14,
+      center: [initialLat, initialLon],
+      zoom: 15,
       zoomControl: false,
       attributionControl: false
     });
@@ -200,6 +193,52 @@ export const PlaybackView: React.FC = () => {
       mapRef.current = null;
     };
   }, []);
+
+  // Center on real device location if no historical movement points exist
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    if (activeRoutePoints.length === 0 && selectedPosition?.latitude && selectedPosition?.longitude) {
+      if (polylineRef.current) {
+        map.removeLayer(polylineRef.current);
+        polylineRef.current = null;
+      }
+      if (playbackMarkerRef.current) {
+        map.removeLayer(playbackMarkerRef.current);
+        playbackMarkerRef.current = null;
+      }
+      stopMarkersRef.current.forEach(m => map.removeLayer(m));
+      stopMarkersRef.current = [];
+
+      const currentLatLng: [number, number] = [selectedPosition.latitude, selectedPosition.longitude];
+      map.setView(currentLatLng, 16);
+
+      const parkedIcon = L.divIcon({
+        html: `
+          <div class="relative flex items-center justify-center">
+            <div class="absolute w-8 h-8 rounded-full bg-emerald-500/30 animate-ping"></div>
+            <div class="w-7 h-7 rounded-2xl bg-emerald-600 border-2 border-white text-white flex items-center justify-center shadow-2xl text-xs font-black">
+              📍
+            </div>
+          </div>
+        `,
+        className: 'vehicle-parked-pin',
+        iconSize: [28, 28],
+        iconAnchor: [14, 14]
+      });
+
+      const marker = L.marker(currentLatLng, { icon: parkedIcon }).addTo(map);
+      marker.bindTooltip(`
+        <div style="font-family: sans-serif; padding: 4px; font-size: 11px;">
+          <b>${selectedDevice?.name || 'ভেহিকেল'}</b><br/>
+          স্ট্যাটাস: ${selectedPosition.attributes?.ignition ? '🟢 ইঞ্জিন অন' : '🔴 পার্কড (ইঞ্জিন বন্ধ)'}<br/>
+          ঠিকানা: ${selectedPosition.address || 'রিয়েল-টাইম স্থানাঙ্ক'}
+        </div>
+      `, { permanent: false });
+      playbackMarkerRef.current = marker;
+    }
+  }, [activeRoutePoints.length, selectedPosition, selectedDevice?.name]);
 
   // Render Route Polyline & Stoppage Markers
   useEffect(() => {
@@ -381,50 +420,61 @@ export const PlaybackView: React.FC = () => {
           </div>
 
           {/* Session Cards */}
-          {tripSessions.map((session) => {
-            const isSelected = selectedSessionId === session.id;
-            return (
-              <div
-                key={session.id}
-                onClick={() => {
-                  setSelectedSessionId(session.id);
-                  setIsSessionListOpen(false);
-                }}
-                className={`p-2 rounded-xl border cursor-pointer transition flex items-center justify-between ${
-                  isSelected 
-                    ? 'bg-blue-600/25 border-blue-500/60 text-white shadow-md' 
-                    : 'bg-slate-800/60 border-slate-700/60 text-slate-300 hover:bg-slate-800'
-                }`}
-              >
-                <div>
-                  <div className="flex items-center space-x-1.5">
-                    <span className="font-extrabold text-xs text-blue-300">
-                      {language === 'bn' ? `সেশন #${session.index}` : `Trip #${session.index}`}
-                    </span>
-                    <span className="text-slate-500">•</span>
-                    <span className="text-[11px] font-mono text-slate-200">
-                      {session.startTime} – {session.endTime}
-                    </span>
+          {tripSessions.length === 0 ? (
+            <div className="p-3 text-center bg-slate-800/40 rounded-xl border border-slate-700/40">
+              <span className="text-xs text-slate-300 font-semibold block">
+                {language === 'bn' ? '📍 নির্বাচিত সময়কালে কোনো মুভমেন্ট রেকর্ড হয়নি' : 'No Movement Recorded'}
+              </span>
+              <span className="text-[10px] text-slate-400 mt-0.5 block">
+                {language === 'bn' ? 'গাড়িটি বর্তমানে শেষ অবস্থানে পার্ক করা আছে।' : 'Vehicle is currently parked at last known location.'}
+              </span>
+            </div>
+          ) : (
+            tripSessions.map((session) => {
+              const isSelected = selectedSessionId === session.id;
+              return (
+                <div
+                  key={session.id}
+                  onClick={() => {
+                    setSelectedSessionId(session.id);
+                    setIsSessionListOpen(false);
+                  }}
+                  className={`p-2 rounded-xl border cursor-pointer transition flex items-center justify-between ${
+                    isSelected 
+                      ? 'bg-blue-600/25 border-blue-500/60 text-white shadow-md' 
+                      : 'bg-slate-800/60 border-slate-700/60 text-slate-300 hover:bg-slate-800'
+                  }`}
+                >
+                  <div>
+                    <div className="flex items-center space-x-1.5">
+                      <span className="font-extrabold text-xs text-blue-300">
+                        {language === 'bn' ? `সেশন #${session.index}` : `Trip #${session.index}`}
+                      </span>
+                      <span className="text-slate-500">•</span>
+                      <span className="text-[11px] font-mono text-slate-200">
+                        {session.startTime} – {session.endTime}
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-2 text-[10px] text-slate-400 mt-0.5">
+                      <span>⏱️ {session.formattedDuration}</span>
+                      <span>•</span>
+                      <span className="text-emerald-400 font-bold">📍 {session.distanceKm} km</span>
+                      <span>•</span>
+                      <span className="text-amber-400">⚡ Max {session.maxSpeed} km/h</span>
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-2 text-[10px] text-slate-400 mt-0.5">
-                    <span>⏱️ {session.formattedDuration}</span>
-                    <span>•</span>
-                    <span className="text-emerald-400 font-bold">📍 {session.distanceKm} km</span>
-                    <span>•</span>
-                    <span className="text-amber-400">⚡ Max {session.maxSpeed} km/h</span>
-                  </div>
-                </div>
 
-                <div className="text-right">
-                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
-                    isSelected ? 'bg-blue-500 text-white' : 'bg-slate-700 text-slate-300'
-                  }`}>
-                    {isSelected ? 'Selected' : 'Play'}
-                  </span>
+                  <div className="text-right">
+                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                      isSelected ? 'bg-blue-500 text-white' : 'bg-slate-700 text-slate-300'
+                    }`}>
+                      {isSelected ? 'Selected' : 'Play'}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })
+          )}
         </div>
       )}
 
@@ -435,31 +485,44 @@ export const PlaybackView: React.FC = () => {
 
       {/* Bottom Playback Control Sheet (Compact & Clean) */}
       <div className="bg-slate-900/95 backdrop-blur-xl border-t border-slate-800 px-3 py-2 z-20 shrink-0 select-none">
-        {/* Seekable Timeline Slider */}
-        <div className="space-y-0.5 mb-1.5">
-          <div className="flex justify-between items-center text-xs">
-            <span className="font-mono text-slate-200 font-bold text-[11px]">
-              {activePoint ? new Date(activePoint.fixTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '--:--:--'}
+        {activeRoutePoints.length === 0 ? (
+          <div className="py-2 text-center">
+            <span className="text-xs font-bold text-slate-200 block">
+              {language === 'bn' ? '📍 কোনো ট্রিপ হিস্ট্রি নেই • গাড়িটি শেষ অবস্থানে রয়েছে' : 'No Trip Route • Vehicle at Last Location'}
             </span>
-            <div className="flex items-center space-x-1.5 text-[10px]">
-              <span className="text-emerald-400 font-bold">{Math.round(activePoint?.speed || 0)} km/h</span>
-              <span className="text-slate-500">•</span>
-              <span className="text-slate-400">{currentIndex + 1} / {activeRoutePoints.length || 1} Pts</span>
-            </div>
+            <span className="text-[10px] text-emerald-400 font-mono mt-0.5 block">
+              {selectedPosition?.address || `${selectedPosition?.latitude || 0}°N, ${selectedPosition?.longitude || 0}°E`}
+            </span>
           </div>
+        ) : (
+          <>
+            {/* Seekable Timeline Slider */}
+            <div className="space-y-0.5 mb-1.5">
+              <div className="flex justify-between items-center text-xs">
+                <span className="font-mono text-slate-200 font-bold text-[11px]">
+                  {activePoint ? new Date(activePoint.fixTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '--:--:--'}
+                </span>
+                <div className="flex items-center space-x-1.5 text-[10px]">
+                  <span className="text-emerald-400 font-bold">{Math.round(activePoint?.speed || 0)} km/h</span>
+                  <span className="text-slate-500">•</span>
+                  <span className="text-slate-400">{currentIndex + 1} / {activeRoutePoints.length || 1} Pts</span>
+                </div>
+              </div>
 
-          <input
-            type="range"
-            min={0}
-            max={Math.max(0, activeRoutePoints.length - 1)}
-            value={currentIndex}
-            onChange={(e) => {
-              setCurrentIndex(Number(e.target.value));
-              setIsPlaying(false);
-            }}
-            className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500"
-          />
-        </div>
+              <input
+                type="range"
+                min={0}
+                max={Math.max(0, activeRoutePoints.length - 1)}
+                value={currentIndex}
+                onChange={(e) => {
+                  setCurrentIndex(Number(e.target.value));
+                  setIsPlaying(false);
+                }}
+                className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500"
+              />
+            </div>
+          </>
+        )}
 
         {/* Playback Controls & Speed Multiplier */}
         <div className="flex items-center justify-between mb-1.5">

@@ -56,6 +56,7 @@ export const PartnerRegistrationModal: React.FC<PartnerRegistrationModalProps> =
 
   // Common Form Fields
   const [applicantName, setApplicantName] = useState('');
+  const [shopName, setShopName] = useState('');
   const [phone, setPhone] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
   const [email, setEmail] = useState('');
@@ -146,8 +147,8 @@ export const PartnerRegistrationModal: React.FC<PartnerRegistrationModalProps> =
       await registerPartner({
         type: regType,
         applicantName: applicantName.trim(),
-        brandName: regType === 'b2b_brand' ? brandName.trim() : undefined,
-        businessCategory: regType === 'b2b_brand' ? businessCategory : undefined,
+        brandName: regType === 'b2b_brand' ? brandName.trim() : (shopName.trim() || undefined),
+        businessCategory: regType === 'b2b_brand' ? businessCategory : 'সার্ভিস পয়েন্ট ও শপ',
         phone: phone.trim(),
         whatsapp: whatsapp.trim(),
         email: email.trim() || undefined,
@@ -428,11 +429,14 @@ export const PartnerRegistrationModal: React.FC<PartnerRegistrationModalProps> =
           {/* SECTION D: BANGLADESH NESTED LOCATION & GOOGLE MAPS PIN                   */}
           {/* ========================================================================= */}
           <BangladeshLocationPicker
-            label="দোকান / আউটলেটের নেস্টেড লোকেশন ও গুগল ম্যাপ পিন"
+            label="দোকান / সার্ভিস আউটলেটের নেস্টেড লোকেশন ও গুগল ম্যাপ পিন"
             initialStreet={fullAddress}
+            initialShopName={shopName}
+            isBusinessLocation={true}
             onChange={(loc: SelectedLocationData) => {
               setDistrict(loc.districtBn);
               setFullAddress(loc.fullFormattedAddress);
+              setShopName(loc.shopName || '');
               setGeoLat(loc.lat);
               setGeoLng(loc.lng);
               setGeoDetected(true);
