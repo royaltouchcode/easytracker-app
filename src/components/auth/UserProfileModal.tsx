@@ -27,7 +27,9 @@ import {
   ChevronRight,
   Receipt,
   Layers,
-  Crown
+  Crown,
+  DollarSign,
+  TrendingUp
 } from 'lucide-react';
 import { getAppConfig } from '../../config/appConfig';
 import { RenewSubscriptionModal } from '../subscription/RenewSubscriptionModal';
@@ -38,6 +40,7 @@ import { RefundPolicyModal } from '../compliance/RefundPolicyModal';
 import { CustomerWarrantyModal } from '../warranty/CustomerWarrantyModal';
 import { CustomerSupportModal } from '../support/CustomerSupportModal';
 import { PaidServiceBookingModal } from '../support/PaidServiceBookingModal';
+import { UniversalSaleModal } from '../saas/UniversalSaleModal';
 
 interface UserProfileModalProps {
   isOpen: boolean;
@@ -54,7 +57,8 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
     currentRole, 
     approvedPartners,
     setActiveTab,
-    setCurrentRole
+    setCurrentRole,
+    getMyCommissionSummary
   } = useApp();
 
   const appConfig = getAppConfig();
@@ -67,10 +71,13 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
   const [isWarrantyOpen, setIsWarrantyOpen] = useState(false);
   const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
   const [isPaidServiceOpen, setIsPaidServiceOpen] = useState(false);
+  const [isSaleModalOpen, setIsSaleModalOpen] = useState(false);
 
   const [isCancelled, setIsCancelled] = useState(() => {
     return localStorage.getItem(`gps_subscription_cancelled_${selectedDevice?.id}`) === 'true';
   });
+
+  const commSummary = getMyCommissionSummary();
 
   const partnerProfile = approvedPartners.find(p => 
     p.partnerId === user?.partnerId || 
@@ -571,6 +578,56 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
             </div>
           )}
 
+          {/* Universal Sales & Staff Commission Wallet Card */}
+          <div className="bg-gradient-to-r from-emerald-950/80 via-slate-900 to-teal-950/70 border border-emerald-500/40 rounded-2xl p-3.5 shadow-xl space-y-2.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-1.5 text-emerald-300">
+                <DollarSign className="w-4 h-4 text-emerald-400" />
+                <span className="text-xs font-bold uppercase tracking-wider">
+                  {language === 'bn' ? 'মাই সেলস ও কমিশন ওয়ালেট' : 'My Sales & Commission Wallet'}
+                </span>
+              </div>
+              <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-extrabold text-[9.5px]">
+                ৳ ৫০০ / ডিভাইস
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 bg-slate-950/80 border border-slate-800 rounded-xl p-2.5 text-xs">
+              <div>
+                <span className="text-[10px] text-slate-400 block">মোট সেলকৃত ডিভাইস:</span>
+                <span className="text-sm font-mono font-black text-white">{commSummary.totalSold} টি</span>
+              </div>
+              <div>
+                <span className="text-[10px] text-slate-400 block">অর্জিত কমিশন ব্যালেন্স:</span>
+                <span className="text-sm font-mono font-black text-emerald-400">৳ {commSummary.totalEarned.toLocaleString()}</span>
+              </div>
+            </div>
+
+            <div className="flex space-x-2 pt-0.5">
+              <button
+                onClick={() => setIsSaleModalOpen(true)}
+                className="flex-1 py-2 px-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center space-x-1 shadow-md shadow-emerald-600/20 transition active:scale-95"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>নতুন ডিভাইস সেল করুন</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  alert(`💰 আপনার ৳${commSummary.pendingPayout} কমিশন উত্তোলনের রিকোয়েস্ট গ্রহণ করা হয়েছে। আগামী কর্মদিবসে বিকাশ/নগদে পাঠানো হবে।`);
+                }}
+                disabled={commSummary.pendingPayout <= 0}
+                className={`py-2 px-2.5 rounded-xl border text-[11px] font-bold transition flex items-center justify-center space-x-1 ${
+                  commSummary.pendingPayout > 0 
+                    ? 'bg-slate-800 hover:bg-slate-750 text-emerald-300 border-slate-700 active:scale-95' 
+                    : 'bg-slate-900 text-slate-500 border-slate-800 cursor-not-allowed'
+                }`}
+              >
+                <span>উইথড্র</span>
+              </button>
+            </div>
+          </div>
+
           {/* Security Command PIN (Available for All Roles) */}
           <div className="bg-slate-800/60 border border-slate-700/80 rounded-2xl p-3 space-y-2">
             <div className="flex items-center space-x-1.5 text-slate-300">
@@ -668,6 +725,11 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
       <PaidServiceBookingModal
         isOpen={isPaidServiceOpen}
         onClose={() => setIsPaidServiceOpen(false)}
+      />
+
+      <UniversalSaleModal
+        isOpen={isSaleModalOpen}
+        onClose={() => setIsSaleModalOpen(false)}
       />
     </div>
   );

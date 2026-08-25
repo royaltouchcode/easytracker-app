@@ -30,7 +30,8 @@ import {
   SellerImeiQuota,
   TechnicianLedgerConfig,
   TechnicianTransaction,
-  DigitalPaymentOffer
+  DigitalPaymentOffer,
+  StaffCommissionEntry
 } from '../types/traccar';
 import { traccarApi } from '../services/traccarApi';
 import { traccarSocket } from '../services/traccarSocket';
@@ -234,6 +235,27 @@ interface AppContextType {
   // 🎁 Customer Digital Cashless Payment Incentives (bKash / Nagad / BanglaQR)
   digitalPaymentOffers: DigitalPaymentOffer[];
   updatePaymentOffer: (id: string, offer: Partial<DigitalPaymentOffer>) => void;
+
+  // 💼 Universal Multi-Role Sales & Staff Commission Hub
+  staffCommissions: StaffCommissionEntry[];
+  registerUniversalSale: (sale: {
+    customerName: string;
+    customerPhone: string;
+    vehicleName: string;
+    plateNumber: string;
+    imei: string;
+    simNumber: string;
+    commissionBdt?: number;
+    packagePlan?: string;
+  }) => Promise<StaffCommissionEntry>;
+  payoutStaffCommission: (commissionId: string) => void;
+  getMyCommissionSummary: (userId?: string) => {
+    totalSold: number;
+    totalEarned: number;
+    pendingPayout: number;
+    paidOut: number;
+    myCommissions: StaffCommissionEntry[];
+  };
 
   language: Language;
   setLanguage: (lang: Language) => void;
@@ -1949,6 +1971,171 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     });
   };
 
+  // =========================================================================
+  // 💼 4. UNIVERSAL MULTI-ROLE DEVICE SALES & STAFF COMMISSION HUB
+  // =========================================================================
+  const [staffCommissions, setStaffCommissions] = useState<StaffCommissionEntry[]>(() => {
+    const saved = localStorage.getItem('gps_staff_commissions');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return [
+      {
+        id: 'COMM-101',
+        soldByUserId: 'tech_1',
+        soldByName: 'আব্দুল করিম (ফিল্ড টেকনিশিয়ান)',
+        soldByRole: 'technician',
+        soldByPhone: '01711-223344',
+        customerName: 'মোঃ রাশেদুল ইসলাম',
+        customerPhone: '01712-334455',
+        vehicleName: 'Yamaha FZS V3',
+        plateNumber: 'DHAKA METRO-LA 44-5566',
+        imei: '864720058291088',
+        simNumber: '01712334455',
+        commissionBdt: 500,
+        packagePlan: 'লাইভ জিপিএস প্রিমিয়াম (৳ ৩৫০/মাস)',
+        status: 'approved',
+        createdAt: '24 Aug 2026'
+      },
+      {
+        id: 'COMM-102',
+        soldByUserId: 'supp_1',
+        soldByName: 'নুসরাত জাহান (কাস্টমার সাপোর্ট)',
+        soldByRole: 'support',
+        soldByPhone: '01700-000000',
+        customerName: 'তানভীর আহমেদ',
+        customerPhone: '01733-445566',
+        vehicleName: 'Honda CB Shine 125',
+        plateNumber: 'DHAKA METRO-HA 12-3456',
+        imei: '864720058291034',
+        simNumber: '01733445566',
+        commissionBdt: 500,
+        packagePlan: 'লাইভ জিপিএস প্রিমিয়াম (৳ ৩৫০/মাস)',
+        status: 'approved',
+        createdAt: '25 Aug 2026'
+      }
+    ];
+  });
+
+  const registerUniversalSale = async (sale: {
+    customerName: string;
+    customerPhone: string;
+    vehicleName: string;
+    plateNumber: string;
+    imei: string;
+    simNumber: string;
+    commissionBdt?: number;
+    packagePlan?: string;
+  }): Promise<StaffCommissionEntry> => {
+    const commissionAmount = sale.commissionBdt || 500;
+    const newComm: StaffCommissionEntry = {
+      id: `COMM-${Date.now().toString().slice(-4)}`,
+      soldByUserId: user?.id ? String(user.id) : (user?.email || 'user'),
+      soldByName: user?.name || 'Authorized Staff Agent',
+      soldByRole: currentRole,
+      soldByPhone: user?.email,
+      partnerId: user?.partnerId,
+      customerName: sale.customerName,
+      customerPhone: sale.customerPhone,
+      vehicleName: sale.vehicleName,
+      plateNumber: sale.plateNumber,
+      imei: sale.imei,
+      simNumber: sale.simNumber,
+      commissionBdt: commissionAmount,
+      packagePlan: sale.packagePlan || 'লাইভ জিপিএস প্রিমিয়াম (৳ ৩৫০/মাস)',
+      status: 'approved',
+      createdAt: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+    };
+
+    setStaffCommissions(prev => {
+      const next = [newComm, ...prev];
+      localStorage.setItem('gps_staff_commissions', JSON.stringify(next));
+      return next;
+    });
+
+    // Also register device in live devices list if not already present
+    const newDevId = Math.floor(1000 + Math.random() * 9000);
+    const newDeviceObj: Device = {
+      id: newDevId,
+      name: `${sale.vehicleName} (${sale.plateNumber})`,
+      uniqueId: sale.imei,
+      status: 'online',
+      disabled: false,
+      lastUpdate: new Date().toISOString(),
+      positionId: newDevId,
+      groupId: 0,
+      phone: sale.simNumber,
+      model: 'EasyTracker GT06 Pro',
+      contact: sale.customerPhone,
+      category: 'motorcycle',
+      attributes: {
+        plateNumber: sale.plateNumber,
+        driverName: sale.customerName,
+        driverPhone: sale.customerPhone,
+        partnerId: user?.partnerId,
+        soldByUserId: String(user?.id || user?.email),
+        soldByName: user?.name,
+        soldByRole: currentRole,
+        commissionBdt: commissionAmount,
+        commissionStatus: 'approved'
+      }
+    };
+
+    setDevices(prev => {
+      const exists = prev.some(d => d.uniqueId === sale.imei);
+      if (exists) return prev;
+      const updated = [newDeviceObj, ...prev];
+      localStorage.setItem('gps_devices', JSON.stringify(updated));
+      return updated;
+    });
+
+    triggerManualAlert(
+      'geofenceEnter',
+      `🎉 নতুন ডিভাইস সফলভাবে বিক্রি ও অনবোর্ড হয়েছে! বিক্রেতা: ${user?.name} (${currentRole})। ওয়ালেটে ৳${commissionAmount} কমিশন যোগ হয়েছে।`
+    );
+
+    return newComm;
+  };
+
+  const payoutStaffCommission = (commissionId: string) => {
+    setStaffCommissions(prev => {
+      const next = prev.map(c => c.id === commissionId ? {
+        ...c,
+        status: 'paid' as const,
+        paidAt: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+      } : c);
+      localStorage.setItem('gps_staff_commissions', JSON.stringify(next));
+      return next;
+    });
+
+    triggerManualAlert(
+      'subscription_reminder',
+      `💰 কমিশন পে-আউট বিকাশ/নগদে সফলভাবে ট্রান্সফার সম্পন্ন হয়েছে!`
+    );
+  };
+
+  const getMyCommissionSummary = (userId?: string) => {
+    const targetId = userId || (user?.id ? String(user.id) : user?.email) || '';
+    const myComms = staffCommissions.filter(c => 
+      !targetId || 
+      c.soldByUserId === targetId || 
+      c.soldByPhone === user?.email ||
+      c.soldByName === user?.name ||
+      c.soldByRole === currentRole
+    );
+    const totalEarned = myComms.reduce((sum, c) => sum + c.commissionBdt, 0);
+    const paidOut = myComms.filter(c => c.status === 'paid').reduce((sum, c) => sum + c.commissionBdt, 0);
+    const pendingPayout = totalEarned - paidOut;
+
+    return {
+      totalSold: myComms.length,
+      totalEarned,
+      pendingPayout,
+      paidOut,
+      myCommissions: myComms
+    };
+  };
+
   const [lastReadTimestamp, setLastReadTimestamp] = useState<number>(() => {
     const saved = localStorage.getItem('gps_last_read_alerts_ts');
     return saved ? Number(saved) : Date.now() - 86400000;
@@ -2651,6 +2838,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         settleWeeklyTechPayout,
         digitalPaymentOffers,
         updatePaymentOffer,
+        staffCommissions,
+        registerUniversalSale,
+        payoutStaffCommission,
+        getMyCommissionSummary,
         language,
         setLanguage,
         t,

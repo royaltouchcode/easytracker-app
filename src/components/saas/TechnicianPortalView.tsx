@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { SelectedServiceItem, SelectedSparePartItem } from '../../types/traccar';
+import { UniversalSaleModal } from './UniversalSaleModal';
 
 export interface TechWorkOrder {
   id: string;
@@ -159,10 +160,12 @@ export const TechnicianPortalView: React.FC = () => {
     .filter(j => j.status === 'completed_pending_approval')
     .reduce((sum, j) => sum + j.feeBdt, 0);
 
+  const [isSaleModalOpen, setIsSaleModalOpen] = useState(false);
+
   return (
     <div className="w-full h-full flex flex-col bg-slate-950 text-slate-100 overflow-y-auto p-4 space-y-4 pb-24 select-none">
       {/* Top Header */}
-      <div className="flex items-center justify-between bg-slate-900/90 border border-slate-800 p-3 rounded-2xl shadow-md">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-slate-900/90 border border-slate-800 p-3 rounded-2xl shadow-md gap-3">
         <div className="flex items-center space-x-2.5">
           {isSuperAdmin && (
             <button
@@ -187,12 +190,22 @@ export const TechnicianPortalView: React.FC = () => {
           </div>
         </div>
 
-        <div className="text-right">
-          <span className="text-[9px] text-slate-400 block">অনুমোদিত সার্ভিস ফি</span>
-          <span className="text-xs font-mono font-black text-purple-300">৳{earnedFees.toLocaleString()}</span>
-          {pendingFees > 0 && (
-            <span className="text-[8.5px] text-amber-400 block font-mono">পেন্ডিং: ৳{pendingFees}</span>
-          )}
+        <div className="flex items-center space-x-2.5 w-full sm:w-auto justify-between sm:justify-end">
+          <button
+            onClick={() => setIsSaleModalOpen(true)}
+            className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs shadow-md shadow-emerald-600/30 flex items-center space-x-1.5 transition active:scale-95"
+          >
+            <DollarSign className="w-3.5 h-3.5" />
+            <span>ডিভাইস সেল করুন (৳৫০০ আয়)</span>
+          </button>
+
+          <div className="text-right">
+            <span className="text-[9px] text-slate-400 block">অনুমোদিত সার্ভিস ফি</span>
+            <span className="text-xs font-mono font-black text-purple-300">৳{earnedFees.toLocaleString()}</span>
+            {pendingFees > 0 && (
+              <span className="text-[8.5px] text-amber-400 block font-mono">পেন্ডিং: ৳{pendingFees}</span>
+            )}
+          </div>
         </div>
       </div>
 
@@ -694,6 +707,11 @@ export const TechnicianPortalView: React.FC = () => {
           ))}
         </div>
       </div>
+
+      <UniversalSaleModal
+        isOpen={isSaleModalOpen}
+        onClose={() => setIsSaleModalOpen(false)}
+      />
     </div>
   );
 };

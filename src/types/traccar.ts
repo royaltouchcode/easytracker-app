@@ -450,3 +450,24 @@ export interface DigitalPaymentOffer {
   isActive: boolean;
 }
 
+// 💼 Universal Multi-Role Sales & Staff Commission Model
+export interface StaffCommissionEntry {
+  id: string;
+  soldByUserId: string;
+  soldByName: string;
+  soldByRole: SaasRole;
+  soldByPhone?: string;
+  partnerId?: string;
+  customerName: string;
+  customerPhone: string;
+  vehicleName: string;
+  plateNumber: string;
+  imei: string;
+  simNumber: string;
+  commissionBdt: number; // e.g. 500 BDT
+  packagePlan?: string;
+  status: 'pending_approval' | 'approved' | 'paid';
+  createdAt: string;
+  paidAt?: string;
+}
+
