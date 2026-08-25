@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { UniversalSaleModal } from './UniversalSaleModal';
+import { RescueTeamManager } from './RescueTeamManager';
 
 export interface RescueMissionRecord {
   id: string;
@@ -57,6 +58,7 @@ export interface RescueMissionRecord {
 export const RescuePortalView: React.FC = () => {
   const { language, setActiveTab, setCurrentRole, devices, positions, sendCommand, triggerManualAlert } = useApp();
 
+  const [activeMainTab, setActiveMainTab] = useState<'command' | 'squads'>('command');
   const [activeDistressId, setActiveDistressId] = useState<number>(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'sos' | 'moving' | 'parked'>('all');
@@ -258,7 +260,38 @@ export const RescuePortalView: React.FC = () => {
         </div>
       </div>
 
-      {/* 🚨 Active Emergency Rescue Session Banner */}
+      {/* Main Tab Switcher: Live Rescue Desk vs Squad Builder & Rates */}
+      <div className="flex bg-slate-900 border border-slate-800 p-1 rounded-2xl">
+        <button
+          onClick={() => setActiveMainTab('command')}
+          className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center space-x-1.5 ${
+            activeMainTab === 'command' 
+              ? 'bg-rose-600 text-white shadow-lg shadow-rose-600/30 ring-1 ring-rose-400' 
+              : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <Flame className="w-4 h-4 text-rose-300" />
+          <span>{language === 'bn' ? '🚨 লাইভ রেসকিউ ও ভেরিফিকেশন ডেস্ক' : 'Live Rescue & Verification'}</span>
+        </button>
+
+        <button
+          onClick={() => setActiveMainTab('squads')}
+          className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center space-x-1.5 ${
+            activeMainTab === 'squads' 
+              ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30 ring-1 ring-purple-400' 
+              : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <Users className="w-4 h-4 text-purple-300" />
+          <span>{language === 'bn' ? '🗺️ রেসকিউ স্কোয়াড ও পে-আউট রেট হাব' : 'Rescue Squads & Compensation Hub'}</span>
+        </button>
+      </div>
+
+      {activeMainTab === 'squads' ? (
+        <RescueTeamManager />
+      ) : (
+        <>
+          {/* 🚨 Active Emergency Rescue Session Banner */}
       {activeMission && (
         <div className="bg-gradient-to-br from-rose-950 via-slate-900 to-slate-900 border-2 border-rose-500 rounded-3xl p-4 shadow-2xl shadow-rose-950/60 space-y-3">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-rose-500/30 pb-2.5">
@@ -523,6 +556,8 @@ export const RescuePortalView: React.FC = () => {
           })}
         </div>
       </div>
+      </>
+      )}
 
       <UniversalSaleModal
         isOpen={isSaleModalOpen}
