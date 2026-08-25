@@ -377,70 +377,22 @@ export const PartnerPortalView: React.FC = () => {
           })}
         </div>
 
-        {/* Operational Portals Quick Switcher at Sidebar Bottom */}
-        {!isSidebarCollapsed && (
-          <div className="p-3 border-t border-slate-800 space-y-1 bg-slate-950/60">
-            <div className="text-[9.5px] font-bold text-slate-500 uppercase px-2 mb-1">
-              অপারেশনাল পোর্টাল সুইচার:
-            </div>
-            
-            <button
-              onClick={() => {
-                setCurrentRole('sales');
-                setActiveTab('saas_sales');
-              }}
-              className="w-full p-2 rounded-xl text-left text-xs font-bold text-slate-300 hover:text-white hover:bg-blue-600/20 flex items-center justify-between transition"
-            >
-              <div className="flex items-center space-x-2">
-                <Briefcase className="w-3.5 h-3.5 text-blue-400" />
-                <span>💼 সেলস পোর্টাল</span>
-              </div>
-              <ChevronRight className="w-3 h-3 text-slate-500" />
-            </button>
-
-            <button
-              onClick={() => {
-                setCurrentRole('technician');
-                setActiveTab('saas_technician');
-              }}
-              className="w-full p-2 rounded-xl text-left text-xs font-bold text-slate-300 hover:text-white hover:bg-amber-600/20 flex items-center justify-between transition"
-            >
-              <div className="flex items-center space-x-2">
-                <Zap className="w-3.5 h-3.5 text-amber-400" />
-                <span>🔧 টেকনিশিয়ান হাব</span>
-              </div>
-              <ChevronRight className="w-3 h-3 text-slate-500" />
-            </button>
-
-            <button
-              onClick={() => {
-                setCurrentRole('support');
-                setActiveTab('saas_support');
-              }}
-              className="w-full p-2 rounded-xl text-left text-xs font-bold text-slate-300 hover:text-white hover:bg-sky-600/20 flex items-center justify-between transition"
-            >
-              <div className="flex items-center space-x-2">
-                <Headphones className="w-3.5 h-3.5 text-sky-400" />
-                <span>🎧 সাপোর্ট কেয়ার</span>
-              </div>
-              <ChevronRight className="w-3 h-3 text-slate-500" />
-            </button>
-
-            <button
-              onClick={() => {
-                setCurrentRole('customer');
-                setActiveTab('map');
-              }}
-              className="w-full p-2 rounded-xl text-left text-xs font-bold text-slate-300 hover:text-white hover:bg-emerald-600/20 flex items-center justify-between transition"
-            >
-              <div className="flex items-center space-x-2">
-                <Home className="w-3.5 h-3.5 text-emerald-400" />
-                <span>🗺️ ফ্লিট লাইভ ম্যাপ</span>
-              </div>
-              <ChevronRight className="w-3 h-3 text-slate-500" />
-            </button>
-          </div>
-        )}
+        {/* Sidebar Bottom Footer (Back to Map) */}
+        <div className="p-3 border-t border-slate-800 bg-slate-950/60">
+          <button
+            onClick={() => {
+              setCurrentRole('customer');
+              setActiveTab('map');
+            }}
+            className={`w-full py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-750 border border-slate-700 text-slate-200 hover:text-white font-bold text-xs flex items-center justify-center space-x-2 transition active:scale-95 ${
+              isSidebarCollapsed ? 'px-0' : 'px-3'
+            }`}
+            title="লাইভ ফ্লিট ম্যাপে ফিরে যান"
+          >
+            <Home className="w-4 h-4 text-blue-400 shrink-0" />
+            {!isSidebarCollapsed && <span>{language === 'bn' ? 'ফ্লিট ম্যাপে যান' : 'Back to Map'}</span>}
+          </button>
+        </div>
       </aside>
 
       {/* ========================================================================= */}
@@ -512,14 +464,11 @@ export const PartnerPortalView: React.FC = () => {
               {/* Action Buttons */}
               <div className="flex items-center space-x-2 shrink-0 flex-wrap">
                 <button
-                  onClick={() => {
-                    setCurrentRole('sales');
-                    setActiveTab('saas_sales');
-                  }}
+                  onClick={() => setActiveSection('inventory')}
                   className="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-md shadow-purple-600/20 flex items-center space-x-1 transition active:scale-95"
                 >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>নতুন অনবোর্ডিং</span>
+                  <Layers className="w-3.5 h-3.5" />
+                  <span>স্লট ও ভেহিক্যালস</span>
                 </button>
 
                 <button
@@ -730,18 +679,15 @@ export const PartnerPortalView: React.FC = () => {
               {/* Quick Action Navigation Cards (4 Cards) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 <div 
-                  onClick={() => {
-                    setCurrentRole('sales');
-                    setActiveTab('saas_sales');
-                  }}
+                  onClick={() => setActiveSection('inventory')}
                   className="p-4 rounded-3xl bg-gradient-to-br from-indigo-950/60 to-slate-900 border border-indigo-500/30 hover:border-indigo-500/60 cursor-pointer transition active:scale-[0.98] shadow-lg flex items-center space-x-3"
                 >
                   <div className="w-9 h-9 rounded-2xl bg-indigo-600/30 border border-indigo-500/50 flex items-center justify-center text-indigo-300 shrink-0">
-                    <Plus className="w-4 h-4" />
+                    <Layers className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className="font-extrabold text-xs text-white">নতুন অনবোর্ডিং</h4>
-                    <p className="text-[9.5px] text-slate-400 mt-0.5">নতুন বাইকে ডিভাইস ইনস্টল ও সেলস</p>
+                    <h4 className="font-extrabold text-xs text-white">স্লট ও কাস্টমার ভেহিক্যালস</h4>
+                    <p className="text-[9.5px] text-slate-400 mt-0.5">বরাদ্দকৃত স্লটে ডিভাইস ও গাড়ি ট্র্যাকিং</p>
                   </div>
                 </div>
 
