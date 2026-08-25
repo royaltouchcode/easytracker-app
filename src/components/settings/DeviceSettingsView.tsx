@@ -244,8 +244,8 @@ export const DeviceSettingsView: React.FC = () => {
             </span>
           </div>
 
-          {/* Interactive Vehicle Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+          {/* Interactive Vehicle Grid (Ultra-HD Large 3D Cards) */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {VEHICLE_ICONS.map((item) => {
               const isSelected = category === item.type;
               return (
@@ -253,44 +253,49 @@ export const DeviceSettingsView: React.FC = () => {
                   key={item.type}
                   type="button"
                   onClick={() => setCategory(item.type)}
-                  className={`p-3 rounded-2xl border text-left flex flex-col justify-between transition-all duration-200 active:scale-95 group relative overflow-hidden ${
+                  className={`p-3.5 rounded-3xl border text-left flex flex-col justify-between transition-all duration-200 active:scale-95 group relative overflow-hidden ${
                     isSelected 
-                      ? 'bg-gradient-to-br from-blue-900/40 via-indigo-900/30 to-slate-900 border-blue-500 shadow-lg shadow-blue-950/50 ring-1 ring-blue-500/60' 
-                      : 'bg-slate-800/40 border-slate-700/70 hover:bg-slate-800/80 hover:border-slate-600'
+                      ? 'bg-gradient-to-br from-blue-900/50 via-slate-900 to-slate-900 border-2 border-blue-400 shadow-xl shadow-blue-950/80 ring-2 ring-blue-500/40' 
+                      : 'bg-slate-950/80 border-slate-800 hover:bg-slate-900 hover:border-slate-700'
                   }`}
                 >
                   {/* Selection indicator pill */}
                   {isSelected && (
-                    <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-blue-400 animate-ping" />
+                    <div className="absolute top-2.5 right-2.5 flex items-center space-x-1">
+                      <span className="w-2 h-2 rounded-full bg-blue-400 animate-ping" />
+                      <span className="text-[9.5px] font-black text-blue-300 bg-blue-500/20 border border-blue-400/40 px-2 py-0.5 rounded-full font-mono">
+                        SELECTED
+                      </span>
+                    </div>
                   )}
 
-                  <div className="flex items-center justify-between mb-2">
+                  {/* Large 3D Vehicle Showcase Canvas */}
+                  <div className="flex items-center justify-center my-2">
                     <div 
-                      className={`w-10 h-10 rounded-xl flex items-center justify-center p-1.5 transition-transform duration-300 group-hover:scale-110 shadow-inner ${
-                        isSelected ? 'bg-slate-900/90 border border-blue-400/40' : 'bg-slate-900/60 border border-slate-800'
+                      className={`w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center p-2 transition-all duration-300 group-hover:scale-110 shadow-lg ${
+                        isSelected 
+                          ? 'bg-gradient-to-b from-slate-900 to-slate-950 border-2 border-blue-400/60 shadow-blue-500/20' 
+                          : 'bg-slate-900/80 border border-slate-800'
                       }`}
+                      style={{
+                        boxShadow: isSelected ? `0 0 20px ${selectedColor}33` : undefined
+                      }}
                     >
                       <div 
                         dangerouslySetInnerHTML={{ 
                           __html: getVehicleMarkerSvg(item.type, isSelected ? selectedColor : '#94a3b8') 
                         }} 
-                        className="w-full h-full flex items-center justify-center"
+                        className="w-full h-full flex items-center justify-center transform transition group-hover:scale-105"
                       />
                     </div>
-
-                    {isSelected && (
-                      <span className="text-[9px] font-bold text-blue-300 bg-blue-500/20 border border-blue-500/40 px-1.5 py-0.5 rounded-md">
-                        সক্রিয়
-                      </span>
-                    )}
                   </div>
 
-                  <div>
-                    <span className={`text-xs font-bold block leading-tight ${isSelected ? 'text-white' : 'text-slate-300'}`}>
+                  <div className="text-center pt-1 border-t border-slate-800/80">
+                    <span className={`text-xs sm:text-sm font-extrabold block leading-tight ${isSelected ? 'text-white drop-shadow' : 'text-slate-200'}`}>
                       {item.label.split('(')[0]}
                     </span>
-                    <span className="text-[10px] text-slate-400 block truncate mt-0.5">
-                      {item.label.includes('(') ? `(${item.label.split('(')[1]}` : ''}
+                    <span className="text-[10px] text-slate-400 block truncate mt-0.5 font-medium">
+                      {item.label.includes('(') ? item.label.split('(')[1].replace(')', '') : ''}
                     </span>
                   </div>
                 </button>
@@ -329,29 +334,29 @@ export const DeviceSettingsView: React.FC = () => {
           </div>
 
           {/* Live Map Radar Simulation Box */}
-          <div className="bg-slate-950 border border-blue-500/30 rounded-2xl p-3 flex items-center justify-between shadow-inner">
-            <div className="flex items-center space-x-3">
+          <div className="bg-slate-950 border border-blue-500/40 rounded-3xl p-3.5 flex items-center justify-between shadow-xl">
+            <div className="flex items-center space-x-3.5">
               {/* Radar pulse container */}
-              <div className="relative w-12 h-12 rounded-xl bg-slate-900 border border-blue-500/40 flex items-center justify-center overflow-hidden">
-                <div className="absolute inset-0 bg-[radial-gradient(#3b82f6_1px,transparent_1px)] [background-size:8px_8px] opacity-30" />
-                <div className="absolute w-8 h-8 rounded-full border border-blue-500/30 animate-ping opacity-40" />
+              <div className="relative w-16 h-16 rounded-2xl bg-slate-900 border-2 border-blue-500/50 flex items-center justify-center overflow-hidden shadow-lg shadow-blue-950/60 shrink-0">
+                <div className="absolute inset-0 bg-[radial-gradient(#3b82f6_1px,transparent_1px)] [background-size:8px_8px] opacity-40" />
+                <div className="absolute w-12 h-12 rounded-full border border-blue-500/40 animate-ping opacity-50" />
                 <div 
                   dangerouslySetInnerHTML={{ 
                     __html: getVehicleMarkerSvg(category, selectedColor) 
                   }} 
-                  className="w-8 h-8 relative z-10 drop-shadow-[0_0_8px_rgba(59,130,246,0.6)]"
+                  className="w-12 h-12 relative z-10 drop-shadow-[0_0_12px_rgba(59,130,246,0.8)]"
                 />
               </div>
 
               <div>
-                <div className="flex items-center space-x-1.5">
-                  <span className="text-xs font-bold text-white">লাইভ মার্কার প্রিভিউ</span>
-                  <span className="text-[9px] font-bold text-emerald-400 bg-emerald-950 border border-emerald-800 px-1.5 rounded">
-                    রিয়েল-টাইম
+                <div className="flex items-center space-x-2">
+                  <span className="text-xs sm:text-sm font-extrabold text-white">লাইভ মার্কার প্রিভিউ</span>
+                  <span className="text-[9.5px] font-bold text-emerald-400 bg-emerald-950 border border-emerald-800 px-2 py-0.5 rounded-full font-mono">
+                    HD LIVE
                   </span>
                 </div>
-                <p className="text-[10px] text-slate-400 mt-0.5">
-                  ম্যাপে আপনার গাড়িটি এই নির্দিষ্ট কালার ও শেপে ঘুরবে
+                <p className="text-[10.5px] text-slate-400 mt-0.5">
+                  ম্যাপে আপনার গাড়িটি এই নির্দিষ্ট কালার, ৩ডি মডেল ও শেপে ঘুরবে
                 </p>
               </div>
             </div>

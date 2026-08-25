@@ -21,6 +21,7 @@ import {
   Sparkles,
   Route
 } from 'lucide-react';
+import { getVehicleMarkerSvg } from '../../utils/vehicleIcons';
 
 export interface TripSession {
   id: string;
@@ -283,20 +284,26 @@ export const PlaybackView: React.FC = () => {
       }
     });
 
-    // Initial Animated vehicle marker
+    // Initial Animated vehicle marker (Ultra-HD 3D Model)
     const firstPoint = activeRoutePoints[0];
+    const devColor = selectedDevice?.attributes?.color || '#3b82f6';
     const carHtml = `
-      <div class="custom-vehicle-marker" style="transform: rotate(${firstPoint.course || 0}deg);">
-        <div class="w-8 h-8 rounded-xl bg-blue-600 border-2 border-white shadow-2xl flex items-center justify-center text-white">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="white"><path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/></svg>
+      <div class="relative flex flex-col items-center justify-center pointer-events-none select-none" style="width: 140px; height: 120px; margin-left: -48px; margin-top: -42px;">
+        <div class="mb-1 bg-slate-900/90 text-white border border-blue-400/50 rounded-full px-2 py-0.5 shadow-2xl flex items-center space-x-1 whitespace-nowrap text-[9px] font-black font-mono">
+          <span class="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse"></span>
+          <span>${selectedDevice?.name || 'Vehicle'}</span>
+        </div>
+        <div class="custom-vehicle-marker relative w-11 h-11 flex items-center justify-center shadow-2xl drop-shadow-2xl transition-transform duration-100" style="transform: rotate(${firstPoint.course || 0}deg);">
+          <div class="absolute -top-2 text-cyan-400 text-[10px] font-black drop-shadow-md">▲</div>
+          ${getVehicleMarkerSvg(selectedDevice?.category, devColor)}
         </div>
       </div>
     `;
     const marker = L.marker([firstPoint.latitude, firstPoint.longitude], {
-      icon: L.divIcon({ html: carHtml, className: 'play-marker', iconSize: [32, 32], iconAnchor: [16, 16] })
+      icon: L.divIcon({ html: carHtml, className: 'play-marker', iconSize: [44, 44], iconAnchor: [22, 22] })
     }).addTo(map);
     playbackMarkerRef.current = marker;
-  }, [activeRoutePoints]);
+  }, [activeRoutePoints, selectedDevice]);
 
   // Animation Loop
   useEffect(() => {
