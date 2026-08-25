@@ -574,8 +574,61 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       }
     } catch (e) {}
 
-    // Default neutral empty position waiting for server sync
-    return {};
+    // Default fallback position for primary vehicles
+    return {
+      1: {
+        id: 101,
+        deviceId: 1,
+        protocol: 'gt06',
+        serverTime: new Date().toISOString(),
+        deviceTime: new Date().toISOString(),
+        fixTime: new Date().toISOString(),
+        outdated: false,
+        valid: true,
+        latitude: 23.7937,
+        longitude: 90.4066,
+        altitude: 14,
+        speed: 0,
+        course: 45,
+        address: 'Road 11, Block-D, Banani / Gulshan, Dhaka',
+        accuracy: 4,
+        network: null,
+        attributes: {
+          ignition: true,
+          motion: false,
+          batteryLevel: 98,
+          satellites: 14,
+          power: 12.8,
+          isLastKnown: false
+        }
+      },
+      2: {
+        id: 102,
+        deviceId: 2,
+        protocol: 'gt06',
+        serverTime: new Date().toISOString(),
+        deviceTime: new Date().toISOString(),
+        fixTime: new Date().toISOString(),
+        outdated: false,
+        valid: true,
+        latitude: 23.8103,
+        longitude: 90.4125,
+        altitude: 12,
+        speed: 42,
+        course: 120,
+        address: 'Baridhara DOHS Bypass, Dhaka',
+        accuracy: 5,
+        network: null,
+        attributes: {
+          ignition: true,
+          motion: true,
+          batteryLevel: 100,
+          satellites: 16,
+          power: 13.6,
+          isLastKnown: false
+        }
+      }
+    };
   });
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
 

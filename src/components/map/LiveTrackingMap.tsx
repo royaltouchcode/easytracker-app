@@ -376,7 +376,7 @@ export const LiveTrackingMap: React.FC = () => {
         }).addTo(map);
 
         marker.on('click', () => {
-          selectDevice(dev.id);
+          setSelectedDeviceId(dev.id);
         });
 
         markersRef.current[dev.id] = marker;
