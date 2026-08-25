@@ -28,11 +28,14 @@ export const EmergencyRescueModal: React.FC<EmergencyRescueModalProps> = ({ isOp
     selectedPosition, 
     sendCommand, 
     triggerManualAlert, 
+    addEngineLog,
+    engineLogs,
     language 
   } = useApp();
 
   const [distressSent, setDistressSent] = useState(false);
   const [engineCutSent, setEngineCutSent] = useState(false);
+  const [engineResumeSent, setEngineResumeSent] = useState(false);
   const [isSending, setIsSending] = useState(false);
 
   if (!isOpen || !selectedDevice) return null;
@@ -41,6 +44,10 @@ export const EmergencyRescueModal: React.FC<EmergencyRescueModalProps> = ({ isOp
   const imei = selectedDevice.uniqueId || '354778343153865';
   const speed = selectedPosition ? Math.round(selectedPosition.speed) : 0;
   const address = selectedPosition?.address || 'Gulshan-2, Dhaka';
+
+  const isEngineLocked = localStorage.getItem(`gps_relay_cut_${selectedDevice.id}`) === 'true' || 
+                         !!selectedPosition?.attributes?.relay || 
+                         !!selectedPosition?.attributes?.blocked;
 
   const sos1 = selectedDevice.attributes?.sos1 || '+880 1812-998877';
   const sos2 = selectedDevice.attributes?.sos2 || '+880 1913-445566';
@@ -58,8 +65,36 @@ export const EmergencyRescueModal: React.FC<EmergencyRescueModalProps> = ({ isOp
 
   const handleEmergencyEngineCut = async () => {
     await sendCommand('engineStop');
+    addEngineLog({
+      deviceId: selectedDevice.id,
+      deviceName: selectedDevice.name,
+      action: 'cut',
+      status: 'executed',
+      speed: speed,
+      sourceFlag: 'EMERGENCY_RESCUE',
+      authorizedBy: 'Customer In-App Rescue',
+      note: `🚨 রেসকিউ বাটন থেকে জরুরি ইঞ্জিন কাট-অফ কার্যকর হয়েছে (${plate})`
+    });
+    localStorage.setItem(`gps_relay_cut_${selectedDevice.id}`, 'true');
     setEngineCutSent(true);
     setTimeout(() => setEngineCutSent(false), 4000);
+  };
+
+  const handleEmergencyEngineResume = async () => {
+    await sendCommand('engineResume');
+    addEngineLog({
+      deviceId: selectedDevice.id,
+      deviceName: selectedDevice.name,
+      action: 'resume',
+      status: 'executed',
+      speed: speed,
+      sourceFlag: 'EMERGENCY_RESCUE',
+      authorizedBy: 'Customer In-App Rescue',
+      note: `🟢 রেসকিউ থেকে গাড়ি উদ্ধার শেষে ইঞ্জিন আনলক করা হয়েছে (${plate})`
+    });
+    localStorage.setItem(`gps_relay_cut_${selectedDevice.id}`, 'false');
+    setEngineResumeSent(true);
+    setTimeout(() => setEngineResumeSent(false), 4000);
   };
 
   return (
@@ -181,26 +216,48 @@ export const EmergencyRescueModal: React.FC<EmergencyRescueModalProps> = ({ isOp
               </div>
             </button>
 
-            {/* Remote Emergency Engine Cutoff */}
-            <button
-              onClick={handleEmergencyEngineCut}
-              className="p-3 rounded-2xl bg-rose-950/40 hover:bg-rose-900/60 border border-rose-500/40 text-left flex flex-col justify-between transition active:scale-95 group"
-            >
-              <div className="flex items-center justify-between mb-2">
-                <Power className="w-5 h-5 text-rose-500 group-hover:animate-pulse" />
-                <span className="text-[9px] font-bold bg-rose-600/30 text-rose-300 border border-rose-500/40 px-1.5 rounded font-mono">
-                  RELAY CUT
-                </span>
-              </div>
-              <div>
-                <div className="font-bold text-xs text-rose-300">
-                  {engineCutSent ? '✅ ইঞ্জিন অফ কমান্ড প্রেরিত!' : '🛑 তাৎক্ষণিক ইঞ্জিন বন্ধ করুন'}
+            {/* Remote Emergency Engine Cutoff / Resume Toggle */}
+            {isEngineLocked ? (
+              <button
+                onClick={handleEmergencyEngineResume}
+                className="p-3 rounded-2xl bg-emerald-950/50 hover:bg-emerald-900/60 border border-emerald-500/60 text-left flex flex-col justify-between transition active:scale-95 group shadow-lg shadow-emerald-950/50"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <Power className="w-5 h-5 text-emerald-400 group-hover:scale-110" />
+                  <span className="text-[9px] font-bold bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 px-1.5 rounded font-mono">
+                    LOCKED
+                  </span>
                 </div>
-                <div className="text-[9.5px] text-slate-400 mt-0.5">
-                  ছিনতাইকারী যাতে গাড়ি নিয়ে পালাতে না পারে
+                <div>
+                  <div className="font-bold text-xs text-emerald-300">
+                    {engineResumeSent ? '✅ ইঞ্জিন আনলক কমান্ড প্রেরিত!' : '🟢 ইঞ্জিন আনলক / চালু করুন'}
+                  </div>
+                  <div className="text-[9.5px] text-slate-400 mt-0.5">
+                    উদ্ধার সম্পন্ন হলে ইঞ্জিন রিস্টার্ট অনুমোদন করুন
+                  </div>
                 </div>
-              </div>
-            </button>
+              </button>
+            ) : (
+              <button
+                onClick={handleEmergencyEngineCut}
+                className="p-3 rounded-2xl bg-rose-950/40 hover:bg-rose-900/60 border border-rose-500/40 text-left flex flex-col justify-between transition active:scale-95 group"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <Power className="w-5 h-5 text-rose-500 group-hover:animate-pulse" />
+                  <span className="text-[9px] font-bold bg-rose-600/30 text-rose-300 border border-rose-500/40 px-1.5 rounded font-mono">
+                    RELAY CUT
+                  </span>
+                </div>
+                <div>
+                  <div className="font-bold text-xs text-rose-300">
+                    {engineCutSent ? '✅ ইঞ্জিন অফ কমান্ড প্রেরিত!' : '🛑 তাৎক্ষণিক ইঞ্জিন বন্ধ করুন'}
+                  </div>
+                  <div className="text-[9.5px] text-slate-400 mt-0.5">
+                    ছিনতাইকারী যাতে গাড়ি নিয়ে পালাতে না পারে
+                  </div>
+                </div>
+              </button>
+            )}
           </div>
 
           {/* Highlighted SOS Numbers Card */}

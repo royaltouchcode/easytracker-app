@@ -23,6 +23,9 @@ export interface EngineLog {
   status: 'executed' | 'pending' | 'failed';
   timestamp: string;
   speed: number;
+  sourceFlag?: 'MANUAL_APP' | 'EMERGENCY_RESCUE' | 'GEOFENCE_AUTO' | 'COMMAND_CENTER';
+  authorizedBy?: string;
+  note?: string;
 }
 
 export type AlertFeedbackMode = 

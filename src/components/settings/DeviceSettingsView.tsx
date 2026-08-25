@@ -30,7 +30,9 @@ import {
   PhoneForwarded,
   Zap,
   Bot,
-  Sparkles
+  Sparkles,
+  Flame,
+  Users
 } from 'lucide-react';
 import { VehicleType, Geofence, AlertFeedbackMode } from '../../types/traccar';
 import { GeofenceModal } from '../geofence/GeofenceModal';
@@ -39,6 +41,7 @@ import { RefundPolicyModal } from '../compliance/RefundPolicyModal';
 import { DataDeletionModal } from '../compliance/DataDeletionModal';
 import { VehicleSpecSelectorModal } from './VehicleSpecSelectorModal';
 import { PinVerificationModal } from '../commands/PinVerificationModal';
+import { EmergencyRescueModal } from '../emergency/EmergencyRescueModal';
 import { APP_CONFIG } from '../../config/appConfig';
 import { VehicleIcon, getVehicleMarkerSvg } from '../../utils/vehicleIcons';
 
@@ -111,6 +114,9 @@ export const DeviceSettingsView: React.FC = () => {
   // Vehicle AI Spec Selector Modal State
   const [isSpecModalOpen, setIsSpecModalOpen] = useState(false);
   const [vehicleSpec, setVehicleSpec] = useState<any>(selectedDevice?.attributes?.vehicleSpec || null);
+
+  // Emergency Rescue Modal State
+  const [isEmergencyModalOpen, setIsEmergencyModalOpen] = useState(false);
 
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [sosSyncing, setSosSyncing] = useState(false);
@@ -789,6 +795,54 @@ export const DeviceSettingsView: React.FC = () => {
           </div>
         </div>
 
+        {/* 🚨 24/7 Red-Line Emergency Rescue & Hijack Helpline Card */}
+        <div className="bg-gradient-to-br from-rose-950 via-slate-900 to-slate-900 border-2 border-rose-500 rounded-3xl p-4 shadow-2xl shadow-rose-950/60 space-y-3">
+          <div className="flex items-center justify-between border-b border-rose-500/30 pb-2">
+            <div className="flex items-center space-x-2">
+              <Flame className="w-5 h-5 text-rose-500 animate-pulse" />
+              <span className="text-xs font-black uppercase tracking-wider text-rose-200">
+                {language === 'bn' ? '🚨 ২৪/৭ ইমার্জেন্সি রেসকিউ ও ছিনতাই উদ্ধার হটলাইন' : '24/7 Emergency Rescue & Hijack Hotline'}
+              </span>
+            </div>
+            <span className="text-[9.5px] font-mono bg-rose-600 text-white px-2 py-0.5 rounded-full font-bold">
+              24/7 RED-LINE
+            </span>
+          </div>
+
+          <p className="text-[11px] text-slate-300 leading-relaxed">
+            {language === 'bn' 
+              ? 'গাড়ি চুরি, ছিনতাই বা গুরুতর সড়ক দুর্ঘটনার ক্ষেত্রে আমাদের বিশেষ উদ্ধারকারী স্কোয়াড এবং বাংলাদেশ পুলিশের সাথে ২-ওয়ে কানেক্টরে তাৎক্ষণিক রেসকিউ টিম পাঠানো হয়।' 
+              : 'Immediate rapid intercept team dispatch & 2-way police gateway authorization in case of theft, hijack, or crash emergencies.'}
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
+            <a
+              href="tel:09612000999"
+              className="py-2.5 px-3 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-xs flex items-center justify-center space-x-1.5 shadow-lg shadow-rose-600/30 transition active:scale-95"
+            >
+              <PhoneCall className="w-4 h-4" />
+              <span>০৯৬১২-০০০৯৯৯ (রেসকিউ)</span>
+            </a>
+
+            <a
+              href="tel:999"
+              className="py-2.5 px-3 rounded-2xl bg-slate-950 hover:bg-slate-800 border border-slate-700 text-slate-200 font-bold text-xs flex items-center justify-center space-x-1.5 transition active:scale-95"
+            >
+              <ShieldAlert className="w-4 h-4 text-blue-400" />
+              <span>৯৯৯ পুলিশ কন্ট্রোল</span>
+            </a>
+
+            <button
+              type="button"
+              onClick={() => setIsEmergencyModalOpen(true)}
+              className="py-2.5 px-3 rounded-2xl bg-gradient-to-r from-amber-600 to-rose-600 hover:from-amber-500 hover:to-rose-500 text-white font-extrabold text-xs flex items-center justify-center space-x-1.5 shadow-md transition active:scale-95"
+            >
+              <Zap className="w-4 h-4" />
+              <span>১-ট্যাপ রেসকিউ কমান্ড</span>
+            </button>
+          </div>
+        </div>
+
         {/* 6. App & Publisher Information (Store Compliant) */}
         <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl space-y-3">
           <div className="flex items-center space-x-2">
@@ -941,6 +995,12 @@ export const DeviceSettingsView: React.FC = () => {
           ? (language === 'bn' ? `ট্র্যাকার হার্ডওয়্যারে প্রাইমারি SOS নম্বর (${sos1}) সিঙ্ক করতে ৪-ডিজিট মাস্টার পিন দিন।` : `Enter 4-digit PIN to sync primary SOS phone (${sos1}) to tracker hardware.`)
           : (language === 'bn' ? 'গাড়ির নম্বর, চালক ও ডিভাইস সেটিংস সংরক্ষণ করতে ৪-ডিজিট মাস্টার পিন দিন।' : 'Enter 4-digit Master PIN to save vehicle and profile settings.')}
         isDangerous={false}
+      />
+
+      {/* In-App Emergency Rescue & Hijack Modal */}
+      <EmergencyRescueModal
+        isOpen={isEmergencyModalOpen}
+        onClose={() => setIsEmergencyModalOpen(false)}
       />
     </div>
   );

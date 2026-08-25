@@ -539,24 +539,31 @@ export const DeviceSlidingSheet: React.FC = () => {
 
           {/* 3. Persistent Glowing Red Fuel Cut / Immobilized Security Alert Banner */}
           {isRelayCut ? (
-            <div className="flex items-center justify-between bg-rose-950/90 border border-rose-500/70 rounded-xl px-2.5 py-1 mb-1 shadow-lg shadow-rose-950/60 animate-pulse">
+            <div className={`flex items-center justify-between border rounded-xl px-2.5 py-1 mb-1 shadow-lg animate-pulse ${
+              latestEngineLog?.sourceFlag === 'EMERGENCY_RESCUE'
+                ? 'bg-rose-950 border-rose-500 shadow-rose-950/80 ring-1 ring-rose-400'
+                : 'bg-rose-950/90 border-rose-500/70 shadow-rose-950/60'
+            }`}>
               <div className="flex items-center space-x-1.5 min-w-0">
                 <div className="w-4 h-4 rounded-lg bg-rose-500/30 border border-rose-500/50 flex items-center justify-center text-rose-300 shrink-0">
                   <Power className="w-2.5 h-2.5 text-rose-400" />
                 </div>
                 <div className="truncate min-w-0">
                   <span className="text-[10.5px] font-black text-rose-200 truncate block leading-tight">
-                    {language === 'bn' ? '🚨 ইঞ্জিন লকড (জ্বালানি সরবরাহ বন্ধ) • গাড়ি স্টার্ট হবে না' : '🚨 Engine Immobilized (Fuel Cut Active)'}
+                    {latestEngineLog?.sourceFlag === 'EMERGENCY_RESCUE'
+                      ? (language === 'bn' ? '🚨 রেসকিউ মোডে ইঞ্জিন লকড • গাড়ি স্টার্ট হবে না' : '🚨 Rescue Immobilized • Fuel Cut Active')
+                      : (language === 'bn' ? '🚨 ইঞ্জিন লকড (জ্বালানি সরবরাহ বন্ধ) • গাড়ি স্টার্ট হবে না' : '🚨 Engine Immobilized (Fuel Cut Active)')}
                   </span>
                   {latestEngineLog && (
                     <span className="text-[8.5px] text-rose-300/80 font-mono block leading-none mt-0.5">
+                      {latestEngineLog.sourceFlag === 'EMERGENCY_RESCUE' ? '🚨 RESCUE • ' : ''}
                       {language === 'bn' ? 'লকের সময়' : 'Locked at'}: {new Date(latestEngineLog.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   )}
                 </div>
               </div>
-              <span className="text-[8px] font-extrabold bg-rose-500 text-white px-2 py-0.5 rounded uppercase tracking-wider shrink-0 ml-1">
-                LOCKED
+              <span className="text-[8px] font-extrabold bg-rose-600 text-white px-2 py-0.5 rounded uppercase tracking-wider shrink-0 ml-1 font-mono">
+                {latestEngineLog?.sourceFlag === 'EMERGENCY_RESCUE' ? '🚨 RESCUE' : 'LOCKED'}
               </span>
             </div>
           ) : (

@@ -431,27 +431,49 @@ export const AlertHistoryView: React.FC = () => {
             </div>
           ) : (
             engineLogs.map((log) => (
-              <div key={log.id} className="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-3 flex items-start space-x-3">
-                <div className="p-1 rounded-xl bg-slate-950 border border-slate-800 shrink-0">
+              <div 
+                key={log.id} 
+                className={`border rounded-2xl p-3 flex items-start space-x-3 transition shadow-md ${
+                  log.sourceFlag === 'EMERGENCY_RESCUE'
+                    ? 'bg-gradient-to-r from-rose-950/50 via-slate-900 to-slate-900 border-rose-500/70 shadow-rose-950/40 ring-1 ring-rose-500/30'
+                    : 'bg-slate-800/60 border-slate-700/60'
+                }`}
+              >
+                <div className={`p-1 rounded-xl bg-slate-950 border border-slate-800 shrink-0 ${
+                  log.action === 'cut' ? 'border-rose-500/40' : 'border-emerald-500/40'
+                }`}>
                   <Alert3DIcon type={log.action === 'cut' ? 'ignition_off' : 'ignition_on'} className="w-10 h-10" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-center">
-                    <span className={`font-bold text-xs ${
-                      log.action === 'cut' ? 'text-rose-400' : 'text-emerald-400'
-                    }`}>
-                      {log.action === 'cut' 
-                        ? (language === 'bn' ? 'ইঞ্জিন লক (অফ) কমান্ড' : 'Engine Lock Executed') 
-                        : (language === 'bn' ? 'ইঞ্জিন আনলক (চালু) কমান্ড' : 'Engine Resume Executed')}
-                    </span>
-                    <div className="flex items-center space-x-1 text-[10px] text-slate-400 font-mono">
+                    <div className="flex items-center space-x-1.5 truncate">
+                      <span className={`font-bold text-xs truncate ${
+                        log.action === 'cut' ? 'text-rose-400' : 'text-emerald-400'
+                      }`}>
+                        {log.action === 'cut' 
+                          ? (language === 'bn' ? '🛑 ইঞ্জিন লক (অফ) কমান্ড' : '🛑 Engine Lock Executed') 
+                          : (language === 'bn' ? '🟢 ইঞ্জিন আনলক (চালু) কমান্ড' : '🟢 Engine Resume Executed')}
+                      </span>
+                      {log.sourceFlag === 'EMERGENCY_RESCUE' && (
+                        <span className="text-[8.5px] font-black bg-rose-600 text-white px-1.5 py-0.2 rounded font-mono uppercase tracking-wider shrink-0 animate-pulse">
+                          🚨 RESCUE
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center space-x-1 text-[10px] text-slate-400 font-mono shrink-0 ml-1">
                       <Clock className="w-3 h-3" />
                       <span>{new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                     </div>
                   </div>
                   <p className="text-[11px] text-slate-300 mt-0.5 leading-tight">
-                    {log.deviceName} • {language === 'bn' ? `স্ট্যাটাস: ${log.status}` : `Status: ${log.status}`}
+                    {log.deviceName} • {language === 'bn' ? `স্ট্যাটাস: ${log.status === 'executed' ? '✅ সফলভাবে কার্যকর' : log.status}` : `Status: ${log.status}`}
+                    {log.authorizedBy && <span className="text-amber-300 ml-1">({log.authorizedBy})</span>}
                   </p>
+                  {log.note && (
+                    <p className="text-[10px] text-rose-300/90 mt-0.5 font-sans">
+                      💬 {log.note}
+                    </p>
+                  )}
                   <div className="text-[9.5px] text-slate-400 mt-1 font-mono">
                     {new Date(log.timestamp).toLocaleDateString()}
                   </div>
