@@ -726,35 +726,97 @@ export const SupportPortalView: React.FC = () => {
 
                     {/* ⏱️ 4-Tier Automated Escalation & Follow-up Matrix */}
                     {isAssigned && (
-                      <div className="pt-2 border-t border-slate-800 space-y-2">
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-center text-[10px]">
-                          <div className={`p-1.5 rounded-lg border ${order.dispatchStep >= 1 ? 'bg-blue-950/80 border-blue-500/60 text-blue-200' : 'bg-slate-900 border-slate-800 text-slate-500'}`}>
-                            <span>১. ফ্রি অ্যাপ পুশ (০৳)</span>
-                            <span className="block text-[8px] text-emerald-400 font-bold">✓ সেন্ড</span>
+                      <div className="pt-2.5 border-t border-slate-800/80 space-y-2.5">
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+                          {/* Step 1: Realtime Free App Push */}
+                          <div className={`p-2.5 rounded-2xl border flex flex-col justify-between transition-all ${
+                            order.dispatchStep >= 1 
+                              ? 'bg-blue-950/70 border-blue-500/50 text-blue-200 shadow-md shadow-blue-950/40' 
+                              : 'bg-slate-900/90 border-slate-800 text-slate-400'
+                          }`}>
+                            <div className="flex items-center justify-between gap-1 mb-1">
+                              <span className="text-xs font-extrabold text-slate-200">১. রিয়েলটাইম পুশ (০s)</span>
+                              <span className="text-[9.5px] font-mono text-emerald-400 bg-emerald-950/90 px-2 py-0.5 rounded-md border border-emerald-700/60 font-bold shrink-0">
+                                ✓ সেন্ট
+                              </span>
+                            </div>
+                            <span className="text-[10px] text-slate-400 font-medium leading-tight">
+                              ফ্রি অ্যাপ নোটিফিকেশন ডেলিভার্ড
+                            </span>
                           </div>
 
-                          <div className={`p-1.5 rounded-lg border ${order.dispatchStep >= 2 ? 'bg-amber-950/80 border-amber-500/60 text-amber-200' : 'bg-slate-900 border-slate-800 text-slate-500'}`}>
-                            <span>২. ১ ঘন্টা পর SMS</span>
-                            {order.dispatchStep >= 2 ? (
-                              <span className="block text-[8px] text-emerald-400 font-bold">✓ সেন্ড</span>
-                            ) : (
-                              <button onClick={() => handleTriggerDelayedSms(order.orderId)} className="text-[8px] text-amber-400 underline block font-bold">পাঠান</button>
-                            )}
+                          {/* Step 2: 1 Hour Delayed SMS */}
+                          <div className={`p-2.5 rounded-2xl border flex flex-col justify-between transition-all ${
+                            order.dispatchStep >= 2 
+                              ? 'bg-amber-950/70 border-amber-500/50 text-amber-200 shadow-md shadow-amber-950/40' 
+                              : 'bg-slate-900/90 border-slate-800 text-slate-400'
+                          }`}>
+                            <div className="flex items-center justify-between gap-1 mb-1">
+                              <span className="text-xs font-extrabold text-slate-200">২. ১ ঘণ্টা পর SMS</span>
+                              {order.dispatchStep >= 2 ? (
+                                <span className="text-[9.5px] font-mono text-emerald-400 bg-emerald-950/90 px-2 py-0.5 rounded-md border border-emerald-700/60 font-bold shrink-0">
+                                  ✓ সেন্ট
+                                </span>
+                              ) : (
+                                <button 
+                                  type="button"
+                                  onClick={() => handleTriggerDelayedSms(order.orderId)} 
+                                  className="text-[10px] font-bold text-amber-200 hover:text-white bg-amber-600/40 hover:bg-amber-600 border border-amber-500/60 px-2.5 py-0.5 rounded-lg transition active:scale-95 shrink-0"
+                                >
+                                  পাঠান
+                                </button>
+                              )}
+                            </div>
+                            <span className="text-[10px] text-slate-400 font-medium leading-tight">
+                              {order.dispatchStep >= 2 ? 'এসএমএস গেটওয়ে সেন্ট' : 'অটোমেশন ফলব্যাক'}
+                            </span>
                           </div>
 
-                          <div className={`p-1.5 rounded-lg border ${order.dispatchStep >= 3 ? 'bg-purple-950/80 border-purple-500/60 text-purple-200' : 'bg-slate-900 border-slate-800 text-slate-500'}`}>
-                            <span>৩. ১.৫ ঘন্টা হোয়াটসঅ্যাপ</span>
-                            {order.dispatchStep >= 3 ? (
-                              <span className="block text-[8px] text-purple-300 font-bold">✓ ডিসপ্যাচড</span>
-                            ) : (
-                              <button onClick={() => handleWhatsAppJobCard(order)} className="text-[8px] text-purple-400 underline block font-bold">পাঠান</button>
-                            )}
+                          {/* Step 3: 1.5 Hour WhatsApp */}
+                          <div className={`p-2.5 rounded-2xl border flex flex-col justify-between transition-all ${
+                            order.dispatchStep >= 3 
+                              ? 'bg-purple-950/70 border-purple-500/50 text-purple-200 shadow-md shadow-purple-950/40' 
+                              : 'bg-slate-900/90 border-slate-800 text-slate-400'
+                          }`}>
+                            <div className="flex items-center justify-between gap-1 mb-1">
+                              <span className="text-xs font-extrabold text-slate-200">৩. ২.৫ ঘণ্টা নোটিফিকেশন</span>
+                              {order.dispatchStep >= 3 ? (
+                                <span className="text-[9.5px] font-mono text-purple-300 bg-purple-950/90 px-2 py-0.5 rounded-md border border-purple-700/60 font-bold shrink-0">
+                                  ✓ ডিসপ্যাচড
+                                </span>
+                              ) : (
+                                <button 
+                                  type="button"
+                                  onClick={() => handleWhatsAppJobCard(order)} 
+                                  className="text-[10px] font-bold text-purple-200 hover:text-white bg-purple-600/40 hover:bg-purple-600 border border-purple-500/60 px-2.5 py-0.5 rounded-lg transition active:scale-95 shrink-0"
+                                >
+                                  পাঠান
+                                </button>
+                              )}
+                            </div>
+                            <span className="text-[10px] text-slate-400 font-medium leading-tight">
+                              {order.dispatchStep >= 3 ? 'হোয়াটসঅ্যাপ জব কার্ড প্রেরিত' : 'অটোমেশন অ্যালার্ট'}
+                            </span>
                           </div>
 
-                          <div className={`p-1.5 rounded-lg border ${order.phoneCallConfirmed ? 'bg-emerald-950/80 border-emerald-500/60 text-emerald-200' : 'bg-slate-900 border-slate-800 text-slate-500'}`}>
-                            <span>৪. ফলোআপ কল</span>
-                            <span className={`block text-[8px] font-bold ${order.phoneCallConfirmed ? 'text-emerald-400' : 'text-amber-400'}`}>
-                              {order.phoneCallConfirmed ? '✓ ফোনে কনফার্মড' : 'পেন্ডিং'}
+                          {/* Step 4: Followup Phone Call */}
+                          <div className={`p-2.5 rounded-2xl border flex flex-col justify-between transition-all ${
+                            order.phoneCallConfirmed 
+                              ? 'bg-emerald-950/70 border-emerald-500/50 text-emerald-200 shadow-md shadow-emerald-950/40' 
+                              : 'bg-slate-900/90 border-slate-800 text-slate-400'
+                          }`}>
+                            <div className="flex items-center justify-between gap-1 mb-1">
+                              <span className="text-xs font-extrabold text-slate-200">৪. ফলোআপ কল</span>
+                              <span className={`text-[9.5px] font-mono px-2 py-0.5 rounded-md border font-bold shrink-0 ${
+                                order.phoneCallConfirmed 
+                                  ? 'text-emerald-400 bg-emerald-950/90 border-emerald-700/60' 
+                                  : 'text-amber-300 bg-amber-950/90 border-amber-700/60'
+                              }`}>
+                                {order.phoneCallConfirmed ? '✓ কনফার্মড' : 'পেন্ডিং'}
+                              </span>
+                            </div>
+                            <span className="text-[10px] text-slate-400 font-medium leading-tight">
+                              {order.phoneCallConfirmed ? 'টেকনিশিয়ান নিশ্চিত করেছেন' : 'ফোন ভেরিফিকেশন বাকি'}
                             </span>
                           </div>
                         </div>
