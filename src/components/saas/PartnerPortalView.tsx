@@ -41,7 +41,8 @@ import {
   Tag,
   Boxes,
   Radio,
-  RotateCcw
+  RotateCcw,
+  Sparkles
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Device, PartnerRegistrationEntry, SaasRole } from '../../types/traccar';
