@@ -35,7 +35,8 @@ import {
   DollarSign,
   PackageOpen,
   Undo2,
-  Package
+  Package,
+  Eye
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { 

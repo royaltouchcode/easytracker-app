@@ -23,7 +23,8 @@ import {
   MapPin, 
   Calendar, 
   AlertTriangle,
-  DollarSign
+  DollarSign,
+  ExternalLink
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { APP_CONFIG } from '../../config/appConfig';

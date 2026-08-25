@@ -10,7 +10,9 @@ import {
   CheckCircle2,
   Globe,
   Radio,
-  ArrowRight
+  ArrowRight,
+  Building2,
+  Briefcase
 } from 'lucide-react';
 import { ServerConfig } from '../../types/traccar';
 
@@ -33,7 +35,6 @@ import { APP_CONFIG } from '../../config/appConfig';
 import { PrivacyPolicyModal } from '../compliance/PrivacyPolicyModal';
 import { RefundPolicyModal } from '../compliance/RefundPolicyModal';
 import { PartnerRegistrationModal } from './PartnerRegistrationModal';
-import { Building2, Briefcase } from 'lucide-react';
 
 export const LoginScreen: React.FC = () => {
   const { 
