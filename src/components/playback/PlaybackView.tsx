@@ -171,27 +171,45 @@ export const PlaybackView: React.FC = () => {
 
   // Init Map
   useEffect(() => {
-    if (!mapContainerRef.current || mapRef.current) return;
+    if (!mapContainerRef.current) return;
+
+    if ((mapContainerRef.current as any)._leaflet_id) {
+      delete (mapContainerRef.current as any)._leaflet_id;
+    }
+    if (mapRef.current) {
+      try {
+        mapRef.current.remove();
+      } catch (e) {}
+      mapRef.current = null;
+    }
 
     const initialLat = selectedPosition?.latitude || 23.8103;
     const initialLon = selectedPosition?.longitude || 90.4125;
 
-    const map = L.map(mapContainerRef.current, {
-      center: [initialLat, initialLon],
-      zoom: 15,
-      zoomControl: false,
-      attributionControl: false
-    });
+    try {
+      const map = L.map(mapContainerRef.current, {
+        center: [initialLat, initialLon],
+        zoom: 15,
+        zoomControl: false,
+        attributionControl: false
+      });
 
-    L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
-      maxZoom: 20
-    }).addTo(map);
+      L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+        maxZoom: 20
+      }).addTo(map);
 
-    mapRef.current = map;
+      mapRef.current = map;
+    } catch (e) {
+      console.warn('Playback map init error handled:', e);
+    }
 
     return () => {
-      map.remove();
-      mapRef.current = null;
+      try {
+        if (mapRef.current) {
+          mapRef.current.remove();
+          mapRef.current = null;
+        }
+      } catch (e) {}
     };
   }, []);
 

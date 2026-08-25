@@ -104,34 +104,52 @@ export const LiveTrackingMap: React.FC = () => {
 
   // Initialize Map with Clean Vector Tiles
   useEffect(() => {
-    if (!mapContainerRef.current || mapInstanceRef.current) return;
+    if (!mapContainerRef.current) return;
+
+    if ((mapContainerRef.current as any)._leaflet_id) {
+      delete (mapContainerRef.current as any)._leaflet_id;
+    }
+    if (mapInstanceRef.current) {
+      try {
+        mapInstanceRef.current.remove();
+      } catch (e) {}
+      mapInstanceRef.current = null;
+    }
 
     const initialLat = (selectedPosition?.latitude && selectedPosition.latitude !== 0) ? selectedPosition.latitude : 23.7937;
     const initialLon = (selectedPosition?.longitude && selectedPosition.longitude !== 0) ? selectedPosition.longitude : 90.4066;
 
-    const map = L.map(mapContainerRef.current, {
-      center: [initialLat, initialLon],
-      zoom: 16,
-      zoomControl: false,
-      attributionControl: false
-    });
+    try {
+      const map = L.map(mapContainerRef.current, {
+        center: [initialLat, initialLon],
+        zoom: 16,
+        zoomControl: false,
+        attributionControl: false
+      });
 
-    mapInstanceRef.current = map;
+      mapInstanceRef.current = map;
 
-    const layerConfig = MAP_LAYERS[mapLayer] || MAP_LAYERS.carto_positron;
-    const tile = L.tileLayer(layerConfig.url, {
-      maxZoom: layerConfig.maxZoom,
-      subdomains: layerConfig.subdomains || ['a', 'b', 'c']
-    }).addTo(map);
-    tileLayerRef.current = tile;
+      const layerConfig = MAP_LAYERS[mapLayer] || MAP_LAYERS.carto_positron;
+      const tile = L.tileLayer(layerConfig.url, {
+        maxZoom: layerConfig.maxZoom,
+        subdomains: layerConfig.subdomains || ['a', 'b', 'c']
+      }).addTo(map);
+      tileLayerRef.current = tile;
 
-    if (showTraffic) {
-      trafficLayerRef.current = L.tileLayer(TRAFFIC_LAYER_URL, { maxZoom: 20 }).addTo(map);
+      if (showTraffic) {
+        trafficLayerRef.current = L.tileLayer(TRAFFIC_LAYER_URL, { maxZoom: 20 }).addTo(map);
+      }
+    } catch (e) {
+      console.warn('Leaflet map creation handled safely:', e);
     }
 
     return () => {
-      map.remove();
-      mapInstanceRef.current = null;
+      try {
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.remove();
+          mapInstanceRef.current = null;
+        }
+      } catch (e) {}
     };
   }, []);
 

@@ -38,19 +38,19 @@ interface PortalErrorBoundaryProps {
   onResetToMap?: () => void;
 }
 
-class PortalErrorBoundary extends React.Component<PortalErrorBoundaryProps, { hasError: boolean }> {
+class PortalErrorBoundary extends React.Component<PortalErrorBoundaryProps, { hasError: boolean; errorMessage: string }> {
   constructor(props: PortalErrorBoundaryProps) {
     super(props);
-    this.state = { hasError: false };
+    this.state = { hasError: false, errorMessage: '' };
   }
 
-  static getDerivedStateFromError() {
-    return { hasError: true };
+  static getDerivedStateFromError(error: any) {
+    return { hasError: true, errorMessage: error?.message || String(error) };
   }
 
   componentDidUpdate(prevProps: PortalErrorBoundaryProps) {
     if (prevProps.resetKey !== this.props.resetKey && this.state.hasError) {
-      this.setState({ hasError: false });
+      this.setState({ hasError: false, errorMessage: '' });
     }
   }
 
@@ -70,13 +70,18 @@ class PortalErrorBoundary extends React.Component<PortalErrorBoundaryProps, { ha
             <p className="text-xs text-slate-400 max-w-sm mt-1">
               নিচের বাটনে ক্লিক করে সরাসরি লাইভ ম্যাপে ফিরে যান অথবা পেজটি রিফ্রেশ করুন।
             </p>
+            {this.state.errorMessage && (
+              <div className="mt-2 text-[10px] font-mono text-rose-400/80 bg-rose-950/40 border border-rose-900/50 rounded-lg px-2.5 py-1 max-w-md mx-auto truncate">
+                {this.state.errorMessage}
+              </div>
+            )}
           </div>
           
           <div className="flex items-center space-x-2.5 pt-1">
             {this.props.onResetToMap && (
               <button
                 onClick={() => {
-                  this.setState({ hasError: false });
+                  this.setState({ hasError: false, errorMessage: '' });
                   this.props.onResetToMap?.();
                 }}
                 className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg transition active:scale-95 flex items-center space-x-1.5"

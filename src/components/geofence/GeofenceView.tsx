@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import { useApp } from '../../context/AppContext';
 import { 
@@ -65,30 +65,48 @@ export const GeofenceView: React.FC = () => {
 
   // Init Leaflet Map
   useEffect(() => {
-    if (!mapContainerRef.current || mapRef.current) return;
+    if (!mapContainerRef.current) return;
 
-    const map = L.map(mapContainerRef.current, {
-      center: [centerLat, centerLon],
-      zoom: 15,
-      zoomControl: false,
-      attributionControl: false
-    });
+    if ((mapContainerRef.current as any)._leaflet_id) {
+      delete (mapContainerRef.current as any)._leaflet_id;
+    }
+    if (mapRef.current) {
+      try {
+        mapRef.current.remove();
+      } catch (e) {}
+      mapRef.current = null;
+    }
 
-    L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
-      maxZoom: 20
-    }).addTo(map);
+    try {
+      const map = L.map(mapContainerRef.current, {
+        center: [centerLat, centerLon],
+        zoom: 15,
+        zoomControl: false,
+        attributionControl: false
+      });
 
-    mapRef.current = map;
+      L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+        maxZoom: 20
+      }).addTo(map);
 
-    // Handle map click to reposition Geofence Center Pin
-    map.on('click', (e: L.LeafletMouseEvent) => {
-      setCenterLat(e.latlng.lat);
-      setCenterLon(e.latlng.lng);
-    });
+      mapRef.current = map;
+
+      // Handle map click to reposition Geofence Center Pin
+      map.on('click', (e: L.LeafletMouseEvent) => {
+        setCenterLat(e.latlng.lat);
+        setCenterLon(e.latlng.lng);
+      });
+    } catch (e) {
+      console.warn('Geofence map init error handled:', e);
+    }
 
     return () => {
-      map.remove();
-      mapRef.current = null;
+      try {
+        if (mapRef.current) {
+          mapRef.current.remove();
+          mapRef.current = null;
+        }
+      } catch (e) {}
     };
   }, []);
 

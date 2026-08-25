@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import L from 'leaflet';
 import { 
   X, 
@@ -85,19 +85,29 @@ export const GeofenceModal: React.FC<GeofenceModalProps> = ({
   useEffect(() => {
     if (!isOpen || !mapContainerRef.current) return;
 
+    if ((mapContainerRef.current as any)._leaflet_id) {
+      delete (mapContainerRef.current as any)._leaflet_id;
+    }
     if (mapInstanceRef.current) {
-      mapInstanceRef.current.remove();
+      try {
+        mapInstanceRef.current.remove();
+      } catch (e) {}
       mapInstanceRef.current = null;
     }
 
-    const map = L.map(mapContainerRef.current, {
-      center: [center.lat, center.lng],
-      zoom: 16,
-      zoomControl: false,
-      attributionControl: false
-    });
-
-    mapInstanceRef.current = map;
+    let map: L.Map;
+    try {
+      map = L.map(mapContainerRef.current, {
+        center: [center.lat, center.lng],
+        zoom: 16,
+        zoomControl: false,
+        attributionControl: false
+      });
+      mapInstanceRef.current = map;
+    } catch (e) {
+      console.warn('GeofenceModal map init error handled:', e);
+      return;
+    }
 
     L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
       maxZoom: 21
