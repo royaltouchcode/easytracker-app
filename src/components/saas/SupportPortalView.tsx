@@ -25,7 +25,9 @@ import {
   AlertTriangle,
   DollarSign,
   ExternalLink,
-  Flame
+  Flame,
+  ShoppingBag,
+  Navigation
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { APP_CONFIG } from '../../config/appConfig';
@@ -108,9 +110,203 @@ export const SupportPortalView: React.FC = () => {
 
   const isSuperAdmin = user?.administrator || user?.role === 'super_admin';
 
-  const [activeMainTab, setActiveMainTab] = useState<'tickets' | 'warranty_claims'>('tickets');
+  const [activeMainTab, setActiveMainTab] = useState<'orders' | 'tickets' | 'warranty_claims'>('orders');
   const [searchQuery, setSearchQuery] = useState('');
   
+  // Online Device Orders State (Smart Dispatch & 4-Tier Escalation)
+  const [deviceOrders, setDeviceOrders] = useState<any[]>(() => {
+    const saved = localStorage.getItem('gps_device_orders');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return [
+      {
+        orderId: 'ORD-98421',
+        customerName: 'মো: আজহার উদ্দিন',
+        customerPhone: '01712-345678',
+        fatherName: 'মো: রফিকুল ইসলাম',
+        motherName: 'মোসাম্মৎ সুফিয়া বেগম',
+        sos2: '01811-223344',
+        sos3: '01911-334455',
+        installMode: 'doorstep',
+        deliveryAddress: 'বাড়ি ১২, রোড ৪, ব্লক-সি, বনশ্রী, রামপুরা, ঢাকা',
+        district: 'ঢাকা',
+        locationCoordinates: {
+          lat: 23.7644,
+          lng: 90.4312,
+          mapsUrl: 'https://www.google.com/maps/dir/?api=1&destination=23.7644,90.4312'
+        },
+        device: {
+          id: 'dev_bike_mini',
+          titleBn: 'ইজিট্র্যাকার ৪জি মিনি ওয়াটারপ্রুফ প্রো',
+          priceBdt: 2499
+        },
+        subscriptionPlan: {
+          id: 'sub_annual_ultra',
+          titleBn: '১ বছরের আল্ট্রা ভিআইপি ট্র্যাকিং',
+          priceBdt: 3200
+        },
+        paymentMethod: 'advance_online',
+        subTotal: 5699,
+        discountAmount: 200,
+        totalAmount: 5499,
+        orderDate: 'আজ দুপুর ১২:৩০',
+        orderStatus: 'PENDING_TECHNICIAN_DISPATCH',
+        installationStatus: 'UNASSIGNED',
+        escrowHandshakeStatus: 'PENDING_INSTALLATION',
+        assignedTech: null,
+        dispatchStep: 0,
+        assignedTime: null,
+        smsSent: false,
+        whatsappSent: false,
+        followupCallNeeded: false,
+        phoneCallConfirmed: false
+      }
+    ];
+  });
+
+  const saveOrders = (updated: any[]) => {
+    setDeviceOrders(updated);
+    localStorage.setItem('gps_device_orders', JSON.stringify(updated));
+  };
+
+  const calculateDistanceKm = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return parseFloat((R * c).toFixed(1));
+  };
+
+  // Step 1: Assign Nearest Technician (App Push Notification sent for free)
+  const handleAssignTechToOrder = (orderId: string, techId: string) => {
+    const tech = AVAILABLE_TECHNICIANS.find(t => t.id === techId) || AVAILABLE_TECHNICIANS[0];
+    const updated = deviceOrders.map(o => {
+      if (o.orderId === orderId) {
+        return {
+          ...o,
+          orderStatus: 'TECHNICIAN_ASSIGNED',
+          installationStatus: 'TECH_DISPATCHED',
+          assignedTech: tech,
+          dispatchStep: 1,
+          assignedTime: 'এখনই (⏱️ ২ ঘন্টা সময়সীমা)',
+          smsSent: false,
+          whatsappSent: false,
+          followupCallNeeded: false,
+          phoneCallConfirmed: false
+        };
+      }
+      return o;
+    });
+    saveOrders(updated);
+    alert(`✅ টেকনিশিয়ান "${tech.name}"-কে সফলভাবে অ্যাসাইন করা হয়েছে! টেকনিশিয়ানের ফোনে ফ্রি অ্যাপ পুশ নোটিফিকেশন পাঠানো হয়েছে (০ টাকা এসএমএস খরচ)।`);
+  };
+
+  // Step 2: Trigger Delayed SMS (after 1 hour if no app response)
+  const handleTriggerDelayedSms = (orderId: string) => {
+    const updated = deviceOrders.map(o => {
+      if (o.orderId === orderId) {
+        return {
+          ...o,
+          dispatchStep: 2,
+          smsSent: true,
+          smsSentAt: '১ ঘন্টা অতিক্রান্তে এসএমএস গেটওয়ে পাঠানো হয়েছে'
+        };
+      }
+      return o;
+    });
+    saveOrders(updated);
+    alert('📩 ElitBuzz SMS গেটওয়ে দিয়ে টেকনিশিয়ানের মোবাইলে অফিসিয়াল এসএমএস সফলভাবে পাঠানো হয়েছে!');
+  };
+
+  // Step 3: Trigger WhatsApp & Urgent Follow-up Call Alert
+  const handleWhatsAppJobCard = (order: any) => {
+    const tech = order.assignedTech || AVAILABLE_TECHNICIANS[0];
+    const cleanPhone = tech.phone.replace(/[^0-9]/g, '');
+    const text = `*🚨 EasyTracker নতুন ইনস্টলেশন জব #${order.orderId}*\n\n👤 *গ্রাহক:* ${order.customerName}\n📞 *ফোন:* ${order.customerPhone}\n🚗 *ডিভাইস:* ${order.device?.titleBn}\n📍 *ঠিকানা:* ${order.deliveryAddress}\n🗺️ *গুগল ম্যাপ ন্যাভিগেশন লিংক:* ${order.locationCoordinates?.mapsUrl}\n\nঅনুগ্রহ করে অবিলম্বে কাস্টমার কেয়ারে কল করে কনফার্ম করুন।`;
+    
+    const waUrl = `https://wa.me/88${cleanPhone}?text=${encodeURIComponent(text)}`;
+    if (typeof window !== 'undefined') {
+      window.open(waUrl, '_blank');
+    }
+
+    const updated = deviceOrders.map(o => {
+      if (o.orderId === order.orderId) {
+        return {
+          ...o,
+          dispatchStep: 3,
+          whatsappSent: true,
+          followupCallNeeded: true
+        };
+      }
+      return o;
+    });
+    saveOrders(updated);
+  };
+
+  // Step 4: Phone Call Confirmation by Support Desk
+  const handleConfirmPhoneCall = (orderId: string) => {
+    const updated = deviceOrders.map(o => {
+      if (o.orderId === orderId) {
+        return {
+          ...o,
+          phoneCallConfirmed: true,
+          installationStatus: 'TECH_EN_ROUTE'
+        };
+      }
+      return o;
+    });
+    saveOrders(updated);
+    alert('✅ টেকনিশিয়ান ফোনে কনফার্ম করেছেন! টেকনিশিয়ান গ্রাহকের ঠিকানায় রওনা দিয়েছেন।');
+  };
+
+  // Step 5: Cascade Fallback to Next Nearest Technician
+  const handleCascadeFallback = (orderId: string) => {
+    const order = deviceOrders.find(o => o.orderId === orderId);
+    const currentTechId = order?.assignedTech?.id;
+    const nextTech = AVAILABLE_TECHNICIANS.find(t => t.id !== currentTechId) || AVAILABLE_TECHNICIANS[1];
+
+    const updated = deviceOrders.map(o => {
+      if (o.orderId === orderId) {
+        return {
+          ...o,
+          assignedTech: nextTech,
+          dispatchStep: 1,
+          assignedTime: 'ক্যাসকেড ডিসপ্যাচ (⏱️ নতুন ২ ঘন্টা)',
+          smsSent: false,
+          whatsappSent: false,
+          followupCallNeeded: false,
+          phoneCallConfirmed: false
+        };
+      }
+      return o;
+    });
+    saveOrders(updated);
+    alert(`🔄 পূর্বের টেকনিশিয়ান রেসপন্স না করায় অর্ডারটি স্বয়ংক্রিয়ভাবে পরবর্তী নিকটতম টেকনিশিয়ান "${nextTech.name}"-এর কাছে ক্যাসকেড করা হয়েছে!`);
+  };
+
+  // Step 6: 2-Way Customer Escrow Handshake Confirmation
+  const handleVerifyCompleteEscrow = (orderId: string) => {
+    const updated = deviceOrders.map(o => {
+      if (o.orderId === orderId) {
+        return {
+          ...o,
+          orderStatus: 'COMPLETED',
+          installationStatus: 'VERIFIED_COMPLETED',
+          escrowHandshakeStatus: 'CUSTOMER_VERIFIED_PAID',
+          completedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+      }
+      return o;
+    });
+    saveOrders(updated);
+    alert('🎉 ২-ওয়ে ইনস্টলেশন সফল ও গ্রাহক সন্তুষ্ট! টেকনিশিয়ান কমিশন লেজারে ক্রেডিট করা হয়েছে এবং গ্রাহকের ১ বছরের ডিজিটাল ওয়ারেন্টি কার্ড ইস্যু করা হয়েছে।');
+  };
+
   // Support Ticket Modal State
   const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
   const [editStatus, setEditStatus] = useState<TicketStatus>('Pending');
@@ -331,8 +527,23 @@ export const SupportPortalView: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Tabs: Support Tickets vs Warranty RMA Queue */}
+      {/* Main Tabs: Device Orders vs Support Tickets vs Warranty RMA Queue */}
       <div className="flex bg-slate-900 border border-slate-800 p-1 rounded-2xl">
+        <button
+          onClick={() => setActiveMainTab('orders')}
+          className={`flex-1 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center space-x-1.5 ${
+            activeMainTab === 'orders' 
+              ? 'bg-blue-600 text-white shadow-md' 
+              : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <ShoppingBag className="w-4 h-4" />
+          <span>অনলাইন ডিভাইস বুকিং ও স্মার্ট ডিসপ্যাচ ({deviceOrders.length})</span>
+          {deviceOrders.filter(o => o.orderStatus === 'PENDING_TECHNICIAN_DISPATCH').length > 0 && (
+            <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping ml-1" />
+          )}
+        </button>
+
         <button
           onClick={() => setActiveMainTab('tickets')}
           className={`flex-1 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center space-x-1.5 ${
@@ -354,7 +565,7 @@ export const SupportPortalView: React.FC = () => {
           }`}
         >
           <ShieldCheck className="w-4 h-4" />
-          <span>ডিভাইস ওয়ারেন্টি ক্লেইম কিউ ({warrantyClaims.length})</span>
+          <span>ডিভাইস ওয়ারেন্টি ক্লেইম ({warrantyClaims.length})</span>
           {pendingClaimsCount > 0 && (
             <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping ml-1" />
           )}
@@ -364,23 +575,23 @@ export const SupportPortalView: React.FC = () => {
       {/* Support KPI Stats */}
       <div className="grid grid-cols-3 gap-2.5">
         <div className="bg-slate-900 border border-slate-800 p-3 rounded-2xl text-center">
-          <div className="text-[10px] text-slate-400 font-bold">পেন্ডিং ক্লেইম / টিকেট</div>
+          <div className="text-[10px] text-slate-400 font-bold">পেন্ডিং বুকিং / টিকেট</div>
           <div className="text-xl font-mono font-black text-rose-400 mt-1">
-            {tickets.filter(t => t.status === 'Pending').length + pendingClaimsCount}
+            {deviceOrders.filter(o => o.orderStatus === 'PENDING_TECHNICIAN_DISPATCH').length + tickets.filter(t => t.status === 'Pending').length + pendingClaimsCount}
           </div>
         </div>
 
         <div className="bg-slate-900 border border-slate-800 p-3 rounded-2xl text-center">
           <div className="text-[10px] text-slate-400 font-bold">টেকনিশিয়ান অ্যাসাইনড</div>
           <div className="text-xl font-mono font-black text-blue-400 mt-1">
-            {warrantyClaims.filter(c => c.status === 'tech_assigned').length + 2}
+            {deviceOrders.filter(o => o.assignedTech).length + warrantyClaims.filter(c => c.status === 'tech_assigned').length + 2}
           </div>
         </div>
 
         <div className="bg-slate-900 border border-slate-800 p-3 rounded-2xl text-center">
           <div className="text-[10px] text-slate-400 font-bold">আজ সমাধানকৃত</div>
           <div className="text-xl font-mono font-black text-emerald-400 mt-1">
-            {tickets.filter(t => t.status === 'Resolved').length + warrantyClaims.filter(c => c.status === 'completed').length + 5}
+            {deviceOrders.filter(o => o.orderStatus === 'COMPLETED').length + tickets.filter(t => t.status === 'Resolved').length + warrantyClaims.filter(c => c.status === 'completed').length + 5}
           </div>
         </div>
       </div>
@@ -397,9 +608,236 @@ export const SupportPortalView: React.FC = () => {
       </div>
 
       {/* ========================================================================= */}
-      {/* SECTION 1: GENERAL SUPPORT TICKETS                                        */}
+      {/* SECTION 1: ONLINE DEVICE ORDERS & SMART TECHNICIAN DISPATCH               */}
       {/* ========================================================================= */}
-      {activeMainTab === 'tickets' ? (
+      {activeMainTab === 'orders' && (
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl space-y-3">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+            <span className="text-xs font-bold uppercase tracking-wider text-blue-300 flex items-center space-x-1.5">
+              <ShoppingBag className="w-4 h-4 text-blue-400" />
+              <span>অনলাইন ডিভাইস বুকিং ও স্মার্ট ডিসপ্যাচ কিউ ({deviceOrders.length})</span>
+            </span>
+            <span className="text-[10px] text-emerald-400 font-mono">2-WAY ESCROW DISPATCH</span>
+          </div>
+
+          <div className="space-y-3">
+            {deviceOrders.map((order) => {
+              const custLat = order.locationCoordinates?.lat || 23.8103;
+              const custLng = order.locationCoordinates?.lng || 90.4125;
+
+              // Calculate & sort nearest available technicians
+              const sortedTechs = AVAILABLE_TECHNICIANS.map(tech => ({
+                ...tech,
+                distanceKm: calculateDistanceKm(custLat, custLng, tech.lat, tech.lng)
+              })).sort((a, b) => a.distanceKm - b.distanceKm);
+
+              const topNearestTech = sortedTechs[0];
+              const isAssigned = !!order.assignedTech;
+              const currentAssignedTech = order.assignedTech || topNearestTech;
+
+              return (
+                <div key={order.orderId} className="p-4 bg-slate-950/90 border border-slate-800 rounded-2xl space-y-3 text-xs shadow-lg">
+                  
+                  {/* Top Bar: Order ID, Mode, Payment */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-2.5">
+                    <div className="flex items-center space-x-2">
+                      <span className="font-mono text-xs font-black text-blue-400 bg-blue-950 px-2.5 py-1 rounded-xl border border-blue-800">
+                        {order.orderId}
+                      </span>
+                      <span className="font-extrabold text-sm text-white">{order.customerName}</span>
+                      <span className="text-slate-400 font-mono text-xs">({order.customerPhone})</span>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <span className="text-[9.5px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/40 px-2 py-0.5 rounded-full">
+                        {order.installMode === 'doorstep' ? '🏠 ডোরস্টেপ ইনস্টল' : '🔧 সার্ভিস সেন্টার'}
+                      </span>
+                      <span className={`text-[9.5px] font-bold px-2 py-0.5 rounded-full border ${
+                        order.paymentMethod === 'advance_online' ? 'bg-emerald-950 text-emerald-300 border-emerald-700' :
+                        order.paymentMethod === 'after_install_online' ? 'bg-blue-950 text-blue-300 border-blue-700' : 'bg-slate-800 text-slate-300 border-slate-700'
+                      }`}>
+                        {order.paymentMethod === 'advance_online' ? '✅ PAID (অ্যাডভান্স)' : '⏳ UNPAID (আফটার ইনস্টল)'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Customer & Mandatory Family KYC Details */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 bg-slate-900/60 p-2.5 rounded-xl border border-slate-800/60 text-[11px]">
+                    <div>
+                      <span className="text-slate-400 block text-[10px]">👤 পিতা ও মাতার নাম (KYC):</span>
+                      <span className="font-bold text-slate-200 block">পিতা: {order.fatherName || 'মো: রফিকুল ইসলাম'}</span>
+                      <span className="font-bold text-slate-200 block">মাতা: {order.motherName || 'মোসাম্মৎ সুফিয়া বেগম'}</span>
+                    </div>
+
+                    <div>
+                      <span className="text-slate-400 block text-[10px]">🚗 ডিভাইস ও সাবস্ক্রিপশন:</span>
+                      <span className="font-bold text-blue-300 block">{order.device?.titleBn}</span>
+                      <span className="text-amber-300 block font-mono text-[10px]">{order.subscriptionPlan?.titleBn}</span>
+                    </div>
+
+                    <div>
+                      <span className="text-slate-400 block text-[10px]">📍 ইনস্টলেশন ম্যাপ ও ঠিকানা:</span>
+                      <span className="text-slate-200 block font-medium truncate">{order.deliveryAddress}</span>
+                      {order.locationCoordinates?.mapsUrl && (
+                        <a
+                          href={order.locationCoordinates.mapsUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-emerald-400 underline font-bold text-[10px] flex items-center space-x-1 mt-0.5"
+                        >
+                          <Navigation className="w-3 h-3" />
+                          <span>গুগল ম্যাপ রুট দেখুন (GPS Pin)</span>
+                        </a>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 🤖 Smart Geo-Dispatch & Nearest Technician Recommendation */}
+                  <div className="bg-gradient-to-r from-blue-950/40 via-slate-900 to-indigo-950/30 p-3 rounded-xl border border-blue-500/30 space-y-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+                      <div className="flex items-center space-x-2">
+                        <Wrench className="w-4 h-4 text-amber-400 shrink-0" />
+                        <div>
+                          <span className="font-bold text-xs text-white block">
+                            {isAssigned 
+                              ? `বর্তমান অ্যাসাইনকৃত টেকনিশিয়ান: ${order.assignedTech.name}`
+                              : `🤖 AI প্রস্তাবিত নিকটতম টেকনিশিয়ান: ${topNearestTech.name} (${topNearestTech.distanceKm} কিমি দূরে)`}
+                          </span>
+                          <span className="text-[10px] text-slate-400">
+                            {isAssigned ? order.assignedTime : `ওয়ার্কশপ: ${topNearestTech.shopName}`}
+                          </span>
+                        </div>
+                      </div>
+
+                      {!isAssigned ? (
+                        <button
+                          type="button"
+                          onClick={() => handleAssignTechToOrder(order.orderId, topNearestTech.id)}
+                          className="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs shadow-md active:scale-95 flex items-center space-x-1.5"
+                        >
+                          <span>অ্যাসাইন করুন (App Push)</span>
+                        </button>
+                      ) : (
+                        <span className="text-[9.5px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded-full font-mono">
+                          DISPATCHED
+                        </span>
+                      )}
+                    </div>
+
+                    {/* ⏱️ 4-Tier Automated Escalation & Follow-up Matrix */}
+                    {isAssigned && (
+                      <div className="pt-2 border-t border-slate-800 space-y-2">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-center text-[10px]">
+                          <div className={`p-1.5 rounded-lg border ${order.dispatchStep >= 1 ? 'bg-blue-950/80 border-blue-500/60 text-blue-200' : 'bg-slate-900 border-slate-800 text-slate-500'}`}>
+                            <span>১. ফ্রি অ্যাপ পুশ (০৳)</span>
+                            <span className="block text-[8px] text-emerald-400 font-bold">✓ সেন্ড</span>
+                          </div>
+
+                          <div className={`p-1.5 rounded-lg border ${order.dispatchStep >= 2 ? 'bg-amber-950/80 border-amber-500/60 text-amber-200' : 'bg-slate-900 border-slate-800 text-slate-500'}`}>
+                            <span>২. ১ ঘন্টা পর SMS</span>
+                            {order.dispatchStep >= 2 ? (
+                              <span className="block text-[8px] text-emerald-400 font-bold">✓ সেন্ড</span>
+                            ) : (
+                              <button onClick={() => handleTriggerDelayedSms(order.orderId)} className="text-[8px] text-amber-400 underline block font-bold">পাঠান</button>
+                            )}
+                          </div>
+
+                          <div className={`p-1.5 rounded-lg border ${order.dispatchStep >= 3 ? 'bg-purple-950/80 border-purple-500/60 text-purple-200' : 'bg-slate-900 border-slate-800 text-slate-500'}`}>
+                            <span>৩. ১.৫ ঘন্টা হোয়াটসঅ্যাপ</span>
+                            {order.dispatchStep >= 3 ? (
+                              <span className="block text-[8px] text-purple-300 font-bold">✓ ডিসপ্যাচড</span>
+                            ) : (
+                              <button onClick={() => handleWhatsAppJobCard(order)} className="text-[8px] text-purple-400 underline block font-bold">পাঠান</button>
+                            )}
+                          </div>
+
+                          <div className={`p-1.5 rounded-lg border ${order.phoneCallConfirmed ? 'bg-emerald-950/80 border-emerald-500/60 text-emerald-200' : 'bg-slate-900 border-slate-800 text-slate-500'}`}>
+                            <span>৪. ফলোআপ কল</span>
+                            <span className={`block text-[8px] font-bold ${order.phoneCallConfirmed ? 'text-emerald-400' : 'text-amber-400'}`}>
+                              {order.phoneCallConfirmed ? '✓ ফোনে কনফার্মড' : 'পেন্ডিং'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* 📞 Instant Omnichannel Calling Buttons & Cascade Fallback */}
+                        <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                          <div className="flex items-center space-x-1.5">
+                            <a
+                              href={`tel:${currentAssignedTech.phone}`}
+                              className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-750 text-blue-300 border border-slate-700 text-[11px] font-bold flex items-center space-x-1"
+                            >
+                              <Phone className="w-3 h-3" />
+                              <span>জিএসএম কল</span>
+                            </a>
+
+                            <button
+                              type="button"
+                              onClick={() => alert(`🌐 সেন্ট্রাল আইপি পিবিএক্স (০৯৬১২-০০০৯৯৯) থেকে ${currentAssignedTech.name} (${currentAssignedTech.phone})-এর নম্বরে ওয়েব কল সংযোগ করা হচ্ছে...`)}
+                              className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-750 text-emerald-300 border border-slate-700 text-[11px] font-bold flex items-center space-x-1"
+                            >
+                              <PhoneCall className="w-3 h-3" />
+                              <span>আইপি ফোন ডায়াল</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleWhatsAppJobCard(order)}
+                              className="px-2.5 py-1.5 rounded-xl bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-500/40 text-[11px] font-bold flex items-center space-x-1"
+                            >
+                              <span>💬 হোয়াটসঅ্যাপ জব কার্ড</span>
+                            </button>
+
+                            {!order.phoneCallConfirmed && (
+                              <button
+                                type="button"
+                                onClick={() => handleConfirmPhoneCall(order.orderId)}
+                                className="px-2.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-bold"
+                              >
+                                ✓ ফোনে কনফার্মড মার্ক করুন
+                              </button>
+                            )}
+                          </div>
+
+                          <div className="flex items-center space-x-2">
+                            <button
+                              type="button"
+                              onClick={() => handleCascadeFallback(order.orderId)}
+                              className="px-3 py-1.5 rounded-xl bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/40 text-[11px] font-bold flex items-center space-x-1"
+                            >
+                              <RotateCcw className="w-3 h-3" />
+                              <span>পরবর্তী টেকনিশিয়ানকে দিন (Cascade)</span>
+                            </button>
+
+                            {order.installationStatus !== 'VERIFIED_COMPLETED' ? (
+                              <button
+                                type="button"
+                                onClick={() => handleVerifyCompleteEscrow(order.orderId)}
+                                className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-[11px] shadow-md shadow-emerald-600/30"
+                              >
+                                ✅ ইনস্টলেশন সম্পন্ন ও লেজার ক্রেডিট
+                              </button>
+                            ) : (
+                              <span className="text-[10px] font-bold text-emerald-400 bg-emerald-950 px-2 py-1 rounded-xl border border-emerald-700">
+                                🎉 কাজ সম্পন্ন ও লেজার ক্রেডিট সম্পন্ন
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* SECTION 2: GENERAL SUPPORT TICKETS                                        */}
+      {/* ========================================================================= */}
+      {activeMainTab === 'tickets' && (
         <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl space-y-3">
           <div className="flex items-center justify-between border-b border-slate-800 pb-2">
             <span className="text-xs font-bold uppercase tracking-wider text-sky-300 flex items-center space-x-1.5">
@@ -447,10 +885,12 @@ export const SupportPortalView: React.FC = () => {
             ))}
           </div>
         </div>
-      ) : (
-        /* ========================================================================= */
-        /* SECTION 2: DEVICE WARRANTY & RMA CLAIMS QUEUE                             */
-        /* ========================================================================= */
+      )}
+
+      {/* ========================================================================= */}
+      {/* SECTION 3: DEVICE WARRANTY & RMA CLAIMS QUEUE                             */}
+      {/* ========================================================================= */}
+      {activeMainTab === 'warranty_claims' && (
         <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl space-y-3">
           <div className="flex items-center justify-between border-b border-slate-800 pb-2">
             <span className="text-xs font-bold uppercase tracking-wider text-emerald-300 flex items-center space-x-1.5">

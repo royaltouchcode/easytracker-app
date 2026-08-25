@@ -50,12 +50,14 @@ import { ServiceRateCardManager } from './ServiceRateCardManager';
 import { SellerQuotaAndLedgerManager } from './SellerQuotaAndLedgerManager';
 import { EnterpriseInventoryManager } from './EnterpriseInventoryManager';
 import { RescueTeamManager } from './RescueTeamManager';
+import { SmsGatewayManager } from './SmsGatewayManager';
 
 type AdminSectionType = 
   | 'overview'
   | 'server_sync'
   | 'govtech_api'
   | 'rescue_hub'
+  | 'sms_gateway'
   | 'device_inventory'
   | 'sim_inventory'
   | 'sales_log'
@@ -408,6 +410,7 @@ export const AdminDashboardView: React.FC = () => {
     { id: 'server_sync', labelBn: 'GPS সার্ভার ও সিঙ্ক হাব', labelEn: 'GPS Server & Sync', icon: Server, badge: 'Live', badgeColor: 'bg-emerald-500/20 text-emerald-300' },
     { id: 'govtech_api', labelBn: 'BRTA, BTRC ও পুলিশ 2-Way API', labelEn: 'GovTech & Police 2-Way APIs', icon: Globe, badge: 'GovTech', badgeColor: 'bg-emerald-500/20 text-emerald-300' },
     { id: 'rescue_hub', labelBn: 'রেসকিউ টিম ও ক্ষতিপূরণ রেট', labelEn: 'Rescue Squads & Rates', icon: Flame, badge: '24/7 Red', badgeColor: 'bg-rose-500/20 text-rose-300' },
+    { id: 'sms_gateway', labelBn: 'এসএমএস গেটওয়ে হাব', labelEn: 'SMS Gateway Hub', icon: Smartphone, badge: 'BD SMS', badgeColor: 'bg-emerald-500/20 text-emerald-300' },
     { id: 'device_inventory', labelBn: 'ট্র্যাকার ডিভাইস ERP', labelEn: 'Device Inventory', icon: Cpu, badge: 'Hardware', badgeColor: 'bg-cyan-500/20 text-cyan-300' },
     { id: 'sim_inventory', labelBn: 'টেলিমেটিক্স সিম ERP', labelEn: 'SIM Inventory', icon: Radio, badge: 'M2M SIM', badgeColor: 'bg-purple-500/20 text-purple-300' },
     { id: 'sales_log', labelBn: 'সেলস ও ইনস্টলেশন হিস্ট্রি', labelEn: 'Sales & Dispatch Log', icon: FileSpreadsheet, badge: 'BRTA', badgeColor: 'bg-emerald-500/20 text-emerald-300' },
@@ -1115,6 +1118,15 @@ export const AdminDashboardView: React.FC = () => {
           {activeSection === 'rescue_hub' && (
             <div className="space-y-4 animate-in fade-in duration-150">
               <RescueTeamManager />
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* VIEW: SMS GATEWAY & BROADCAST MANAGER                                     */}
+          {/* ========================================================================= */}
+          {activeSection === 'sms_gateway' && (
+            <div className="space-y-4 animate-in fade-in duration-150">
+              <SmsGatewayManager />
             </div>
           )}
 
