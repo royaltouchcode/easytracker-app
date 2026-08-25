@@ -64,6 +64,14 @@ export const TechnicianPortalView: React.FC = () => {
   const [selectedJobCardId, setSelectedJobCardId] = useState<string>('');
   const [billSentSuccessId, setBillSentSuccessId] = useState<string | null>(null);
 
+  // 2-Tier Spare Parts & Custom Job Card Builder State
+  const [customizingJobCard, setCustomizingJobCard] = useState<PaidJobCard | null>(null);
+  const [jcServices, setJcServices] = useState<SelectedServiceItem[]>([]);
+  const [jcParts, setJcParts] = useState<SelectedSparePartItem[]>([]);
+  const [techPartName, setTechPartName] = useState('');
+  const [techPartPrice, setTechPartPrice] = useState<number>(200);
+  const [techPartWarrantyDays, setTechPartWarrantyDays] = useState<number>(15);
+
   const isSuperAdmin = user?.administrator || user?.role === 'super_admin';
 
   // Work Orders Queue state
@@ -387,8 +395,17 @@ export const TechnicianPortalView: React.FC = () => {
                         </div>
                       ))}
                       {jc.selectedSpareParts.map((p, i) => (
-                        <div key={i} className="flex justify-between text-[11px] text-slate-400">
-                          <span>{p.nameBn} (x{p.quantity})</span>
+                        <div key={i} className="flex justify-between items-center text-[11px] text-slate-400">
+                          <div>
+                            <span className="text-slate-200 font-medium">{p.nameBn} (x{p.quantity})</span>
+                            <span className={`text-[9px] ml-1.5 px-1.5 py-0.2 rounded border font-mono ${
+                              p.source === 'technician_self' 
+                                ? 'text-amber-300 bg-amber-950/60 border-amber-700/60' 
+                                : 'text-cyan-300 bg-cyan-950/60 border-cyan-700/60'
+                            }`}>
+                              {p.source === 'technician_self' ? `🔧 টেকনিশিয়ান নিজস্ব (${p.warrantyDays || 15} দিন)` : `🏢 কোম্পানি OEM (${p.warrantyDays || 90} দিন)`}
+                            </span>
+                          </div>
                           <span className="font-mono font-bold text-cyan-400">৳{p.unitPrice * p.quantity}</span>
                         </div>
                       ))}
@@ -398,30 +415,285 @@ export const TechnicianPortalView: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Action to Send / Re-send Bill */}
+                    {/* Action Buttons: Customize & Send Bill */}
                     {!isCompleted && (
-                      <button
-                        onClick={() => {
-                          sendJobCardBill(
-                            jc.id, 
-                            jc.selectedServices.length > 0 ? jc.selectedServices : [{ serviceId: 'srv_relay_fix', nameBn: 'ইঞ্জিন কাটঅফ রিলে ফিক্স', price: 200 }],
-                            jc.selectedSpareParts.length > 0 ? jc.selectedSpareParts : [{ partId: 'part_relay_40a', nameBn: '12V 40A হেভি ডিউটি রিলে', unitPrice: 200, quantity: 1 }],
-                            'সার্ভিসিং ও পার্টস ফিটিং সফলভাবে সম্পন্ন হয়েছে।'
-                          );
-                          setBillSentSuccessId(jc.id);
-                          setTimeout(() => setBillSentSuccessId(null), 2500);
-                        }}
-                        className="w-full py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-extrabold text-xs flex items-center justify-center space-x-1.5 shadow-md shadow-amber-600/30 transition active:scale-95"
-                      >
-                        <Send className="w-3.5 h-3.5" />
-                        <span>{billSentSuccessId === jc.id ? '✅ কাস্টমারের অ্যাপে বিল পাঠানো হয়েছে!' : '📲 কাস্টমারের অ্যাপে ডিজিটাল বিল পাঠান (Send Bill)'}</span>
-                      </button>
+                      <div className="flex space-x-2 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCustomizingJobCard(jc);
+                            setJcServices(jc.selectedServices.length > 0 ? jc.selectedServices : [{ serviceId: 'srv_relay_fix', nameBn: 'ইঞ্জিন কাটঅফ রিলে ফিক্স', price: 200 }]);
+                            setJcParts(jc.selectedSpareParts.length > 0 ? jc.selectedSpareParts : [{ partId: 'part_relay_40a', nameBn: '12V 40A হেভি ডিউটি রিলে', unitPrice: 200, quantity: 1, source: 'company_oem', warrantyDays: 90, warrantyIssuer: 'EasyTracker Central' }]);
+                          }}
+                          className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-200 border border-slate-700 font-bold text-xs flex items-center space-x-1 transition active:scale-95"
+                        >
+                          <Sliders className="w-3.5 h-3.5 text-amber-400" />
+                          <span>🔧 পার্টস ও রেট কাস্টমাইজ</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            sendJobCardBill(
+                              jc.id, 
+                              jc.selectedServices.length > 0 ? jc.selectedServices : [{ serviceId: 'srv_relay_fix', nameBn: 'ইঞ্জিন কাটঅফ রিলে ফিক্স', price: 200 }],
+                              jc.selectedSpareParts.length > 0 ? jc.selectedSpareParts : [{ partId: 'part_relay_40a', nameBn: '12V 40A হেভি ডিউটি রিলে', unitPrice: 200, quantity: 1, source: 'company_oem', warrantyDays: 90, warrantyIssuer: 'EasyTracker Central' }],
+                              'সার্ভিসিং ও পার্টস ফিটিং সফলভাবে সম্পন্ন হয়েছে।'
+                            );
+                            setBillSentSuccessId(jc.id);
+                            setTimeout(() => setBillSentSuccessId(null), 2500);
+                          }}
+                          className="flex-1 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-extrabold text-xs flex items-center justify-center space-x-1.5 shadow-md shadow-amber-600/30 transition active:scale-95"
+                        >
+                          <Send className="w-3.5 h-3.5" />
+                          <span>{billSentSuccessId === jc.id ? '✅ বিল পাঠানো হয়েছে!' : '📲 কাস্টমারকে ডিজিটাল বিল পাঠান'}</span>
+                        </button>
+                      </div>
                     )}
                   </div>
                 );
               })}
             </div>
           </div>
+
+          {/* ========================================================================= */}
+          {/* 🛠️ 2-TIER SPARE PARTS & JOB CARD CUSTOMIZER MODAL                         */}
+          {/* ========================================================================= */}
+          {customizingJobCard && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-3 sm:p-4 animate-in fade-in select-none">
+              <div className="bg-slate-900 border border-amber-500/50 rounded-3xl max-w-lg w-full p-4 sm:p-5 shadow-2xl space-y-3.5 max-h-[92vh] overflow-y-auto">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                  <div className="flex items-center space-x-2">
+                    <Wrench className="w-4 h-4 text-amber-400" />
+                    <h3 className="font-extrabold text-xs text-amber-300">
+                      বিল ও পার্টস কাস্টমাইজেশন: #{customizingJobCard.id}
+                    </h3>
+                  </div>
+                  <button onClick={() => setCustomizingJobCard(null)} className="text-slate-400 hover:text-white">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* Customer Info */}
+                <div className="bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-xs flex justify-between">
+                  <div>
+                    <span className="font-bold text-white block">{customizingJobCard.customerName}</span>
+                    <span className="text-slate-400 font-mono text-[11px]">{customizingJobCard.customerPhone}</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="font-bold text-amber-300 block">{customizingJobCard.vehicleName}</span>
+                    <span className="text-[10px] text-slate-400">{customizingJobCard.serviceCenterName}</span>
+                  </div>
+                </div>
+
+                {/* 1. Services Selection */}
+                <div className="space-y-1.5">
+                  <label className="text-[10.5px] font-bold text-slate-300 uppercase tracking-wider block">
+                    ১. প্রযোজ্য সার্ভিসসমূহ (Rate Card):
+                  </label>
+                  <div className="space-y-1 max-h-32 overflow-y-auto pr-1">
+                    {rateCardServices.map(srv => {
+                      const isSelected = jcServices.some(s => s.serviceId === srv.id);
+                      return (
+                        <button
+                          key={srv.id}
+                          type="button"
+                          onClick={() => {
+                            if (isSelected) {
+                              setJcServices(prev => prev.filter(s => s.serviceId !== srv.id));
+                            } else {
+                              setJcServices(prev => [...prev, { serviceId: srv.id, nameBn: srv.nameBn, price: srv.basePrice }]);
+                            }
+                          }}
+                          className={`w-full p-2 rounded-xl border text-left flex items-center justify-between text-xs transition ${
+                            isSelected ? 'bg-amber-950/80 border-amber-500 text-amber-200 font-bold' : 'bg-slate-950 border-slate-800 text-slate-400'
+                          }`}
+                        >
+                          <span className="text-[11px]">{srv.nameBn}</span>
+                          <span className="font-mono font-black shrink-0 ml-2">৳{srv.basePrice}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 2. Dual-Source Spare Parts Section */}
+                <div className="space-y-2 pt-1 border-t border-slate-800">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10.5px] font-bold text-slate-300 uppercase tracking-wider">
+                      ২. স্পেয়ার পার্টস সিলেকশন (কোম্পানি OEM / নিজস্ব):
+                    </label>
+                  </div>
+
+                  {/* Company OEM Parts Catalog */}
+                  <div className="bg-slate-950 p-2.5 rounded-xl border border-slate-800 space-y-1.5">
+                    <span className="text-[10px] font-bold text-cyan-300 block">
+                      🏢 কোম্পানি সেন্ট্রাল OEM পার্টস (কোম্পানি অফিসিয়াল ওয়ারেন্টি):
+                    </span>
+                    <div className="space-y-1 max-h-28 overflow-y-auto pr-1">
+                      {sparePartsCatalog.map(part => {
+                        const isSelected = jcParts.some(p => p.partId === part.id);
+                        return (
+                          <button
+                            key={part.id}
+                            type="button"
+                            onClick={() => {
+                              if (isSelected) {
+                                setJcParts(prev => prev.filter(p => p.partId !== part.id));
+                              } else {
+                                setJcParts(prev => [...prev, {
+                                  partId: part.id,
+                                  nameBn: part.nameBn,
+                                  unitPrice: part.unitPrice,
+                                  quantity: 1,
+                                  source: 'company_oem',
+                                  warrantyDays: part.warrantyDays || 90,
+                                  warrantyIssuer: 'EasyTracker Central'
+                                }]);
+                              }
+                            }}
+                            className={`w-full p-1.5 rounded-lg border text-left flex items-center justify-between text-xs transition ${
+                              isSelected ? 'bg-cyan-950/80 border-cyan-500 text-cyan-200 font-bold' : 'bg-slate-900 border-slate-800/80 text-slate-400'
+                            }`}
+                          >
+                            <div className="truncate">
+                              <span className="text-[10.5px]">{part.nameBn}</span>
+                              <span className="text-[9px] text-cyan-400 ml-1.5 font-mono">({part.warrantyDays || 90} দিন কোম্পানি কাভারেজ)</span>
+                            </div>
+                            <span className="font-mono font-black shrink-0 ml-2">৳{part.unitPrice}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Technician Custom Sourced Part Form */}
+                  <div className="bg-slate-950 p-2.5 rounded-xl border border-amber-500/30 space-y-2">
+                    <span className="text-[10px] font-bold text-amber-300 block">
+                      🔧 টেকনিশিয়ান নিজস্ব পার্টস (টেকনিশিয়ান নিজস্ব ওয়ারেন্টি দায়িত্ব):
+                    </span>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      <input
+                        type="text"
+                        value={techPartName}
+                        onChange={(e) => setTechPartName(e.target.value)}
+                        placeholder="পার্টসের নাম (যেমন: ফিউজ সকেট)"
+                        className="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-slate-500 col-span-1 sm:col-span-1"
+                      />
+                      <input
+                        type="number"
+                        value={techPartPrice}
+                        onChange={(e) => setTechPartPrice(Number(e.target.value))}
+                        placeholder="মূল্য (৳)"
+                        className="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-slate-500 font-mono"
+                      />
+                      <div className="flex space-x-1">
+                        <select
+                          value={techPartWarrantyDays}
+                          onChange={(e) => setTechPartWarrantyDays(Number(e.target.value))}
+                          className="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-[11px] text-amber-300 font-bold flex-1"
+                        >
+                          <option value={7}>৭ দিন ওয়ারেন্টি</option>
+                          <option value={15}>১৫ দিন ওয়ারেন্টি</option>
+                          <option value={30}>৩০ দিন ওয়ারেন্টি</option>
+                          <option value={0}>ওয়ারেন্টি ছাড়া (০ দিন)</option>
+                        </select>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!techPartName.trim()) return;
+                            const newPartId = `tech_part_${Date.now()}`;
+                            setJcParts(prev => [...prev, {
+                              partId: newPartId,
+                              nameBn: techPartName.trim(),
+                              unitPrice: techPartPrice,
+                              quantity: 1,
+                              source: 'technician_self',
+                              warrantyDays: techPartWarrantyDays,
+                              warrantyIssuer: `টেকনিশিয়ান (${user?.name || 'আব্দুল করিম'})`
+                            }]);
+                            setTechPartName('');
+                          }}
+                          className="px-2.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs"
+                        >
+                          + যোগ
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Selected Parts List Breakdown */}
+                  {jcParts.length > 0 && (
+                    <div className="p-2 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
+                      <span className="text-[10px] font-bold text-slate-400 block">সিলেক্টেড পার্টস তালিকা:</span>
+                      {jcParts.map((p, idx) => (
+                        <div key={idx} className="flex justify-between items-center text-[11px] text-slate-300">
+                          <div>
+                            <span>{p.nameBn} (৳{p.unitPrice})</span>
+                            <span className="text-[9px] text-amber-400 ml-1 font-mono">
+                              • {p.source === 'technician_self' ? `টেকনিশিয়ান নিজস্ব (${p.warrantyDays} দিন)` : `কোম্পানি OEM (${p.warrantyDays} দিন)`}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setJcParts(prev => prev.filter((_, i) => i !== idx))}
+                            className="text-rose-400 hover:text-rose-300 text-xs px-1"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Total Bar */}
+                <div className="p-3 bg-slate-950 rounded-2xl border border-slate-800 flex justify-between items-center text-xs">
+                  <div>
+                    <span className="text-slate-400 block text-[10px]">মোট বিল (সার্ভিস + পার্টস):</span>
+                    <span className="font-mono font-black text-emerald-400 text-base">
+                      ৳ {jcServices.reduce((sum, s) => sum + s.price, 0) + jcParts.reduce((sum, p) => sum + p.unitPrice * p.quantity, 0)}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-slate-400 block text-[10px]">কোম্পানি প্ল্যাটফর্ম ফি (২০%):</span>
+                    <span className="font-mono text-amber-400 font-bold">
+                      ৳ {Math.round((jcServices.reduce((sum, s) => sum + s.price, 0) + jcParts.reduce((sum, p) => sum + p.unitPrice * p.quantity, 0)) * 0.20)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex space-x-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setCustomizingJobCard(null)}
+                    className="py-2.5 px-4 rounded-xl bg-slate-800 text-slate-300 font-bold text-xs"
+                  >
+                    বাতিল
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sendJobCardBill(
+                        customizingJobCard.id,
+                        jcServices,
+                        jcParts,
+                        'সার্ভিসিং ও ওয়্যারিং ফিটিং সম্পন্ন হয়েছে।'
+                      );
+                      setCustomizingJobCard(null);
+                      setBillSentSuccessId(customizingJobCard.id);
+                      setTimeout(() => setBillSentSuccessId(null), 2500);
+                    }}
+                    className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 text-white font-extrabold text-xs shadow-lg shadow-amber-600/30 flex items-center justify-center space-x-1.5"
+                  >
+                    <Send className="w-4 h-4" />
+                    <span>কাস্টমারের অ্যাপে চূড়ান্ত বিল ও ওয়ারেন্টি টার্মস পাঠান</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

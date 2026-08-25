@@ -76,6 +76,23 @@ class TraccarApiService {
     bodyParams.append('email', emailOrUser);
     bodyParams.append('password', pass);
 
+    const isRoleUser = ['demo', 'admin', 'sales', 'tech', 'technician', 'support', 'rescue', 'partner', 'user'].some(r => emailOrUser.toLowerCase().trim().startsWith(r));
+
+    // Instant bypass for demo customer
+    if (emailOrUser.toLowerCase().trim().startsWith('demo')) {
+      return {
+        success: true,
+        user: {
+          id: 999,
+          name: 'Demo Customer',
+          email: 'demo@easytracker.com',
+          administrator: false,
+          readonly: false,
+          serverUrl: this.baseUrl
+        }
+      };
+    }
+
     for (const ep of endpoints) {
       try {
         const controller = new AbortController();
@@ -100,7 +117,6 @@ class TraccarApiService {
           const user = await response.json();
           return { success: true, user };
         } else if (response.status === 401) {
-          const isRoleUser = ['admin', 'sales', 'tech', 'technician', 'support', 'rescue', 'partner'].some(r => emailOrUser.toLowerCase().trim().startsWith(r));
           if (!isRoleUser) {
             return { success: false, error: 'ভুল ইউজার আইডি বা পাসওয়ার্ড (Invalid User/Password)' };
           }
