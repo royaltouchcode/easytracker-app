@@ -61,7 +61,8 @@ export const PartnerPortalView: React.FC = () => {
     setActiveTab, 
     setCurrentRole, 
     setSelectedDeviceId,
-    verifyLocation
+    verifyLocation,
+    updatePartnerDetails
   } = useApp();
 
   // Active Navigation & Drawer State
@@ -90,13 +91,13 @@ export const PartnerPortalView: React.FC = () => {
       p.partnerId === user?.partnerId || 
       p.assignedUsername?.toLowerCase() === user?.email?.toLowerCase() ||
       p.phone === user?.email
-    ) || {
+    ) || approvedPartners[0] || {
       id: 'PREG-8801',
       type: 'b2b_brand',
       partnerId: user?.partnerId || 'PRT-8801',
       applicantName: user?.name || 'Authorized Franchise Partner',
       brandName: user?.partnerBrandName || 'EasyTracker Authorized Partner Hub',
-      phone: '01711-223344',
+      phone: user?.email || '01711-223344',
       whatsapp: '01711-223344',
       email: user?.email || 'partner@easysoftsolution.net',
       shopName: user?.shopName || 'উত্তরা বাইক গ্যাজেট ও জিপিএস সার্ভিসিং হাব',
@@ -114,9 +115,23 @@ export const PartnerPortalView: React.FC = () => {
       requestedServices: ['server_tracking', 'shared_technicians', 'shared_support'],
       submittedAt: '24 Aug 2026',
       maxSlotQuota: 50,
-      floatingCreditLimit: 10000
+      floatingCreditLimit: 10000,
+      wholesaleServerFeeMonthly: 50,
+      customRetailMonthlyPrice: 350,
+      customRetailYearlyPrice: 3500,
+      accumulatedPartnerProfitBdt: 4500,
+      settlementPayoutMethod: 'bkash',
+      settlementPayoutNumber: '01711-223344'
     };
   }, [approvedPartners, user]);
+
+  // Pricing and Auto-Settlement States
+  const [customMonthlyInput, setCustomMonthlyInput] = useState<number>(partnerProfile.customRetailMonthlyPrice || 350);
+  const [customYearlyInput, setCustomYearlyInput] = useState<number>(partnerProfile.customRetailYearlyPrice || 3500);
+  const [payoutMethodInput, setPayoutMethodInput] = useState<'bkash' | 'nagad' | 'bank'>(partnerProfile.settlementPayoutMethod || 'bkash');
+  const [payoutNumberInput, setPayoutNumberInput] = useState<string>(partnerProfile.settlementPayoutNumber || partnerProfile.phone || '01711-556677');
+  const [isPricingSaved, setIsPricingSaved] = useState(false);
+  const [withdrawSuccessMsg, setWithdrawSuccessMsg] = useState('');
 
   const isLocationVerified = !!(user?.locationVerified || partnerProfile.locationVerified);
 
@@ -767,11 +782,202 @@ export const PartnerPortalView: React.FC = () => {
             </div>
           )}
 
-          {/* FINANCE TAB */}
+          {/* FINANCE TAB: CUSTOM PRICING & CENTRAL AUTO-SETTLEMENT ENGINE */}
           {activeSection === 'finance' && (
             <div className="space-y-4 animate-in fade-in duration-150">
+              
+              {/* 1. Custom Retail Pricing & Profit Margin Manager */}
+              <div className="bg-gradient-to-br from-indigo-950/80 via-slate-900 to-slate-900 border border-indigo-500/40 rounded-3xl p-4 sm:p-5 shadow-2xl space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                  <div className="flex items-center space-x-2.5">
+                    <div className="w-9 h-9 rounded-2xl bg-indigo-600/30 border border-indigo-500/50 flex items-center justify-center text-indigo-300 shadow-md">
+                      <DollarSign className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-extrabold text-sm text-white">
+                        কাস্টমার সাবস্ক্রিপশন রেট ও সেন্ট্রাল অটো-সেটেলমেন্ট কনফিগারেশন
+                      </h3>
+                      <p className="text-[10.5px] text-slate-400">
+                        আপনার কাস্টমারদের জন্য নিজস্ব খুচরা প্রাইসিং সেট করুন। বাকি প্রফিট সেন্ট্রাল গেটওয়ে থেকে সরাসরি আপনার ওয়ালেটে জমা হবে।
+                      </p>
+                    </div>
+                  </div>
+
+                  <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 font-extrabold text-xs border border-emerald-500/40 shrink-0 self-start sm:self-auto">
+                    সেন্ট্রাল অটো-সেটেলমেন্ট সক্রিয়
+                  </span>
+                </div>
+
+                <form onSubmit={(e) => {
+                  e.preventDefault();
+                  updatePartnerDetails(partnerProfile.partnerId || partnerProfile.id, {
+                    customRetailMonthlyPrice: customMonthlyInput,
+                    customRetailYearlyPrice: customYearlyInput,
+                    settlementPayoutMethod: payoutMethodInput,
+                    settlementPayoutNumber: payoutNumberInput
+                  });
+                  setIsPricingSaved(true);
+                  setTimeout(() => setIsPricingSaved(false), 2500);
+                }} className="space-y-4 text-xs">
+
+                  {/* Pricing Inputs */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    <div className="p-3 bg-slate-950/80 border border-slate-800 rounded-2xl space-y-1.5">
+                      <label className="text-[11px] font-bold text-slate-300 block">
+                        গ্রাহকের জন্য মাসিক সাবস্ক্রিপশন ফি (৳ / মাস) *
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-2 text-slate-500 font-bold">৳</span>
+                        <input
+                          type="number"
+                          min={100}
+                          max={2000}
+                          value={customMonthlyInput}
+                          onChange={(e) => setCustomMonthlyInput(Number(e.target.value))}
+                          className="w-full bg-slate-900 border border-slate-750 rounded-xl py-1.5 pl-8 pr-3 text-xs text-white font-mono font-bold focus:border-indigo-500 focus:outline-none"
+                        />
+                      </div>
+                      <span className="text-[10px] text-slate-400 block">
+                        কাস্টমার অ্যাপে রিনিউ করার সময় এই রেট প্রদর্শিত হবে।
+                      </span>
+                    </div>
+
+                    <div className="p-3 bg-slate-950/80 border border-slate-800 rounded-2xl space-y-1.5">
+                      <label className="text-[11px] font-bold text-slate-300 block">
+                        গ্রাহকের জন্য বাৎসরিক মেগা প্যাকেজ (৳ / বছর) *
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-2 text-slate-500 font-bold">৳</span>
+                        <input
+                          type="number"
+                          min={1000}
+                          max={20000}
+                          value={customYearlyInput}
+                          onChange={(e) => setCustomYearlyInput(Number(e.target.value))}
+                          className="w-full bg-slate-900 border border-slate-750 rounded-xl py-1.5 pl-8 pr-3 text-xs text-white font-mono font-bold focus:border-indigo-500 focus:outline-none"
+                        />
+                      </div>
+                      <span className="text-[10px] text-slate-400 block">
+                        ১ বছরের এককালীন রিনিউয়াল ফি।
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Profit Margin Split Simulation */}
+                  <div className="p-3.5 bg-slate-950 rounded-2xl border border-indigo-500/30 space-y-2">
+                    <div className="text-[11px] font-black text-indigo-300 uppercase tracking-wider flex items-center space-x-1.5">
+                      <TrendingUp className="w-3.5 h-3.5" />
+                      <span>রিয়েল-টাইম রেভিনিউ ও প্রফিট মার্জিন সিমুলেশন (প্রতি রিনিউয়াল)</span>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2 text-center pt-1">
+                      <div className="p-2 rounded-xl bg-slate-900 border border-slate-800">
+                        <span className="text-[10px] text-slate-400 block">কাস্টমার পরিশোধ করবে</span>
+                        <span className="text-sm font-mono font-black text-white">৳ {customMonthlyInput}</span>
+                      </div>
+                      <div className="p-2 rounded-xl bg-slate-900 border border-slate-800">
+                        <span className="text-[10px] text-slate-400 block">EasyTracker সার্ভার ফি</span>
+                        <span className="text-sm font-mono font-black text-rose-400">- ৳ {partnerProfile.wholesaleServerFeeMonthly || 50}</span>
+                      </div>
+                      <div className="p-2 rounded-xl bg-emerald-950/60 border border-emerald-500/40">
+                        <span className="text-[10px] text-emerald-300 block font-bold">আপনার নিট প্রফিট</span>
+                        <span className="text-sm font-mono font-black text-emerald-400">
+                          + ৳ {Math.max(0, customMonthlyInput - (partnerProfile.wholesaleServerFeeMonthly || 50))} <span className="text-[9.5px]">/মাস</span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Payout Channel Configuration */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    <div>
+                      <label className="text-[10.5px] font-bold text-slate-300 block mb-1">
+                        উইথড্রয়াল পেমেন্ট মাধ্যম
+                      </label>
+                      <select
+                        value={payoutMethodInput}
+                        onChange={(e) => setPayoutMethodInput(e.target.value as any)}
+                        className="w-full bg-slate-950 border border-slate-750 rounded-xl p-2 text-xs text-white font-bold focus:outline-none"
+                      >
+                        <option value="bkash">বিকাশ মার্চেন্ট / পার্সোনাল (bKash)</option>
+                        <option value="nagad">নগদ অ্যাকাউন্ট (Nagad)</option>
+                        <option value="bank">ব্যাংক একাউন্ট ট্রান্সফার (Bank Transfer)</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-[10.5px] font-bold text-slate-300 block mb-1">
+                        উইথড্রয়াল মোবাইল / ব্যাংক অ্যাকাউন্ট নম্বর *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={payoutNumberInput}
+                        onChange={(e) => setPayoutNumberInput(e.target.value)}
+                        placeholder="যেমন: 01711-223344"
+                        className="w-full bg-slate-950 border border-slate-750 rounded-xl p-2 text-xs text-white font-mono font-bold focus:border-indigo-500 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Save Button */}
+                  <div className="flex justify-end pt-1">
+                    <button
+                      type="submit"
+                      className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md shadow-indigo-600/30 flex items-center space-x-1.5 transition active:scale-95"
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>{isPricingSaved ? '✅ সংরক্ষিত হয়েছে!' : 'প্রাইসিং কনফিগারেশন সেভ করুন'}</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              {/* 2. Central Auto-Settlement Profit Wallet & Floating Ledger */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                 
+                {/* Central Auto-Settlement Profit Wallet */}
+                <div className="bg-gradient-to-br from-emerald-950/70 via-slate-900 to-slate-900 border border-emerald-500/40 rounded-3xl p-4 shadow-xl space-y-3.5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-[10.5px] font-black uppercase tracking-wider text-slate-400">সেন্ট্রাল অটো-সেটেলমেন্ট প্রফিট ফান্ড</span>
+                      <h3 className="text-2xl font-black font-mono text-emerald-400 mt-0.5">
+                        ৳ {(partnerProfile.accumulatedPartnerProfitBdt || 4500).toLocaleString()}
+                      </h3>
+                    </div>
+                    <span className="px-2.5 py-1 rounded-full text-[10.5px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                      উইথড্র উপযোগী
+                    </span>
+                  </div>
+
+                  <p className="text-[10.5px] text-slate-300">
+                    কাস্টমাররা কেন্দ্রীয় গেটওয়েতে যতবার রিনিউ করেছেন, আপনার নিট প্রফিট মার্জিন স্বয়ংক্রিয়ভাবে এখানে ক্রেডিট হয়েছে।
+                  </p>
+
+                  {withdrawSuccessMsg && (
+                    <div className="p-3 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-200 text-xs font-bold animate-in zoom-in-95 duration-150">
+                      {withdrawSuccessMsg}
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => {
+                      const balance = partnerProfile.accumulatedPartnerProfitBdt || 4500;
+                      if (balance <= 0) return;
+                      updatePartnerDetails(partnerProfile.partnerId || partnerProfile.id, {
+                        accumulatedPartnerProfitBdt: 0
+                      });
+                      setWithdrawSuccessMsg(`🎉 ৳${balance.toLocaleString()} সেন্ট্রাল প্রফিট ফান্ড সফলভাবে উত্তোলন হয়েছে! আপনার ${payoutMethodInput.toUpperCase()} (${payoutNumberInput})-এ ট্রান্সফার সম্পন্ন হচ্ছে।`);
+                      setTimeout(() => setWithdrawSuccessMsg(''), 4000);
+                    }}
+                    disabled={(partnerProfile.accumulatedPartnerProfitBdt || 4500) <= 0}
+                    className="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 disabled:text-slate-500 text-white font-extrabold text-xs flex items-center justify-center space-x-1.5 shadow-md shadow-emerald-600/30 transition active:scale-95"
+                  >
+                    <CreditCard className="w-4 h-4" />
+                    <span>{payoutMethodInput === 'bkash' ? 'বিকাশে ১-ট্যাপ উইথড্র করুন' : 'নগদ / ব্যাংকে উইথড্র করুন'}</span>
+                  </button>
+                </div>
+
                 {/* Floating Credit Card */}
                 <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl space-y-3.5">
                   <div className="flex items-center justify-between">
@@ -804,30 +1010,58 @@ export const PartnerPortalView: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Commission Earnings Card */}
-                <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl space-y-3.5">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="text-[10.5px] font-black uppercase tracking-wider text-slate-400">মাসিক মোট কমিশন</span>
-                      <h3 className="text-lg font-black text-emerald-400 mt-0.5">৳ {monthlyCommission.toLocaleString()}</h3>
-                    </div>
-                    <span className="px-2.5 py-1 rounded-full text-[10.5px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                      অটো-সেটেলমেন্ট সচল
-                    </span>
-                  </div>
+              </div>
 
-                  <div className="space-y-2 text-xs">
-                    <div className="flex justify-between p-2 rounded-xl bg-slate-950 border border-slate-800">
-                      <span className="text-slate-400">প্রতি ডিভাইস অ্যাক্টিভেশন কমিশন:</span>
-                      <span className="font-bold text-white">৳ ৫০০</span>
-                    </div>
-                    <div className="flex justify-between p-2 rounded-xl bg-slate-950 border border-slate-800">
-                      <span className="text-slate-400">মাসিক সাবস্ক্রিপশন রেভিনিউ শেয়ার:</span>
-                      <span className="font-bold text-white">২০% (প্রতি গাড়িতে ৳৬০/মাস)</span>
-                    </div>
-                  </div>
+              {/* 3. Live Customer In-App Renewal & Auto-Settlement Log Table */}
+              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-black text-white flex items-center space-x-2">
+                    <Receipt className="w-4 h-4 text-emerald-400" />
+                    <span>রিসেন্ট সেন্ট্রাল অটো-সেটেলমেন্ট রিনিউয়াল লেজার</span>
+                  </h3>
+                  <span className="text-[10px] text-slate-400 font-mono">লাইভ ট্রানজ্যাকশন হিস্ট্রি</span>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="border-b border-slate-800 text-slate-400 text-[10px] uppercase font-bold">
+                        <th className="pb-2">গ্রাহক ও গাড়ি</th>
+                        <th className="pb-2">গ্রাহক পে করেছেন</th>
+                        <th className="pb-2">সার্ভার ফি (EasyTracker)</th>
+                        <th className="pb-2">আপনার প্রফিট</th>
+                        <th className="pb-2">তারিখ ও স্ট্যাটাস</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/60">
+                      {[
+                        { customer: 'মোঃ রাশেদুল ইসলাম', vehicle: 'Yamaha FZS V3 (DHAKA METRO-LA 44-5566)', gross: 350, wholesale: 50, profit: 300, date: '24 Aug 2026' },
+                        { customer: 'তানভীর আহমেদ', vehicle: 'Honda CB Shine (DHAKA METRO-HA 12-3456)', gross: 350, wholesale: 50, profit: 300, date: '23 Aug 2026' },
+                        { customer: 'কাজী আরিফুল হক', vehicle: 'Toyota Corolla Cross (DHAKA GA 33-8899)', gross: 3500, wholesale: 600, profit: 2900, date: '20 Aug 2026' },
+                        { customer: 'ফারহানা ইয়াসমিন', vehicle: 'Suzuki Gixxer SF (DHAKA LA 19-2021)', gross: 350, wholesale: 50, profit: 300, date: '18 Aug 2026' }
+                      ].map((item, idx) => (
+                        <tr key={idx} className="hover:bg-slate-850/50 transition">
+                          <td className="py-2.5">
+                            <div className="font-bold text-white text-xs">{item.customer}</div>
+                            <div className="text-[10px] text-slate-400 font-mono">{item.vehicle}</div>
+                          </td>
+                          <td className="py-2.5 font-mono font-bold text-white">৳ {item.gross.toLocaleString()}</td>
+                          <td className="py-2.5 font-mono font-bold text-rose-400">- ৳ {item.wholesale.toLocaleString()}</td>
+                          <td className="py-2.5 font-mono font-black text-emerald-400">+ ৳ {item.profit.toLocaleString()}</td>
+                          <td className="py-2.5">
+                            <div className="text-[10px] text-slate-400">{item.date}</div>
+                            <span className="inline-flex items-center space-x-1 text-[9px] font-bold text-emerald-300 bg-emerald-950 px-1.5 py-0.2 rounded-full border border-emerald-700">
+                              <CheckCircle2 className="w-2.5 h-2.5" />
+                              <span>অটো-ক্রেডিটেড</span>
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
+
             </div>
           )}
 

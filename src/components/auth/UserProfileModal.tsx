@@ -29,7 +29,8 @@ import {
   Layers,
   Crown,
   DollarSign,
-  TrendingUp
+  TrendingUp,
+  Plus
 } from 'lucide-react';
 import { getAppConfig } from '../../config/appConfig';
 import { RenewSubscriptionModal } from '../subscription/RenewSubscriptionModal';
@@ -77,12 +78,14 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
     return localStorage.getItem(`gps_subscription_cancelled_${selectedDevice?.id}`) === 'true';
   });
 
-  const commSummary = getMyCommissionSummary();
+  const commSummary = (typeof getMyCommissionSummary === 'function') 
+    ? (getMyCommissionSummary() || { totalSold: 0, totalEarned: 0, pendingPayout: 0, paidOut: 0, myCommissions: [] })
+    : { totalSold: 0, totalEarned: 0, pendingPayout: 0, paidOut: 0, myCommissions: [] };
 
-  const partnerProfile = approvedPartners.find(p => 
-    p.partnerId === user?.partnerId || 
-    p.assignedUsername?.toLowerCase() === user?.email?.toLowerCase() ||
-    p.phone === user?.email
+  const partnerProfile = (approvedPartners || []).find(p => 
+    (user?.partnerId && p.partnerId === user.partnerId) || 
+    (user?.email && p.assignedUsername?.toLowerCase() === user.email.toLowerCase()) ||
+    (user?.email && p.phone === user.email)
   );
 
   if (!isOpen) return null;

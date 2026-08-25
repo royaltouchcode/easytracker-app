@@ -27,8 +27,57 @@ export const RenewSubscriptionModal: React.FC<RenewSubscriptionModalProps> = ({
   onClose,
   onSuccess
 }) => {
-  const { user, selectedDevice, language } = useApp();
+  const { user, selectedDevice, language, approvedPartners, updatePartnerDetails } = useApp();
   const config = getSubscriptionConfig();
+
+  // Check if device or user belongs to a Business Partner
+  const partnerId = selectedDevice?.attributes?.partnerId || user?.partnerId;
+  const affiliatedPartner = approvedPartners?.find(p => p.partnerId === partnerId || p.id === partnerId);
+  
+  const customMonthlyRate = affiliatedPartner?.customRetailMonthlyPrice || 350;
+  const customYearlyRate = affiliatedPartner?.customRetailYearlyPrice || (customMonthlyRate * 10);
+
+  // Dynamic Plans based on Partner Custom Pricing
+  const dynamicPlans: SubscriptionPlanTier[] = [
+    {
+      months: 1,
+      name: '১ মাস বেসিক প্ল্যান',
+      priceBdt: customMonthlyRate,
+      originalPriceBdt: customMonthlyRate,
+      discountPercentage: 0,
+      labelBn: '১ মাস মেয়াদী',
+      savingsTextBn: 'মাসিক পে-অ্যাজ-ইউ-গো'
+    },
+    {
+      months: 3,
+      name: '৩ মাস কোয়ার্টারলি প্ল্যান',
+      priceBdt: Math.round(customMonthlyRate * 3 * 0.95),
+      originalPriceBdt: customMonthlyRate * 3,
+      discountPercentage: 5,
+      labelBn: '৩ মাস মেয়াদী',
+      savingsTextBn: '৫% সাশ্রয়ী'
+    },
+    {
+      months: 6,
+      name: '৬ মাস হাফ-ইয়ারলি প্ল্যান',
+      priceBdt: Math.round(customMonthlyRate * 6 * 0.90),
+      originalPriceBdt: customMonthlyRate * 6,
+      discountPercentage: 10,
+      popular: true,
+      labelBn: '৬ মাস মেয়াদী',
+      savingsTextBn: '১০% সাশ্রয়ী'
+    },
+    {
+      months: 12,
+      name: '১২ মাস বাৎসরিক মেগা প্ল্যান',
+      priceBdt: customYearlyRate,
+      originalPriceBdt: customMonthlyRate * 12,
+      discountPercentage: Math.round(((customMonthlyRate * 12 - customYearlyRate) / (customMonthlyRate * 12)) * 100),
+      bestValue: true,
+      labelBn: '১ বছর (১২ মাস)',
+      savingsTextBn: 'সর্বাধিক সাশ্রয়ী ও বোনাস'
+    }
+  ];
   
   const [selectedPlanMonths, setSelectedPlanMonths] = useState<number>(12); // Default to 12 months best value
   const [paymentMethod, setPaymentMethod] = useState<'bkash' | 'nagad' | 'card'>('bkash');
@@ -38,7 +87,7 @@ export const RenewSubscriptionModal: React.FC<RenewSubscriptionModalProps> = ({
 
   if (!isOpen) return null;
 
-  const currentPlan = config.plans.find(p => p.months === selectedPlanMonths) || config.plans[0];
+  const currentPlan = dynamicPlans.find(p => p.months === selectedPlanMonths) || dynamicPlans[0];
 
   const handleProcessRenewal = (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,8 +95,22 @@ export const RenewSubscriptionModal: React.FC<RenewSubscriptionModalProps> = ({
 
     setTimeout(() => {
       setIsProcessing(false);
-      setSuccessMsg(language === 'bn' ? '🎉 সাবস্ক্রিপশন সফলভাবে রিনিউ হয়েছে!' : '🎉 Subscription renewed successfully!');
+      setSuccessMsg(language === 'bn' ? '🎉 সেন্ট্রাল গেটওয়েতে সাবস্ক্রিপশন সফলভাবে রিনিউ হয়েছে!' : '🎉 Subscription renewed successfully via Central Gateway!');
       
+      // Central Auto-Settlement Split: EasyTracker Wholesale vs Partner Profit
+      if (affiliatedPartner) {
+        const wholesaleCostPerMonth = affiliatedPartner.wholesaleServerFeeMonthly || 50;
+        const totalWholesaleFee = wholesaleCostPerMonth * currentPlan.months;
+        const netPartnerProfit = Math.max(0, currentPlan.priceBdt - totalWholesaleFee);
+
+        const currentAccumulated = affiliatedPartner.accumulatedPartnerProfitBdt || 0;
+        const updatedProfit = currentAccumulated + netPartnerProfit;
+
+        updatePartnerDetails(affiliatedPartner.partnerId || affiliatedPartner.id, {
+          accumulatedPartnerProfitBdt: updatedProfit
+        });
+      }
+
       // Notify Admin telemetry stream
       try {
         const existingAlerts = JSON.parse(localStorage.getItem('gps_admin_notifications') || '[]');
@@ -56,6 +119,7 @@ export const RenewSubscriptionModal: React.FC<RenewSubscriptionModalProps> = ({
           type: 'subscription_renewed',
           userEmail: user?.email,
           deviceName: selectedDevice?.name,
+          partnerId: affiliatedPartner?.partnerId,
           months: currentPlan.months,
           amountBdt: currentPlan.priceBdt,
           trxId: trxId || 'Auto-Checkout',

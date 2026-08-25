@@ -304,6 +304,12 @@ export interface PartnerRegistrationEntry {
   customServerPort?: string; // Custom API/Web port e.g. 8082
   maxSlotQuota?: number; // Allocated 4096 slots
   floatingCreditLimit?: number; // Floating limit e.g. 10000 BDT
+  wholesaleServerFeeMonthly?: number; // Wholesale fee EasyTracker charges partner, e.g. 50 BDT
+  customRetailMonthlyPrice?: number; // Partner's custom retail rate for end-customer, e.g. 350 BDT
+  customRetailYearlyPrice?: number; // Partner's custom yearly rate, e.g. 3500 BDT
+  accumulatedPartnerProfitBdt?: number; // Total profit accumulated via Central Auto-Settlement
+  settlementPayoutMethod?: 'bkash' | 'nagad' | 'bank';
+  settlementPayoutNumber?: string;
 }
 
 // Customer Support & Helpdesk Ticket Types
