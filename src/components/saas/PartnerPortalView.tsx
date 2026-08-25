@@ -663,11 +663,160 @@ export const PartnerPortalView: React.FC = () => {
           {/* 3. ACTIVE SUBTAB CONTENT                                            */}
           {/* =================================================================== */}
 
-          {/* OVERVIEW & INVENTORY TAB */}
-          {(activeSection === 'overview' || activeSection === 'inventory') && (
+          {/* =================================================================== */}
+          {/* 3. ACTIVE SUBTAB CONTENT                                            */}
+          {/* =================================================================== */}
+
+          {/* 📊 TAB 1: BUSINESS OVERVIEW & PERFORMANCE METRICS */}
+          {activeSection === 'overview' && (
+            <div className="space-y-4 animate-in fade-in duration-150">
+              
+              {/* Fleet Status & Telematics Cluster Health Cards */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="p-4 rounded-3xl bg-slate-900 border border-slate-800 flex flex-col justify-between shadow-lg">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase text-slate-400">লাইভ অনলাইন ভেহিক্যাল</span>
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                  </div>
+                  <div className="text-2xl font-mono font-black text-emerald-400 mt-2">
+                    {partnerDevices.filter(d => !d.disabled).length} <span className="text-xs font-normal text-slate-400">টি</span>
+                  </div>
+                  <span className="text-[9.5px] text-emerald-300">১০০% সংযোগ সক্রিয়</span>
+                </div>
+
+                <div className="p-4 rounded-3xl bg-slate-900 border border-slate-800 flex flex-col justify-between shadow-lg">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase text-slate-400">ফাঁকা স্লট কোটা</span>
+                    <Layers className="w-4 h-4 text-indigo-400" />
+                  </div>
+                  <div className="text-2xl font-mono font-black text-indigo-300 mt-2">
+                    {remainingSlots} <span className="text-xs font-normal text-slate-400">/ {totalAllocatedSlots}</span>
+                  </div>
+                  <span className="text-[9.5px] text-indigo-300">নতুন গাড়ি যুক্ত করার জন্য রেডি</span>
+                </div>
+
+                <div className="p-4 rounded-3xl bg-slate-900 border border-slate-800 flex flex-col justify-between shadow-lg">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase text-slate-400">টেলিমেটিক্স ক্লাস্টার</span>
+                    <Cpu className="w-4 h-4 text-cyan-400" />
+                  </div>
+                  <div className="text-sm font-mono font-black text-cyan-300 mt-2">
+                    TRACKING_CELL_001
+                  </div>
+                  <span className="text-[9.5px] text-slate-400">ল্যাটেন্সি: ১২ms • আপটাইম: ৯৯.৯৮%</span>
+                </div>
+
+                <div className="p-4 rounded-3xl bg-slate-900 border border-slate-800 flex flex-col justify-between shadow-lg">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase text-slate-400">সেন্ট্রাল প্রফিট ফান্ড</span>
+                    <DollarSign className="w-4 h-4 text-amber-400" />
+                  </div>
+                  <div className="text-xl font-mono font-black text-amber-300 mt-2">
+                    ৳ {(partnerProfile.accumulatedPartnerProfitBdt || 4500).toLocaleString()}
+                  </div>
+                  <span className="text-[9.5px] text-amber-200">উইথড্র উপযোগী ব্যালেন্স</span>
+                </div>
+              </div>
+
+              {/* Quick Action Navigation Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div 
+                  onClick={() => {
+                    setCurrentRole('sales');
+                    setActiveTab('saas_sales');
+                  }}
+                  className="p-4 rounded-3xl bg-gradient-to-br from-indigo-950/60 to-slate-900 border border-indigo-500/30 hover:border-indigo-500/60 cursor-pointer transition active:scale-[0.98] shadow-lg flex items-center space-x-3.5"
+                >
+                  <div className="w-10 h-10 rounded-2xl bg-indigo-600/30 border border-indigo-500/50 flex items-center justify-center text-indigo-300 shrink-0">
+                    <Plus className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-extrabold text-xs text-white">নতুন কাস্টমার অনবোর্ডিং</h4>
+                    <p className="text-[10px] text-slate-400 mt-0.5">নতুন বাইক বা গাড়িতে ডিভাইস ইনস্টল ও বিক্রি করুন</p>
+                  </div>
+                </div>
+
+                <div 
+                  onClick={() => setActiveSection('inventory_erp')}
+                  className="p-4 rounded-3xl bg-gradient-to-br from-cyan-950/60 to-slate-900 border border-cyan-500/30 hover:border-cyan-500/60 cursor-pointer transition active:scale-[0.98] shadow-lg flex items-center space-x-3.5"
+                >
+                  <div className="w-10 h-10 rounded-2xl bg-cyan-600/30 border border-cyan-500/50 flex items-center justify-center text-cyan-300 shrink-0">
+                    <Boxes className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-extrabold text-xs text-white">হার্ডওয়্যার ও সিম ERP</h4>
+                    <p className="text-[10px] text-slate-400 mt-0.5">বারকোড স্ক্যানার, আইএমইআই ও সিম স্টক ম্যানেজমেন্ট</p>
+                  </div>
+                </div>
+
+                <div 
+                  onClick={() => setActiveSection('pricing_plans')}
+                  className="p-4 rounded-3xl bg-gradient-to-br from-emerald-950/60 to-slate-900 border border-emerald-500/30 hover:border-emerald-500/60 cursor-pointer transition active:scale-[0.98] shadow-lg flex items-center space-x-3.5"
+                >
+                  <div className="w-10 h-10 rounded-2xl bg-emerald-600/30 border border-emerald-500/50 flex items-center justify-center text-emerald-300 shrink-0">
+                    <Tag className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-extrabold text-xs text-white">সাবস্ক্রিপশন প্যাকেজ ও প্রাইসিং</h4>
+                    <p className="text-[10px] text-slate-400 mt-0.5">১, ৩, ৬ ও ১২ মাসের নিজস্ব খুচরা রেট ও প্রফিট মার্জিন</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Recent Fleet Activities & Operational Stream */}
+              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl space-y-3">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+                  <h3 className="font-extrabold text-xs text-white flex items-center space-x-2">
+                    <Activity className="w-4 h-4 text-indigo-400" />
+                    <span>ফ্র্যাঞ্চাইজি সাম্প্রতিক অ্যাক্টিভিটি ও রিনিউয়াল স্ট্রিম</span>
+                  </h3>
+                  <span className="text-[10px] text-slate-400 font-mono">লাইভ নোটিফিকেশন ফিড</span>
+                </div>
+
+                <div className="divide-y divide-slate-800/60 text-xs">
+                  <div className="py-2.5 flex items-center justify-between">
+                    <div className="flex items-center space-x-2.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                      <div>
+                        <span className="font-bold text-white">মোঃ রাশেদুল ইসলাম</span>
+                        <span className="text-slate-400"> (Yamaha FZS V3) — ১ মাসের সাবস্ক্রিপশন সফলভাবে রিনিউ হয়েছে।</span>
+                      </div>
+                    </div>
+                    <span className="text-[10px] text-emerald-400 font-mono font-bold">+ ৳ ২৫০ প্রফিট</span>
+                  </div>
+
+                  <div className="py-2.5 flex items-center justify-between">
+                    <div className="flex items-center space-x-2.5">
+                      <span className="w-2 h-2 rounded-full bg-indigo-400" />
+                      <div>
+                        <span className="font-bold text-white">নতুন ডিভাইস ইনওয়ার্ড</span>
+                        <span className="text-slate-400"> — Concox GT06N (IMEI: 864720058291088) স্টকে অন্তর্ভুক্ত হয়েছে।</span>
+                      </div>
+                    </div>
+                    <span className="text-[10px] text-slate-400 font-mono">আজ ১০:৩০ AM</span>
+                  </div>
+
+                  <div className="py-2.5 flex items-center justify-between">
+                    <div className="flex items-center space-x-2.5">
+                      <span className="w-2 h-2 rounded-full bg-purple-400" />
+                      <div>
+                        <span className="font-bold text-white">টেলিমেটিক্স সিম পেয়ারিং</span>
+                        <span className="text-slate-400"> — Robi M2M (01811-223344) সফলভাবে ট্র্যাকারের সাথে লিঙ্ক হয়েছে।</span>
+                      </div>
+                    </div>
+                    <span className="text-[10px] text-purple-300 font-mono font-bold">M2M ভেরিফাইড</span>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          )}
+
+          {/* 📱 TAB 2: SLOTS & CUSTOMER VEHICLE FLEET MANAGER */}
+          {activeSection === 'inventory' && (
             <div className="space-y-3.5 animate-in fade-in duration-150">
               
-              {/* Action Bar */}
+              {/* Action & Filter Bar */}
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-slate-900 border border-slate-800 p-3 rounded-3xl shadow-md">
                 <div className="flex items-center space-x-2 flex-1">
                   <div className="relative flex-1">
@@ -725,6 +874,7 @@ export const PartnerPortalView: React.FC = () => {
                     <Layers className="w-4 h-4 text-indigo-400" />
                     <span>সিস্টেমের লাইভ যানবাহন ও ৪,০৯৬ ভার্চুয়াল স্লট ট্র্যাকার তালিকা ({filteredDevices.length})</span>
                   </h3>
+                  <span className="text-[10px] text-slate-400 font-mono">কোটা: {usedSlots}/{totalAllocatedSlots} স্লট</span>
                 </div>
 
                 <div className="overflow-x-auto">
@@ -741,57 +891,64 @@ export const PartnerPortalView: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-800/60">
-                      {filteredDevices.map((dev, idx) => {
-                        const pos = positions[dev.id];
-                        const vSlot = getVirtualSlot(dev.uniqueId || `86472005829103${idx}`);
-                        return (
-                          <tr key={dev.id} className="hover:bg-slate-800/40 transition">
-                            <td className="p-3 font-bold text-white flex items-center space-x-2">
-                              <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                              <div>
-                                <div>{dev.name}</div>
-                                <div className="text-[10px] text-slate-400 font-mono">
-                                  {dev.attributes?.plateNumber || 'DM HA 12-3456'}
+                      {filteredDevices.length === 0 ? (
+                        <tr>
+                          <td colSpan={7} className="p-6 text-center text-slate-500 text-xs">
+                            🔍 কোনো সক্রিয় গাড়ি পাওয়া যায়নি। নতুন অনবোর্ডিং করুন।
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredDevices.map((dev, idx) => {
+                          const vSlot = getVirtualSlot(dev.uniqueId || `86472005829103${idx}`);
+                          return (
+                            <tr key={dev.id} className="hover:bg-slate-800/40 transition">
+                              <td className="p-3 font-bold text-white flex items-center space-x-2">
+                                <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                                <div>
+                                  <div>{dev.name}</div>
+                                  <div className="text-[10px] text-slate-400 font-mono">
+                                    {dev.attributes?.plateNumber || 'DM HA 12-3456'}
+                                  </div>
                                 </div>
-                              </div>
-                            </td>
-                            <td className="p-3 font-mono text-slate-300">
-                              <div>{dev.uniqueId}</div>
-                              <div className="text-[10px] text-slate-400">{dev.phone || '+8801711223344'}</div>
-                            </td>
-                            <td className="p-3">
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-black bg-indigo-950 text-indigo-300 border border-indigo-800">
-                                Slot #{vSlot}
-                              </span>
-                            </td>
-                            <td className="p-3">
-                              <span className="text-[10px] font-mono font-bold text-cyan-300">
-                                TRACKING_CELL_001
-                              </span>
-                            </td>
-                            <td className="p-3 font-mono text-slate-300">
-                              {dev.attributes?.driverPhone || '01711-223344'}
-                            </td>
-                            <td className="p-3">
-                              <span className="px-2 py-0.5 rounded-full text-[9.5px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                                Active Online
-                              </span>
-                            </td>
-                            <td className="p-3 text-right">
-                              <button
-                                onClick={() => {
-                                  setSelectedDeviceId(dev.id);
-                                  setActiveTab('map');
-                                }}
-                                className="px-2 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10.5px] font-bold transition inline-flex items-center space-x-1"
-                              >
-                                <span>ম্যাপ</span>
-                                <ArrowUpRight className="w-3 h-3 text-indigo-400" />
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })}
+                              </td>
+                              <td className="p-3 font-mono text-slate-300">
+                                <div>{dev.uniqueId}</div>
+                                <div className="text-[10px] text-slate-400">{dev.phone || '+8801711223344'}</div>
+                              </td>
+                              <td className="p-3">
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-black bg-indigo-950 text-indigo-300 border border-indigo-800">
+                                  Slot #{vSlot}
+                                </span>
+                              </td>
+                              <td className="p-3">
+                                <span className="text-[10px] font-mono font-bold text-cyan-300">
+                                  TRACKING_CELL_001
+                                </span>
+                              </td>
+                              <td className="p-3 font-mono text-slate-300">
+                                {dev.attributes?.driverPhone || '01711-223344'}
+                              </td>
+                              <td className="p-3">
+                                <span className="px-2 py-0.5 rounded-full text-[9.5px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                  Active Online
+                                </span>
+                              </td>
+                              <td className="p-3 text-right">
+                                <button
+                                  onClick={() => {
+                                    setSelectedDeviceId(dev.id);
+                                    setActiveTab('map');
+                                  }}
+                                  className="px-2 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10.5px] font-bold transition inline-flex items-center space-x-1"
+                                >
+                                  <span>ম্যাপ</span>
+                                  <ArrowUpRight className="w-3 h-3 text-indigo-400" />
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
                     </tbody>
                   </table>
                 </div>
