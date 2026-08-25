@@ -232,20 +232,20 @@ export const DeviceSettingsView: React.FC = () => {
       </div>
 
       <form onSubmit={handleTriggerSaveProfile} className="space-y-4">
-        {/* 1. Vehicle Icon & Color Selection (My GPS Pro Interactive Style) */}
+        {/* 1. Vehicle Icon & Color Selection (EasyTracker HD 3D Style) */}
         <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl space-y-4">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center space-x-2">
               <Sparkles className="w-4 h-4 text-amber-400" />
-              <span>{language === 'bn' ? '১. ইন্টারেক্টিভ ভেহিকেল আইকন ও মার্কার' : '1. Interactive Vehicle Icon & Marker'}</span>
+              <span>{language === 'bn' ? '১. ইন্টারেক্টিভ ৩ডি ভেহিকেল আইকন ও মার্কার' : '1. Interactive 3D Vehicle Icon & Marker'}</span>
             </span>
-            <span className="text-[10px] text-blue-400 font-mono bg-blue-500/10 border border-blue-500/30 px-2 py-0.5 rounded-full">
-              My GPS 3D Vector
+            <span className="text-[10px] text-blue-400 font-mono bg-blue-500/10 border border-blue-500/30 px-2 py-0.5 rounded-full font-bold">
+              EasyTracker 3D Vector
             </span>
           </div>
 
-          {/* Interactive Vehicle Grid (Ultra-HD Large 3D Cards) */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {/* Interactive Vehicle Grid (Horizontal Balanced Showcase Cards) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {VEHICLE_ICONS.map((item) => {
               const isSelected = category === item.type;
               return (
@@ -253,49 +253,51 @@ export const DeviceSettingsView: React.FC = () => {
                   key={item.type}
                   type="button"
                   onClick={() => setCategory(item.type)}
-                  className={`p-3.5 rounded-3xl border text-left flex flex-col justify-between transition-all duration-200 active:scale-95 group relative overflow-hidden ${
+                  className={`p-3.5 rounded-2xl border text-left flex items-center space-x-3.5 transition-all duration-200 active:scale-95 group relative overflow-hidden ${
                     isSelected 
-                      ? 'bg-gradient-to-br from-blue-900/50 via-slate-900 to-slate-900 border-2 border-blue-400 shadow-xl shadow-blue-950/80 ring-2 ring-blue-500/40' 
+                      ? 'bg-gradient-to-r from-blue-950/70 via-slate-900 to-slate-900 border-2 border-blue-400 shadow-xl shadow-blue-950/70 ring-1 ring-blue-500/40' 
                       : 'bg-slate-950/80 border-slate-800 hover:bg-slate-900 hover:border-slate-700'
                   }`}
                 >
                   {/* Selection indicator pill */}
                   {isSelected && (
                     <div className="absolute top-2.5 right-2.5 flex items-center space-x-1">
-                      <span className="w-2 h-2 rounded-full bg-blue-400 animate-ping" />
-                      <span className="text-[9.5px] font-black text-blue-300 bg-blue-500/20 border border-blue-400/40 px-2 py-0.5 rounded-full font-mono">
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-ping" />
+                      <span className="text-[8.5px] font-black text-blue-300 bg-blue-500/20 border border-blue-400/40 px-2 py-0.5 rounded-full font-mono">
                         SELECTED
                       </span>
                     </div>
                   )}
 
                   {/* Large 3D Vehicle Showcase Canvas */}
-                  <div className="flex items-center justify-center my-2">
+                  <div 
+                    className={`w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center p-1.5 transition-all duration-300 group-hover:scale-105 shadow-md shrink-0 ${
+                      isSelected 
+                        ? 'bg-slate-900 border-2 border-blue-400/60' 
+                        : 'bg-slate-900/90 border border-slate-800'
+                    }`}
+                    style={{
+                      boxShadow: isSelected ? `0 0 16px ${selectedColor}44` : undefined
+                    }}
+                  >
                     <div 
-                      className={`w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center p-2 transition-all duration-300 group-hover:scale-110 shadow-lg ${
-                        isSelected 
-                          ? 'bg-gradient-to-b from-slate-900 to-slate-950 border-2 border-blue-400/60 shadow-blue-500/20' 
-                          : 'bg-slate-900/80 border border-slate-800'
-                      }`}
-                      style={{
-                        boxShadow: isSelected ? `0 0 20px ${selectedColor}33` : undefined
-                      }}
-                    >
-                      <div 
-                        dangerouslySetInnerHTML={{ 
-                          __html: getVehicleMarkerSvg(item.type, isSelected ? selectedColor : '#94a3b8') 
-                        }} 
-                        className="w-full h-full flex items-center justify-center transform transition group-hover:scale-105"
-                      />
-                    </div>
+                      dangerouslySetInnerHTML={{ 
+                        __html: getVehicleMarkerSvg(item.type, isSelected ? selectedColor : '#94a3b8') 
+                      }} 
+                      className="w-full h-full flex items-center justify-center"
+                    />
                   </div>
 
-                  <div className="text-center pt-1 border-t border-slate-800/80">
-                    <span className={`text-xs sm:text-sm font-extrabold block leading-tight ${isSelected ? 'text-white drop-shadow' : 'text-slate-200'}`}>
+                  {/* Vehicle Name, Category & Tag */}
+                  <div className="flex-1 min-w-0 pr-12">
+                    <span className={`text-xs sm:text-sm font-extrabold block leading-snug truncate ${isSelected ? 'text-white drop-shadow' : 'text-slate-200'}`}>
                       {item.label.split('(')[0]}
                     </span>
                     <span className="text-[10px] text-slate-400 block truncate mt-0.5 font-medium">
                       {item.label.includes('(') ? item.label.split('(')[1].replace(')', '') : ''}
+                    </span>
+                    <span className="text-[8.5px] font-mono text-blue-400/80 font-bold block mt-1">
+                      EasyTracker 3D HD
                     </span>
                   </div>
                 </button>
@@ -663,26 +665,56 @@ export const DeviceSettingsView: React.FC = () => {
             </p>
           )}
 
-          <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-800">
-            <div>
-              <label className="text-xs text-slate-400 block mb-1">SOS 2 (ঐচ্ছিক)</label>
-              <input
-                type="tel"
-                value={sos2}
-                onChange={(e) => setSos2(e.target.value)}
-                placeholder="+880 18XXXXXXXX"
-                className="w-full bg-slate-800 border border-slate-700 rounded-2xl px-3 py-2 text-xs text-slate-100 font-mono focus:outline-none focus:border-rose-500"
-              />
+          {/* 🌟 Prominently Highlighted SOS 2 and SOS 3 Box for Crash Alerts & Emergency Bypass */}
+          <div className="bg-gradient-to-br from-amber-950/40 via-slate-900 to-slate-900 border-2 border-amber-500/60 rounded-3xl p-3.5 space-y-2.5 shadow-xl shadow-amber-950/40">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black text-amber-300 flex items-center space-x-1.5">
+                <ShieldAlert className="w-4 h-4 text-amber-400 animate-pulse" />
+                <span>🚨 জরুরি এক্সিডেন্ট এলার্ট ও রেসকিউ বাইপাস নম্বর (SOS 2 ও SOS 3)</span>
+              </span>
+              <span className="text-[9.5px] font-extrabold bg-amber-500/20 text-amber-300 border border-amber-500/50 px-2 py-0.5 rounded-full uppercase">
+                অতীব গুরুত্বপূর্ণ
+              </span>
             </div>
-            <div>
-              <label className="text-xs text-slate-400 block mb-1">SOS 3 (ঐচ্ছিক)</label>
-              <input
-                type="tel"
-                value={sos3}
-                onChange={(e) => setSos3(e.target.value)}
-                placeholder="+880 19XXXXXXXX"
-                className="w-full bg-slate-800 border border-slate-700 rounded-2xl px-3 py-2 text-xs text-slate-100 font-mono focus:outline-none focus:border-rose-500"
-              />
+
+            <p className="text-[10.5px] text-slate-300 leading-relaxed bg-slate-950/80 p-2.5 rounded-2xl border border-amber-500/30">
+              💡 <strong className="text-amber-200">কেন এই ২টি নম্বর যুক্ত করবেন?</strong> মারাত্মক দুর্ঘটনা (Accident) বা ছিনতাইয়ের সময় আপনার নিজের ফোন নষ্ট বা ছিনতাইকারীর কবলে চলে গেলে ট্র্যাকার তাৎক্ষণিক <strong>SOS 2 ও SOS 3</strong> নম্বরে লাইভ ক্র্যাশ এলার্ট ও জিপিএস লিংক পাঠাবে। এছাড়াও জরুরি মুহূর্তে আপনার অবর্তমানে কাস্টমার কেয়ার/পুলিশ ভেরিফিকেশনে এই অভিভাবক নম্বরগুলো দিয়ে <strong>রেসকিউ সেশন ও ইঞ্জিন লক আনলক (Bypass)</strong> করা যাবে।
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+              <div className="bg-slate-950 p-2.5 rounded-2xl border border-amber-500/40 space-y-1">
+                <label className="text-[11px] font-extrabold text-amber-300 flex items-center justify-between">
+                  <span>🚨 SOS 2 (পিতা / মাতা / জীবনসঙ্গী)</span>
+                  <span className="text-[9px] text-emerald-400 font-mono">ভেরিফাইড ব্যাকআপ</span>
+                </label>
+                <div className="relative">
+                  <PhoneCall className="w-3.5 h-3.5 absolute left-3 top-2.5 text-amber-400" />
+                  <input
+                    type="tel"
+                    value={sos2}
+                    onChange={(e) => setSos2(e.target.value)}
+                    placeholder="+880 18XXXXXXXX"
+                    className="w-full bg-slate-900 border border-amber-500/50 rounded-xl pl-8 pr-3 py-2 text-xs text-amber-100 font-mono font-bold focus:outline-none focus:border-amber-400 shadow-inner"
+                  />
+                </div>
+              </div>
+
+              <div className="bg-slate-950 p-2.5 rounded-2xl border border-amber-500/40 space-y-1">
+                <label className="text-[11px] font-extrabold text-amber-300 flex items-center justify-between">
+                  <span>🚨 SOS 3 (ভাই / বিশ্বস্ত অভিভাবক)</span>
+                  <span className="text-[9px] text-emerald-400 font-mono">রেসকিউ বাইপাস</span>
+                </label>
+                <div className="relative">
+                  <PhoneCall className="w-3.5 h-3.5 absolute left-3 top-2.5 text-amber-400" />
+                  <input
+                    type="tel"
+                    value={sos3}
+                    onChange={(e) => setSos3(e.target.value)}
+                    placeholder="+880 19XXXXXXXX"
+                    className="w-full bg-slate-900 border border-amber-500/50 rounded-xl pl-8 pr-3 py-2 text-xs text-amber-100 font-mono font-bold focus:outline-none focus:border-amber-400 shadow-inner"
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </div>

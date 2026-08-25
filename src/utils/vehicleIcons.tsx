@@ -1,273 +1,316 @@
 import React from 'react';
 import { VehicleType } from '../types/traccar';
 
-// Ultra-High-Definition, Top-Down 3D Vector Models for Leaflet Live Map Markers & Settings (MyGPS / Tracksolid Pro Inspired)
+// Ultra-Realistic 3D Top-Down Vector Models for EasyTracker Pro (Custom Rendered SVGs)
 export const getVehicleMarkerSvg = (type?: VehicleType, color: string = '#3b82f6'): string => {
+  const c = color || '#3b82f6';
+  const cId = c.replace(/[^a-zA-Z0-9]/g, '');
+
   switch (type) {
     case 'motorcycle':
-      return `<svg viewBox="0 0 60 60" width="48" height="48" class="drop-shadow-xl">
+      return `<svg viewBox="0 0 80 80" width="100%" height="100%" class="drop-shadow-2xl">
         <defs>
-          <linearGradient id="m_tank_${color.replace('#','')}" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#ffffff" stop-opacity="0.6" />
-            <stop offset="20%" stop-color="${color}" />
-            <stop offset="100%" stop-color="#0f172a" />
-          </linearGradient>
-          <filter id="glow_m">
-            <feGaussianBlur stdDeviation="1.5" result="coloredBlur"/>
-            <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
-          </filter>
-        </defs>
-        <!-- Shadow & Treads -->
-        <rect x="27" y="42" width="6" height="15" rx="3" fill="#020617" stroke="#334155" stroke-width="1.5" />
-        <rect x="27.5" y="3" width="5" height="14" rx="2.5" fill="#020617" stroke="#334155" stroke-width="1.5" />
-        <!-- Dual Chrome Exhaust Mufflers -->
-        <path d="M33 34 L38 48" stroke="#cbd5e1" stroke-width="2.5" stroke-linecap="round" />
-        <path d="M27 34 L22 48" stroke="#cbd5e1" stroke-width="2.5" stroke-linecap="round" />
-        <!-- Frame & Leather Saddle -->
-        <path d="M25 24 Q30 20 35 24 L34 40 Q30 42 26 40 Z" fill="#0f172a" stroke="#1e293b" stroke-width="1" />
-        <!-- Aerodynamic Fuel Tank (Vibrant Glossy) -->
-        <path d="M23 15 Q30 8 37 15 L35 26 Q30 29 25 26 Z" fill="url(#m_tank_${color.replace('#','')})" stroke="#ffffff" stroke-width="1.2" />
-        <!-- Handlebars & Chrome Side Mirrors -->
-        <path d="M15 15 L45 15" stroke="#94a3b8" stroke-width="3.5" stroke-linecap="round" />
-        <circle cx="14" cy="15" r="2.5" fill="#38bdf8" stroke="#ffffff" stroke-width="0.8" />
-        <circle cx="46" cy="15" r="2.5" fill="#38bdf8" stroke="#ffffff" stroke-width="0.8" />
-        <circle cx="30" cy="15" r="3" fill="#020617" stroke="#38bdf8" stroke-width="1" />
-        <!-- Dual Xenon Projector Headlights with Light Flare -->
-        <path d="M26 3 Q30 -1 34 3 Z" fill="#fef08a" filter="url(#glow_m)" />
-        <circle cx="28" cy="4" r="1.5" fill="#ffffff" />
-        <circle cx="32" cy="4" r="1.5" fill="#ffffff" />
-        <!-- Rear Brake Light -->
-        <rect x="27" y="41" width="6" height="2" rx="1" fill="#ef4444" filter="url(#glow_m)" />
-      </svg>`;
-
-    case 'scooter':
-      return `<svg viewBox="0 0 60 60" width="48" height="48" class="drop-shadow-xl">
-        <defs>
-          <linearGradient id="sc_body_${color.replace('#','')}" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#ffffff" stop-opacity="0.5" />
-            <stop offset="30%" stop-color="${color}" />
+          <linearGradient id="bike_paint_${cId}" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#ffffff" stop-opacity="0.8" />
+            <stop offset="25%" stop-color="${c}" />
+            <stop offset="85%" stop-color="${c}" />
             <stop offset="100%" stop-color="#090d16" />
           </linearGradient>
-        </defs>
-        <!-- Wheels -->
-        <rect x="27" y="44" width="6" height="12" rx="3" fill="#020617" stroke="#475569" stroke-width="1" />
-        <rect x="27.5" y="4" width="5" height="11" rx="2.5" fill="#020617" stroke="#475569" stroke-width="1" />
-        <!-- Wide Rear Body Shell & Tail Fairing -->
-        <path d="M20 26 Q30 22 40 26 L41 44 Q30 48 19 44 Z" fill="url(#sc_body_${color.replace('#','')})" stroke="#ffffff" stroke-width="1.2" />
-        <!-- Long Comfort Seat -->
-        <rect x="24.5" y="27" width="11" height="15" rx="4" fill="#0f172a" stroke="#334155" stroke-width="1" />
-        <!-- Wide Floorboard Footrest -->
-        <rect x="21" y="20" width="18" height="8" rx="2" fill="#1e293b" />
-        <!-- Front Apron & Shield -->
-        <path d="M23 11 L37 11 L35 22 L25 22 Z" fill="${color}" stroke="#ffffff" stroke-width="1" />
-        <!-- Curved Handlebar with Turn Indicators -->
-        <path d="M17 14 L43 14" stroke="#94a3b8" stroke-width="3" stroke-linecap="round" />
-        <circle cx="16" cy="14" r="2" fill="#f59e0b" />
-        <circle cx="44" cy="14" r="2" fill="#f59e0b" />
-        <!-- Diamond LED Headlight -->
-        <circle cx="30" cy="5" r="3" fill="#fef08a" />
-      </svg>`;
-
-    case 'cng':
-      return `<svg viewBox="0 0 60 60" width="48" height="48" class="drop-shadow-xl">
-        <defs>
-          <linearGradient id="cng_body_${color.replace('#','')}" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stop-color="#16a34a" />
-            <stop offset="100%" stop-color="#064e3b" />
+          <linearGradient id="chrome_${cId}" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#94a3b8" />
+            <stop offset="50%" stop-color="#f8fafc" />
+            <stop offset="100%" stop-color="#64748b" />
           </linearGradient>
-        </defs>
-        <!-- 3-Wheels Delta Stance -->
-        <rect x="13" y="40" width="5.5" height="14" rx="2" fill="#020617" stroke="#334155" stroke-width="1" />
-        <rect x="41.5" y="40" width="5.5" height="14" rx="2" fill="#020617" stroke="#334155" stroke-width="1" />
-        <rect x="27.5" y="4" width="5" height="11" rx="2.5" fill="#020617" stroke="#334155" stroke-width="1" />
-        <!-- Body Shell (Classic Auto Body) -->
-        <path d="M17 19 L43 19 L44 48 L16 48 Z" fill="url(#cng_body_${color.replace('#','')})" stroke="#ffffff" stroke-width="1.2" />
-        <!-- Orange/Black Passenger Safety Grille Canopy -->
-        <path d="M18 18 L42 18 L34 7 L26 7 Z" fill="#f97316" stroke="#ea580c" stroke-width="1" />
-        <!-- Canvas Soft Top Roof -->
-        <rect x="19" y="21" width="22" height="20" rx="3" fill="#022c22" stroke="#10b981" stroke-width="1.2" />
-        <!-- Passenger Bench -->
-        <rect x="21" y="36" width="18" height="8" rx="2" fill="#0f172a" />
-        <circle cx="30" cy="6" r="3" fill="#fef08a" />
-      </svg>`;
-
-    case 'auto':
-      return `<svg viewBox="0 0 60 60" width="48" height="48" class="drop-shadow-xl">
-        <rect x="13" y="40" width="5.5" height="14" rx="2" fill="#020617" />
-        <rect x="41.5" y="40" width="5.5" height="14" rx="2" fill="#020617" />
-        <rect x="27.5" y="4" width="5" height="11" rx="2.5" fill="#020617" />
-        <!-- Yellow Auto Chassis -->
-        <path d="M17 19 L43 19 L44 48 L16 48 Z" fill="#eab308" stroke="#ffffff" stroke-width="1.2" />
-        <!-- Hood & Canopy -->
-        <path d="M18 18 L42 18 L33 7 L27 7 Z" fill="#16a34a" />
-        <rect x="19" y="21" width="22" height="21" rx="3" fill="#713f12" stroke="#fbbf24" stroke-width="1.2" />
-        <rect x="21" y="24" width="18" height="6" rx="1.5" fill="#38bdf8" opacity="0.8" />
-        <circle cx="30" cy="6" r="3" fill="#fef08a" />
-      </svg>`;
-
-    case 'ambulance':
-      return `<svg viewBox="0 0 60 60" width="48" height="48" class="drop-shadow-xl">
-        <defs>
-          <filter id="beacon_glow">
+          <filter id="light_glow_${cId}">
             <feGaussianBlur stdDeviation="2" result="blur"/>
             <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
           </filter>
         </defs>
+        <!-- Rear Tire with Treads -->
+        <rect x="36" y="52" width="8" height="24" rx="4" fill="#090d16" stroke="#334155" stroke-width="1.5" />
+        <line x1="38" y1="58" x2="42" y2="58" stroke="#475569" stroke-width="1.5" />
+        <line x1="38" y1="64" x2="42" y2="64" stroke="#475569" stroke-width="1.5" />
+        <line x1="38" y1="70" x2="42" y2="70" stroke="#475569" stroke-width="1.5" />
+
+        <!-- Dual Chrome Exhaust Pipes -->
+        <path d="M45 42 L52 66" stroke="url(#chrome_${cId})" stroke-width="3.5" stroke-linecap="round" />
+        <path d="M35 42 L28 66" stroke="url(#chrome_${cId})" stroke-width="3.5" stroke-linecap="round" />
+
+        <!-- Rear Swingarm & Chain -->
+        <rect x="34" y="44" width="12" height="12" rx="2" fill="#1e293b" />
+
+        <!-- Pillion & Rider Leather Seat -->
+        <path d="M33 30 Q40 26 47 30 L45 52 Q40 55 35 52 Z" fill="#0f172a" stroke="#334155" stroke-width="1.2" />
+        <line x1="34" y1="41" x2="46" y2="41" stroke="#1e293b" stroke-width="1.5" />
+
+        <!-- Sculpted Metallic Fuel Tank -->
+        <path d="M31 18 Q40 10 49 18 L47 34 Q40 38 33 34 Z" fill="url(#bike_paint_${cId})" stroke="#ffffff" stroke-width="1.5" />
+        <!-- Tank Center Decal Strip -->
+        <line x1="40" y1="14" x2="40" y2="34" stroke="#ffffff" stroke-width="1.5" stroke-dasharray="3,2" opacity="0.8" />
+
+        <!-- Handlebars & Chrome Side Mirrors -->
+        <path d="M18 18 L62 18" stroke="url(#chrome_${cId})" stroke-width="4.5" stroke-linecap="round" />
+        <!-- Rubber Grips -->
+        <rect x="16" y="16" width="9" height="4" rx="2" fill="#020617" />
+        <rect x="55" y="16" width="9" height="4" rx="2" fill="#020617" />
+        <!-- Side Mirrors -->
+        <circle cx="16" cy="18" r="3.5" fill="#38bdf8" stroke="#ffffff" stroke-width="1.2" />
+        <circle cx="64" cy="18" r="3.5" fill="#38bdf8" stroke="#ffffff" stroke-width="1.2" />
+        <!-- Instrument Cluster -->
+        <circle cx="40" cy="18" r="4" fill="#020617" stroke="#38bdf8" stroke-width="1.5" />
+        <circle cx="40" cy="18" r="1.5" fill="#38bdf8" />
+
+        <!-- Front Fork & Front Tire -->
+        <rect x="37" y="4" width="6" height="20" rx="3" fill="#090d16" stroke="#334155" stroke-width="1.5" />
+        <!-- Aerodynamic Front Fairing / Windscreen -->
+        <path d="M34 10 Q40 4 46 10 L44 18 Q40 20 36 18 Z" fill="#38bdf8" opacity="0.85" stroke="#ffffff" stroke-width="1" />
+
+        <!-- Dual Xenon High-Beam Projector Headlights (Glowing) -->
+        <circle cx="36" cy="6" r="3" fill="#fef08a" filter="url(#light_glow_${cId})" />
+        <circle cx="44" cy="6" r="3" fill="#fef08a" filter="url(#light_glow_${cId})" />
+        <circle cx="36" cy="6" r="1.2" fill="#ffffff" />
+        <circle cx="44" cy="6" r="1.2" fill="#ffffff" />
+
+        <!-- Rear Red LED Brake Light Strip -->
+        <rect x="36" y="52" width="8" height="3" rx="1.5" fill="#ef4444" filter="url(#light_glow_${cId})" />
+      </svg>`;
+
+    case 'scooter':
+      return `<svg viewBox="0 0 80 80" width="100%" height="100%" class="drop-shadow-2xl">
+        <defs>
+          <linearGradient id="scoot_paint_${cId}" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#ffffff" stop-opacity="0.7" />
+            <stop offset="30%" stop-color="${c}" />
+            <stop offset="100%" stop-color="#0f172a" />
+          </linearGradient>
+        </defs>
+        <!-- Rear Wheel -->
+        <rect x="36" y="56" width="8" height="18" rx="4" fill="#090d16" stroke="#334155" stroke-width="1.5" />
+        <!-- Wide Rear Body Fairing -->
+        <path d="M26 34 Q40 28 54 34 L56 58 Q40 64 24 58 Z" fill="url(#scoot_paint_${cId})" stroke="#ffffff" stroke-width="1.5" />
+        <!-- Long Two-Tier Comfort Seat -->
+        <rect x="32" y="34" width="16" height="22" rx="6" fill="#0f172a" stroke="#334155" stroke-width="1.2" />
+        <!-- Floorboard Footrest -->
+        <rect x="28" y="24" width="24" height="11" rx="3" fill="#1e293b" stroke="#334155" stroke-width="1" />
+        <!-- Front Apron Leg Shield -->
+        <path d="M30 14 L50 14 L46 26 L34 26 Z" fill="${c}" stroke="#ffffff" stroke-width="1.5" />
+        <!-- Handlebars & Indicators -->
+        <path d="M20 18 L60 18" stroke="#94a3b8" stroke-width="4.5" stroke-linecap="round" />
+        <circle cx="18" cy="18" r="3" fill="#f59e0b" />
+        <circle cx="62" cy="18" r="3" fill="#f59e0b" />
+        <!-- Front Tire & Mudguard -->
+        <rect x="37" y="5" width="6" height="15" rx="3" fill="#090d16" stroke="#334155" stroke-width="1.5" />
+        <!-- Diamond LED Headlight -->
+        <circle cx="40" cy="8" r="3.5" fill="#fef08a" />
+        <circle cx="40" cy="8" r="1.5" fill="#ffffff" />
+      </svg>`;
+
+    case 'cng':
+      return `<svg viewBox="0 0 80 80" width="100%" height="100%" class="drop-shadow-2xl">
+        <defs>
+          <linearGradient id="cng_body_${cId}" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#16a34a" />
+            <stop offset="100%" stop-color="#052e16" />
+          </linearGradient>
+        </defs>
+        <!-- 3 Wheels -->
+        <rect x="16" y="50" width="8" height="20" rx="3" fill="#090d16" stroke="#334155" stroke-width="1.5" />
+        <rect x="56" y="50" width="8" height="20" rx="3" fill="#090d16" stroke="#334155" stroke-width="1.5" />
+        <rect x="37" y="5" width="6" height="16" rx="3" fill="#090d16" stroke="#334155" stroke-width="1.5" />
+        <!-- Main Cabin Body (Dhaka Green) -->
+        <path d="M22 24 L58 24 L60 64 L20 64 Z" fill="url(#cng_body_${cId})" stroke="#ffffff" stroke-width="2" />
+        <!-- Orange Safety Bonnet -->
+        <path d="M24 23 L56 23 L46 8 L34 8 Z" fill="#f97316" stroke="#ea580c" stroke-width="1.5" />
+        <!-- Canopy Soft Roof Top -->
+        <rect x="25" y="27" width="30" height="28" rx="4" fill="#022c22" stroke="#34d399" stroke-width="1.5" />
+        <!-- Passenger Bench -->
+        <rect x="27" y="47" width="26" height="12" rx="2" fill="#0f172a" />
+        <!-- Center Headlamp -->
+        <circle cx="40" cy="8" r="3.5" fill="#fef08a" />
+      </svg>`;
+
+    case 'auto':
+      return `<svg viewBox="0 0 80 80" width="100%" height="100%" class="drop-shadow-2xl">
+        <rect x="16" y="50" width="8" height="20" rx="3" fill="#090d16" stroke="#334155" stroke-width="1.5" />
+        <rect x="56" y="50" width="8" height="20" rx="3" fill="#090d16" stroke="#334155" stroke-width="1.5" />
+        <rect x="37" y="5" width="6" height="16" rx="3" fill="#090d16" stroke="#334155" stroke-width="1.5" />
+        <!-- Yellow Auto Body -->
+        <path d="M22 24 L58 24 L60 64 L20 64 Z" fill="#eab308" stroke="#ffffff" stroke-width="2" />
+        <path d="M24 23 L56 23 L45 8 L35 8 Z" fill="#16a34a" />
+        <rect x="25" y="27" width="30" height="28" rx="4" fill="#713f12" stroke="#fbbf24" stroke-width="1.5" />
+        <circle cx="40" cy="8" r="3.5" fill="#fef08a" />
+      </svg>`;
+
+    case 'ambulance':
+      return `<svg viewBox="0 0 80 80" width="100%" height="100%" class="drop-shadow-2xl">
+        <defs>
+          <filter id="amb_flash_${cId}">
+            <feGaussianBlur stdDeviation="2.5" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
         <!-- 4 Wheels -->
-        <rect x="12" y="10" width="5" height="12" rx="2" fill="#020617" stroke="#334155" stroke-width="1" />
-        <rect x="43" y="10" width="5" height="12" rx="2" fill="#020617" stroke="#334155" stroke-width="1" />
-        <rect x="12" y="38" width="5" height="12" rx="2" fill="#020617" stroke="#334155" stroke-width="1" />
-        <rect x="43" y="38" width="5" height="12" rx="2" fill="#020617" stroke="#334155" stroke-width="1" />
-        <!-- Van Body (Pristine White) -->
-        <rect x="16" y="5" width="28" height="50" rx="6" fill="#f8fafc" stroke="#ef4444" stroke-width="2" />
+        <rect x="14" y="14" width="7" height="16" rx="3" fill="#090d16" stroke="#334155" stroke-width="1.5" />
+        <rect x="59" y="14" width="7" height="16" rx="3" fill="#090d16" stroke="#334155" stroke-width="1.5" />
+        <rect x="14" y="50" width="7" height="16" rx="3" fill="#090d16" stroke="#334155" stroke-width="1.5" />
+        <rect x="59" y="50" width="7" height="16" rx="3" fill="#090d16" stroke="#334155" stroke-width="1.5" />
+        <!-- High-Gloss White Van Body -->
+        <rect x="20" y="6" width="40" height="68" rx="8" fill="#f8fafc" stroke="#ef4444" stroke-width="2.5" />
         <!-- Front Windshield -->
-        <path d="M19 12 Q30 9 41 12 L39 19 Q30 20 21 19 Z" fill="#38bdf8" opacity="0.95" />
-        <!-- Side Red Paramedic Stripes -->
-        <rect x="16" y="23" width="2.5" height="28" fill="#ef4444" />
-        <rect x="41.5" y="23" width="2.5" height="28" fill="#ef4444" />
-        <!-- Glowing Red Medical Cross on Roof -->
-        <rect x="23" y="33" width="14" height="4" fill="#ef4444" rx="1" />
-        <rect x="28" y="28" width="4" height="14" fill="#ef4444" rx="1" />
-        <!-- Emergency Flashing Lightbars (Blue & Red) -->
-        <circle cx="23" cy="8" r="3" fill="#3b82f6" filter="url(#beacon_glow)" />
-        <circle cx="37" cy="8" r="3" fill="#ef4444" filter="url(#beacon_glow)" />
+        <path d="M24 16 Q40 11 56 16 L53 26 Q40 27 27 26 Z" fill="#38bdf8" opacity="0.95" stroke="#ffffff" stroke-width="1" />
+        <!-- Red Cross Emergency Badge -->
+        <rect x="30" y="44" width="20" height="6" fill="#ef4444" rx="1.5" />
+        <rect x="37" y="37" width="6" height="20" fill="#ef4444" rx="1.5" />
+        <!-- Flashing Emergency Strobe Beacons (Blue & Red) -->
+        <circle cx="30" cy="10" r="4" fill="#3b82f6" filter="url(#amb_flash_${cId})" />
+        <circle cx="50" cy="10" r="4" fill="#ef4444" filter="url(#amb_flash_${cId})" />
+        <circle cx="30" cy="10" r="1.5" fill="#ffffff" />
+        <circle cx="50" cy="10" r="1.5" fill="#ffffff" />
       </svg>`;
 
     case 'pickup':
-      return `<svg viewBox="0 0 60 60" width="48" height="48" class="drop-shadow-xl">
+      return `<svg viewBox="0 0 80 80" width="100%" height="100%" class="drop-shadow-2xl">
         <defs>
-          <linearGradient id="suv_body_${color.replace('#','')}" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#ffffff" stop-opacity="0.4" />
-            <stop offset="30%" stop-color="${color}" />
+          <linearGradient id="suv_paint_${cId}" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#ffffff" stop-opacity="0.6" />
+            <stop offset="30%" stop-color="${c}" />
             <stop offset="100%" stop-color="#020617" />
           </linearGradient>
         </defs>
-        <!-- Chunky All-Terrain Wheels -->
-        <rect x="11" y="9" width="6" height="13" rx="2.5" fill="#020617" stroke="#475569" stroke-width="1.5" />
-        <rect x="43" y="9" width="6" height="13" rx="2.5" fill="#020617" stroke="#475569" stroke-width="1.5" />
-        <rect x="11" y="38" width="6" height="13" rx="2.5" fill="#020617" stroke="#475569" stroke-width="1.5" />
-        <rect x="43" y="38" width="6" height="13" rx="2.5" fill="#020617" stroke="#475569" stroke-width="1.5" />
-        <!-- Wide 4x4 Offroad Body -->
-        <rect x="15" y="6" width="30" height="48" rx="5" fill="url(#suv_body_${color.replace('#','')})" stroke="#ffffff" stroke-width="1.5" />
-        <!-- Front Hood & Windshield -->
-        <path d="M19 13 Q30 10 41 13 L39 22 Q30 23 21 22 Z" fill="#38bdf8" opacity="0.9" />
-        <!-- Roof Crossbars / Cargo Bed -->
-        <rect x="19" y="27" width="22" height="23" rx="3" fill="#0f172a" stroke="#334155" stroke-width="1.2" />
-        <line x1="24" y1="29" x2="24" y2="48" stroke="#475569" stroke-width="1.5" />
-        <line x1="30" y1="29" x2="30" y2="48" stroke="#475569" stroke-width="1.5" />
-        <line x1="36" y1="29" x2="36" y2="48" stroke="#475569" stroke-width="1.5" />
-        <!-- High-Beam Spotlights on Roof -->
-        <circle cx="21" cy="5" r="2.2" fill="#fef08a" />
-        <circle cx="39" cy="5" r="2.2" fill="#fef08a" />
+        <!-- 4 Wide All-Terrain Tires -->
+        <rect x="13" y="12" width="8" height="18" rx="3" fill="#090d16" stroke="#475569" stroke-width="1.8" />
+        <rect x="59" y="12" width="8" height="18" rx="3" fill="#090d16" stroke="#475569" stroke-width="1.8" />
+        <rect x="13" y="50" width="8" height="18" rx="3" fill="#090d16" stroke="#475569" stroke-width="1.8" />
+        <rect x="59" y="50" width="8" height="18" rx="3" fill="#090d16" stroke="#475569" stroke-width="1.8" />
+        <!-- 4x4 SUV / Pickup Chassis -->
+        <rect x="19" y="7" width="42" height="66" rx="7" fill="url(#suv_paint_${cId})" stroke="#ffffff" stroke-width="2" />
+        <!-- Front Hood Grooves & Windshield -->
+        <path d="M24 18 Q40 13 56 18 L53 30 Q40 31 27 30 Z" fill="#38bdf8" opacity="0.95" stroke="#ffffff" stroke-width="1" />
+        <!-- Cargo Bed with Textured Rails -->
+        <rect x="24" y="37" width="32" height="30" rx="3" fill="#0f172a" stroke="#334155" stroke-width="1.5" />
+        <line x1="31" y1="39" x2="31" y2="65" stroke="#475569" stroke-width="2" />
+        <line x1="40" y1="39" x2="40" y2="65" stroke="#475569" stroke-width="2" />
+        <line x1="49" y1="39" x2="49" y2="65" stroke="#475569" stroke-width="2" />
+        <!-- Roof Spotlights -->
+        <circle cx="27" cy="6" r="3" fill="#fef08a" />
+        <circle cx="53" cy="6" r="3" fill="#fef08a" />
       </svg>`;
 
     case 'truck':
-      return `<svg viewBox="0 0 60 60" width="48" height="48" class="drop-shadow-xl">
+      return `<svg viewBox="0 0 80 80" width="100%" height="100%" class="drop-shadow-2xl">
         <defs>
-          <linearGradient id="truck_cab_${color.replace('#','')}" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stop-color="${color}" />
+          <linearGradient id="truck_paint_${cId}" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="${c}" />
             <stop offset="100%" stop-color="#0f172a" />
           </linearGradient>
         </defs>
         <!-- 6 Wheels -->
-        <rect x="11" y="8" width="5.5" height="12" rx="2" fill="#020617" stroke="#475569" stroke-width="1.2" />
-        <rect x="43.5" y="8" width="5.5" height="12" rx="2" fill="#020617" stroke="#475569" stroke-width="1.2" />
-        <rect x="11" y="32" width="5.5" height="11" rx="2" fill="#020617" stroke="#475569" stroke-width="1.2" />
-        <rect x="43.5" y="32" width="5.5" height="11" rx="2" fill="#020617" stroke="#475569" stroke-width="1.2" />
-        <rect x="11" y="44" width="5.5" height="11" rx="2" fill="#020617" stroke="#475569" stroke-width="1.2" />
-        <rect x="43.5" y="44" width="5.5" height="11" rx="2" fill="#020617" stroke="#475569" stroke-width="1.2" />
-        <!-- Heavy Cab Block -->
-        <rect x="15" y="5" width="30" height="16" rx="4" fill="url(#truck_cab_${color.replace('#','')})" stroke="#ffffff" stroke-width="1.5" />
-        <path d="M18 9 L42 9 L40 15 L20 15 Z" fill="#38bdf8" opacity="0.9" />
-        <!-- Big Cargo Container / Lorry Bed -->
-        <rect x="15" y="22" width="30" height="34" rx="2" fill="#d97706" stroke="#78350f" stroke-width="1.5" />
-        <!-- Tie-Down Straps & Warning Stripes -->
-        <line x1="15" y1="28" x2="45" y2="28" stroke="#fef08a" stroke-width="2" />
-        <line x1="15" y1="39" x2="45" y2="39" stroke="#fef08a" stroke-width="2" />
-        <line x1="15" y1="50" x2="45" y2="50" stroke="#fef08a" stroke-width="2" />
-        <circle cx="18" cy="4" r="2.5" fill="#fef08a" />
-        <circle cx="42" cy="4" r="2.5" fill="#fef08a" />
+        <rect x="13" y="10" width="7" height="16" rx="2.5" fill="#090d16" stroke="#475569" stroke-width="1.5" />
+        <rect x="60" y="10" width="7" height="16" rx="2.5" fill="#090d16" stroke="#475569" stroke-width="1.5" />
+        <rect x="13" y="42" width="7" height="15" rx="2.5" fill="#090d16" stroke="#475569" stroke-width="1.5" />
+        <rect x="60" y="42" width="7" height="15" rx="2.5" fill="#090d16" stroke="#475569" stroke-width="1.5" />
+        <rect x="13" y="58" width="7" height="15" rx="2.5" fill="#090d16" stroke="#475569" stroke-width="1.5" />
+        <rect x="60" y="58" width="7" height="15" rx="2.5" fill="#090d16" stroke="#475569" stroke-width="1.5" />
+        <!-- Prime Mover Heavy Cab -->
+        <rect x="19" y="6" width="42" height="22" rx="5" fill="url(#truck_paint_${cId})" stroke="#ffffff" stroke-width="2" />
+        <path d="M23 11 L57 11 L54 19 L26 19 Z" fill="#38bdf8" opacity="0.9" />
+        <!-- Cargo Container Bed -->
+        <rect x="19" y="30" width="42" height="46" rx="3" fill="#d97706" stroke="#78350f" stroke-width="2" />
+        <line x1="19" y1="38" x2="61" y2="38" stroke="#fef08a" stroke-width="2.5" />
+        <line x1="19" y1="52" x2="61" y2="52" stroke="#fef08a" stroke-width="2.5" />
+        <line x1="19" y1="66" x2="61" y2="66" stroke="#fef08a" stroke-width="2.5" />
+        <circle cx="24" cy="5" r="3" fill="#fef08a" />
+        <circle cx="56" cy="5" r="3" fill="#fef08a" />
       </svg>`;
 
     case 'bus':
-      return `<svg viewBox="0 0 60 60" width="48" height="48" class="drop-shadow-xl">
+      return `<svg viewBox="0 0 80 80" width="100%" height="100%" class="drop-shadow-2xl">
         <defs>
-          <linearGradient id="bus_body_${color.replace('#','')}" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stop-color="#ffffff" stop-opacity="0.3" />
-            <stop offset="30%" stop-color="${color}" />
+          <linearGradient id="bus_paint_${cId}" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#ffffff" stop-opacity="0.5" />
+            <stop offset="30%" stop-color="${c}" />
             <stop offset="100%" stop-color="#020617" />
           </linearGradient>
         </defs>
         <!-- 6 Wheels -->
-        <rect x="11" y="10" width="5" height="12" rx="2" fill="#020617" stroke="#334155" stroke-width="1" />
-        <rect x="44" y="10" width="5" height="12" rx="2" fill="#020617" stroke="#334155" stroke-width="1" />
-        <rect x="11" y="38" width="5" height="12" rx="2" fill="#020617" stroke="#334155" stroke-width="1" />
-        <rect x="44" y="38" width="5" height="12" rx="2" fill="#020617" stroke="#334155" stroke-width="1" />
-        <!-- Long Luxury Coach Chassis -->
-        <rect x="15" y="3" width="30" height="54" rx="6" fill="url(#bus_body_${color.replace('#','')})" stroke="#ffffff" stroke-width="1.5" />
-        <!-- Panoramic Windshield -->
-        <path d="M18 6 L42 6 L40 12 L20 12 Z" fill="#38bdf8" opacity="0.95" />
-        <!-- Dual Rooftop AC Pods -->
-        <rect x="22" y="18" width="16" height="10" rx="3" fill="#cbd5e1" stroke="#475569" stroke-width="1" />
-        <rect x="22" y="33" width="16" height="10" rx="3" fill="#cbd5e1" stroke="#475569" stroke-width="1" />
-        <!-- Side Glass Ribbon -->
-        <rect x="16" y="13" width="2" height="38" fill="#38bdf8" opacity="0.7" />
-        <rect x="42" y="13" width="2" height="38" fill="#38bdf8" opacity="0.7" />
-        <circle cx="18" cy="4" r="2.5" fill="#fef08a" />
-        <circle cx="42" cy="4" r="2.5" fill="#fef08a" />
+        <rect x="14" y="14" width="6.5" height="16" rx="3" fill="#090d16" stroke="#334155" stroke-width="1.5" />
+        <rect x="59.5" y="14" width="6.5" height="16" rx="3" fill="#090d16" stroke="#334155" stroke-width="1.5" />
+        <rect x="14" y="52" width="6.5" height="16" rx="3" fill="#090d16" stroke="#334155" stroke-width="1.5" />
+        <rect x="59.5" y="52" width="6.5" height="16" rx="3" fill="#090d16" stroke="#334155" stroke-width="1.5" />
+        <!-- Luxury Coach Body -->
+        <rect x="19" y="4" width="42" height="72" rx="8" fill="url(#bus_paint_${cId})" stroke="#ffffff" stroke-width="2" />
+        <path d="M23 8 L57 8 L55 16 L25 16 Z" fill="#38bdf8" opacity="0.95" />
+        <!-- Twin Rooftop AC Units -->
+        <rect x="28" y="24" width="24" height="14" rx="4" fill="#cbd5e1" stroke="#475569" stroke-width="1.5" />
+        <rect x="28" y="44" width="24" height="14" rx="4" fill="#cbd5e1" stroke="#475569" stroke-width="1.5" />
+        <!-- Side Glass Ribbons -->
+        <rect x="21" y="18" width="2.5" height="50" fill="#38bdf8" opacity="0.8" />
+        <rect x="56.5" y="18" width="2.5" height="50" fill="#38bdf8" opacity="0.8" />
+        <circle cx="24" cy="5" r="3" fill="#fef08a" />
+        <circle cx="56" cy="5" r="3" fill="#fef08a" />
       </svg>`;
 
     case 'bicycle':
-      return `<svg viewBox="0 0 60 60" width="48" height="48" class="drop-shadow-xl">
-        <!-- Thin Front & Rear Road Wheels -->
-        <rect x="28.5" y="41" width="3" height="16" rx="1.5" fill="#020617" stroke="#475569" stroke-width="1" />
-        <rect x="28.5" y="3" width="3" height="16" rx="1.5" fill="#020617" stroke="#475569" stroke-width="1" />
+      return `<svg viewBox="0 0 80 80" width="100%" height="100%" class="drop-shadow-2xl">
+        <!-- Spoke Wheels -->
+        <rect x="38" y="54" width="4" height="22" rx="2" fill="#090d16" stroke="#475569" stroke-width="1.5" />
+        <rect x="38" y="4" width="4" height="22" rx="2" fill="#090d16" stroke="#475569" stroke-width="1.5" />
         <!-- Alloy Frame Backbone -->
-        <line x1="30" y1="12" x2="30" y2="48" stroke="${color}" stroke-width="4" stroke-linecap="round" />
+        <line x1="40" y1="16" x2="40" y2="64" stroke="${c}" stroke-width="5" stroke-linecap="round" />
         <!-- Handlebars -->
-        <line x1="16" y1="14" x2="44" y2="14" stroke="#38bdf8" stroke-width="3.5" stroke-linecap="round" />
-        <circle cx="15" cy="14" r="2.5" fill="#ffffff" />
-        <circle cx="45" cy="14" r="2.5" fill="#ffffff" />
-        <!-- Ergonomic Saddle -->
-        <ellipse cx="30" cy="33" rx="4.5" ry="6" fill="#0f172a" stroke="#ffffff" stroke-width="1" />
+        <line x1="22" y1="18" x2="58" y2="18" stroke="#38bdf8" stroke-width="4.5" stroke-linecap="round" />
+        <circle cx="21" cy="18" r="3" fill="#ffffff" />
+        <circle cx="59" cy="18" r="3" fill="#ffffff" />
+        <!-- Saddle -->
+        <ellipse cx="40" cy="44" rx="6" ry="8" fill="#0f172a" stroke="#ffffff" stroke-width="1.5" />
       </svg>`;
 
     case 'car':
     default:
-      return `<svg viewBox="0 0 60 60" width="48" height="48" class="drop-shadow-xl">
+      return `<svg viewBox="0 0 80 80" width="100%" height="100%" class="drop-shadow-2xl">
         <defs>
-          <linearGradient id="car_body_${color.replace('#','')}" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#ffffff" stop-opacity="0.5" />
-            <stop offset="25%" stop-color="${color}" />
+          <linearGradient id="car_paint_${cId}" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#ffffff" stop-opacity="0.75" />
+            <stop offset="25%" stop-color="${c}" />
+            <stop offset="85%" stop-color="${c}" />
             <stop offset="100%" stop-color="#020617" />
           </linearGradient>
-          <filter id="car_glow">
-            <feGaussianBlur stdDeviation="1.5" result="blur"/>
+          <filter id="headlight_flare_${cId}">
+            <feGaussianBlur stdDeviation="2" result="blur"/>
             <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
           </filter>
         </defs>
         <!-- 4 Wide Alloy Tires -->
-        <rect x="11" y="9" width="5.5" height="13" rx="2.5" fill="#020617" stroke="#475569" stroke-width="1.2" />
-        <rect x="43.5" y="9" width="5.5" height="13" rx="2.5" fill="#020617" stroke="#475569" stroke-width="1.2" />
-        <rect x="11" y="37" width="5.5" height="13" rx="2.5" fill="#020617" stroke="#475569" stroke-width="1.2" />
-        <rect x="43.5" y="37" width="5.5" height="13" rx="2.5" fill="#020617" stroke="#475569" stroke-width="1.2" />
-        <!-- Sleek Metallic Sedan Body Silhouette -->
-        <path d="M17 11 Q30 5 43 11 L44 48 Q30 54 16 48 Z" fill="url(#car_body_${color.replace('#','')})" stroke="#ffffff" stroke-width="1.5" />
-        <!-- Aerodynamic Front Windshield with Blue Glare -->
-        <path d="M20 15 Q30 11 40 15 L38 24 Q30 26 22 24 Z" fill="#38bdf8" opacity="0.95" />
-        <!-- Panoramic Glass Sunroof / Cabin -->
-        <rect x="22" y="27" width="16" height="10" rx="3" fill="#0f172a" stroke="#38bdf8" stroke-width="0.8" opacity="0.9" />
+        <rect x="14" y="12" width="7" height="17" rx="3" fill="#090d16" stroke="#475569" stroke-width="1.5" />
+        <rect x="59" y="12" width="7" height="17" rx="3" fill="#090d16" stroke="#475569" stroke-width="1.5" />
+        <rect x="14" y="49" width="7" height="17" rx="3" fill="#090d16" stroke="#475569" stroke-width="1.5" />
+        <rect x="59" y="49" width="7" height="17" rx="3" fill="#090d16" stroke="#475569" stroke-width="1.5" />
+
+        <!-- Sleek Aerodynamic Metallic Body Chassis -->
+        <path d="M22 14 Q40 6 58 14 L60 64 Q40 72 20 64 Z" fill="url(#car_paint_${cId})" stroke="#ffffff" stroke-width="2" />
+
+        <!-- Front Windshield with Sky Glare -->
+        <path d="M26 20 Q40 14 54 20 L51 32 Q40 34 29 32 Z" fill="#38bdf8" opacity="0.95" stroke="#ffffff" stroke-width="1.2" />
+
+        <!-- Panoramic Glass Sunroof / Roof -->
+        <rect x="29" y="36" width="22" height="14" rx="4" fill="#0f172a" stroke="#38bdf8" stroke-width="1" opacity="0.9" />
+
         <!-- Rear Tinted Windshield -->
-        <path d="M22 39 L38 39 L39 44 L21 44 Z" fill="#38bdf8" opacity="0.85" />
-        <!-- Side View Mirrors -->
-        <circle cx="16" cy="18" r="2" fill="${color}" stroke="#ffffff" stroke-width="0.8" />
-        <circle cx="44" cy="18" r="2" fill="${color}" stroke="#ffffff" stroke-width="0.8" />
-        <!-- Twin High-Intensity Xenon Headlights -->
-        <circle cx="20" cy="8" r="2.5" fill="#fef08a" filter="url(#car_glow)" />
-        <circle cx="40" cy="8" r="2.5" fill="#fef08a" filter="url(#car_glow)" />
-        <!-- Red LED Tail Light Clusters -->
-        <rect x="18" y="49" width="6" height="2.5" rx="1" fill="#ef4444" filter="url(#car_glow)" />
-        <rect x="36" y="49" width="6" height="2.5" rx="1" fill="#ef4444" filter="url(#car_glow)" />
+        <path d="M29 52 L51 52 L52 59 L28 59 Z" fill="#38bdf8" opacity="0.85" />
+
+        <!-- Side Mirrors in Body Color -->
+        <circle cx="20" cy="24" r="2.5" fill="${c}" stroke="#ffffff" stroke-width="1" />
+        <circle cx="60" cy="24" r="2.5" fill="${c}" stroke="#ffffff" stroke-width="1" />
+
+        <!-- Twin Xenon Headlights (High Beam Glow) -->
+        <circle cx="26" cy="10" r="3.5" fill="#fef08a" filter="url(#headlight_flare_${cId})" />
+        <circle cx="54" cy="10" r="3.5" fill="#fef08a" filter="url(#headlight_flare_${cId})" />
+        <circle cx="26" cy="10" r="1.5" fill="#ffffff" />
+        <circle cx="54" cy="10" r="1.5" fill="#ffffff" />
+
+        <!-- Dual Red LED Tail Light Bars -->
+        <rect x="24" y="65" width="8" height="3" rx="1.5" fill="#ef4444" filter="url(#headlight_flare_${cId})" />
+        <rect x="48" y="65" width="8" height="3" rx="1.5" fill="#ef4444" filter="url(#headlight_flare_${cId})" />
       </svg>`;
   }
 };
