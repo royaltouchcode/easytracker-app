@@ -18,7 +18,8 @@ import {
   Home,
   ShieldCheck,
   Building2,
-  Palette
+  Palette,
+  Gift
 } from 'lucide-react';
 import { VehicleIcon } from '../../utils/vehicleIcons';
 import { UserProfileModal } from '../auth/UserProfileModal';
@@ -340,6 +341,18 @@ export const Header: React.FC = () => {
           >
             <Globe className="w-3 h-3 text-blue-400" />
             <span>{language === 'bn' ? 'EN' : 'বাং'}</span>
+          </button>
+
+          {/* Highlighted Universal Earn / Rewards Button */}
+          <button
+            onClick={() => setIsProfileModalOpen(true)}
+            className="px-2.5 py-1 rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-extrabold text-[10.5px] flex items-center space-x-1 shadow-md shadow-purple-600/30 transition active:scale-95 border border-purple-400/50"
+            title={currentRole === 'customer' ? 'বন্ধুকে রেফার করুন ও ক্যাশব্যাক পান (Earn Hub)' : 'আপনার সেলস ও কমিশন ওয়ালেট'}
+          >
+            <Gift className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+            <span className="font-mono tracking-tight font-black">
+              {currentRole === 'customer' ? '🎁 Earn' : '💰 আর্ন'}
+            </span>
           </button>
 
           {/* Dedicated User Profile & Subscription / Logout Button */}

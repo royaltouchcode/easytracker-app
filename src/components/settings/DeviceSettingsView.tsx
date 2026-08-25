@@ -139,6 +139,9 @@ export const DeviceSettingsView: React.FC = () => {
   const [sosSyncing, setSosSyncing] = useState(false);
   const [sosSyncMsg, setSosSyncMsg] = useState('');
 
+  type SettingsCategoryType = 'profile' | 'security' | 'sos' | 'geofence' | 'earn' | 'policies';
+  const [activeCategory, setActiveCategory] = useState<SettingsCategoryType>('profile');
+
   if (!selectedDevice) return null;
 
   const handleOpenAddGeofence = () => {
@@ -297,9 +300,45 @@ export const DeviceSettingsView: React.FC = () => {
         </button>
       </div>
 
+      {/* 🧭 Categorized Settings Navigation Tabs (Touch-Scrollable & Desktop Grid) */}
+      <div className="flex items-center space-x-2 overflow-x-auto pb-1 no-scrollbar">
+        {[
+          { id: 'profile', labelBn: '🚗 ভেহিকেল ও প্রোফাইল', labelEn: '🚗 Vehicle Profile', descBn: 'আইকন, রঙ ও নম্বর' },
+          { id: 'security', labelBn: '🔐 সিকিউরিটি ও পিন', labelEn: '🔐 Security PIN', descBn: 'কমান্ড পিন ও সিম' },
+          { id: 'sos', labelBn: '🚨 এসওএস ও এলার্ট', labelEn: '🚨 SOS & Alerts', descBn: 'মাস্টার নম্বর ও শব্দ' },
+          { id: 'geofence', labelBn: '🛡️ স্মার্ট জিওফেন্স', labelEn: '🛡️ Safe Geofences', descBn: 'নিরাপদ জোন' },
+          { id: 'earn', labelBn: '🎁 আর্ন ও লয়ালটি', labelEn: '🎁 Earn & Loyalty', descBn: 'রেফারেল ও ক্যাশব্যাক' },
+          { id: 'policies', labelBn: '📜 পলিসি ও সহায়তা', labelEn: '📜 Legal & Help', descBn: 'ওয়ারেন্টি ও রেসকিউ' }
+        ].map((tab) => {
+          const isAct = activeCategory === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveCategory(tab.id as SettingsCategoryType)}
+              className={`px-3.5 py-2 rounded-2xl border text-left transition-all active:scale-95 shrink-0 flex flex-col justify-between ${
+                isAct
+                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 border-blue-400 text-white font-black shadow-lg shadow-blue-600/30 ring-1 ring-blue-400/50'
+                  : 'bg-slate-900/80 border-slate-800 text-slate-300 hover:bg-slate-850 hover:text-white font-bold'
+              }`}
+            >
+              <span className="text-xs">{language === 'bn' ? tab.labelBn : tab.labelEn}</span>
+              <span className={`text-[9.5px] mt-0.5 ${isAct ? 'text-blue-100 opacity-90' : 'text-slate-400'}`}>
+                {tab.descBn}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
       <form onSubmit={handleTriggerSaveProfile} className="space-y-4">
-        {/* 1. Vehicle Icon & Color Selection (EasyTracker HD 3D Style) */}
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl space-y-4">
+        {/* ========================================================================= */}
+        {/* CATEGORY 1: VEHICLE PROFILE, 3D ICON & DETAILS                            */}
+        {/* ========================================================================= */}
+        {activeCategory === 'profile' && (
+          <div className="space-y-4 animate-in fade-in">
+            {/* 1. Vehicle Icon & Color Selection (EasyTracker HD 3D Style) */}
+            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl space-y-4">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center space-x-2">
               <Sparkles className="w-4 h-4 text-amber-400" />
@@ -494,99 +533,118 @@ export const DeviceSettingsView: React.FC = () => {
           </div>
         </div>
 
-        {/* 2. Multi-Geofences Safe Zone Management */}
+        {/* 5. Owner / Driver & Vehicle Info */}
         <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Shield className="w-4 h-4 text-indigo-400" />
-              <span className="text-xs font-bold uppercase tracking-wider text-indigo-300">
-                {language === 'bn' ? '২. জিওফেন্স সেফ জোন ম্যানেজমেন্ট' : '2. Multiple Safe Zones (Geofence)'}
-              </span>
+          <div className="flex items-center space-x-2">
+            <User className="w-4 h-4 text-blue-400" />
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-300">
+              {language === 'bn' ? '৫. গাড়ির নম্বর ও মালিকের তথ্য' : '5. Vehicle & Owner Details'}
+            </span>
+          </div>
+
+          <div>
+            <label className="text-xs text-slate-300 block mb-1">
+              {language === 'bn' ? 'গাড়ির রেজিস্ট্রেশন নম্বর (Vehicle / Plate No)' : 'Vehicle / License Plate Number'}
+            </label>
+            <input
+              type="text"
+              value={plateNumber}
+              onChange={(e) => setPlateNumber(e.target.value)}
+              placeholder={language === 'bn' ? 'যেমন: ঢাকা মেট্রো ল-১২-৩৪৫৬' : 'e.g. Dhaka Metro LA-12-3456'}
+              className="w-full bg-slate-800 border border-slate-700 rounded-2xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-blue-500"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-xs text-slate-400 block mb-1">
+                {language === 'bn' ? 'মালিক / চালকের নাম' : 'Owner / Driver Name'}
+              </label>
+              <input
+                type="text"
+                value={driverName}
+                onChange={(e) => setDriverName(e.target.value)}
+                placeholder={language === 'bn' ? 'নাম লিখুন' : 'Name'}
+                className="w-full bg-slate-800 border border-slate-700 rounded-2xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-blue-500"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-slate-400 block mb-1">
+                {language === 'bn' ? 'চালকের ফোন নম্বর' : 'Phone Number'}
+              </label>
+              <input
+                type="tel"
+                value={driverPhone}
+                onChange={(e) => setDriverPhone(e.target.value)}
+                placeholder="+880 17XXXXXXXX"
+                className="w-full bg-slate-800 border border-slate-700 rounded-2xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-blue-500"
+              />
+            </div>
+          </div>
+
+          {/* Mandatory Family KYC for Emergency Rescue & Police Verification */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 border-t border-slate-800/80">
+            <div className="bg-slate-950 p-2.5 rounded-2xl border border-blue-500/30 space-y-1">
+              <label className="text-[11px] font-extrabold text-blue-300 flex items-center justify-between">
+                <span>👤 পিতার নাম (Father's Name) *</span>
+                <span className="text-[9px] text-amber-400 font-bold uppercase">বাধ্যতামূলক</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={fatherName}
+                onChange={(e) => setFatherName(e.target.value)}
+                placeholder={language === 'bn' ? 'পিতার পুরো নাম লিখুন' : "Father's Full Name"}
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-blue-400"
+              />
+              <span className="text-[9px] text-slate-400 block">রেসকিউ হটলাইন ও পুলিশ জিডি ভেরিফিকেশনে ব্যবহৃত হবে</span>
             </div>
 
-            <button
-              type="button"
-              onClick={handleOpenAddGeofence}
-              className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center space-x-1 shadow-md shadow-indigo-600/30 transition active:scale-95"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>{language === 'bn' ? 'নতুন জোন' : 'Add Zone'}</span>
-            </button>
+            <div className="bg-slate-950 p-2.5 rounded-2xl border border-blue-500/30 space-y-1">
+              <label className="text-[11px] font-extrabold text-blue-300 flex items-center justify-between">
+                <span>👤 মাতার নাম (Mother's Name) *</span>
+                <span className="text-[9px] text-amber-400 font-bold uppercase">বাধ্যতামূলক</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={motherName}
+                onChange={(e) => setMotherName(e.target.value)}
+                placeholder={language === 'bn' ? 'মাতার পুরো নাম লিখুন' : "Mother's Full Name"}
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-blue-400"
+              />
+              <span className="text-[9px] text-slate-400 block">জরুরি মালিকানা ও রেসকিউ বাইপাসে প্রয়োজনীয়</span>
+            </div>
           </div>
 
-          <p className="text-[11px] text-slate-400">
-            {language === 'bn' ? 'একাধিক নিরাপদ জোন তৈরি ও ড্র্যাগ করে সেট করুন। এক বা একাধিক জোন একইসাথে সক্রিয় থাকতে পারে।' : 'Create & drag safe zones on map. Multiple zones can be active at the same time.'}
-          </p>
-
-          {/* List of Geofences */}
-          <div className="space-y-2 pt-1">
-            {geofences.length === 0 ? (
-              <div className="p-4 rounded-2xl bg-slate-800/40 border border-dashed border-slate-700 text-center text-xs text-slate-400">
-                {language === 'bn' ? 'কোনো জিওফেন্স তৈরি করা হয়নি। "নতুন জোন" চাপুন।' : 'No geofences created yet. Click "Add Zone".'}
-              </div>
-            ) : (
-              geofences.map((geo) => {
-                const isEnabled = (geo.attributes as any)?.enabled !== false;
-                return (
-                  <div 
-                    key={geo.id}
-                    className="p-3 bg-slate-800/70 border border-slate-700/80 rounded-2xl flex items-center justify-between shadow-inner"
-                  >
-                    <div className="flex items-center space-x-2.5 min-w-0">
-                      <div 
-                        className="w-3.5 h-3.5 rounded-full shrink-0 shadow-sm"
-                        style={{ backgroundColor: geo.attributes?.color || '#3b82f6' }}
-                      />
-                      <div className="min-w-0">
-                        <div className="text-xs font-bold text-slate-100 truncate">{geo.name}</div>
-                        <div className="text-[10px] text-slate-400 flex items-center space-x-2">
-                          <span>ব্যাসার্ধ: {geo.radius} মি</span>
-                          <span>•</span>
-                          <span className={isEnabled ? 'text-emerald-400 font-bold' : 'text-slate-500'}>
-                            {isEnabled ? (language === 'bn' ? 'সক্রিয়' : 'Active') : (language === 'bn' ? 'নিষ্ক্রিয়' : 'Disabled')}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center space-x-2 shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => toggleGeofence(geo.id)}
-                        className={`px-2.5 py-1 rounded-xl text-[10px] font-bold border transition ${
-                          isEnabled 
-                            ? 'bg-emerald-600/20 border-emerald-500/40 text-emerald-300' 
-                            : 'bg-slate-800 border-slate-700 text-slate-400'
-                        }`}
-                      >
-                        {isEnabled ? (language === 'bn' ? 'চালু' : 'ON') : (language === 'bn' ? 'বন্ধ' : 'OFF')}
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => handleOpenEditGeofence(geo)}
-                        className="p-1.5 rounded-xl bg-slate-750 hover:bg-slate-700 text-slate-300 border border-slate-700"
-                        title="Edit Zone"
-                      >
-                        <Edit3 className="w-3.5 h-3.5" />
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => deleteGeofence(geo.id)}
-                        className="p-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30"
-                        title="Delete Zone"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })
-            )}
+          {/* Speed Limit */}
+          <div className="pt-2">
+            <div className="flex justify-between text-xs mb-1">
+              <span className="text-slate-400 flex items-center space-x-1">
+                <Gauge className="w-3.5 h-3.5 text-rose-400" />
+                <span>{language === 'bn' ? 'গতিসীমা অ্যালার্ট' : 'Overspeed Limit'}</span>
+              </span>
+              <span className="font-bold text-rose-400">{speedLimit} km/h</span>
+            </div>
+            <input
+              type="range"
+              min={40}
+              max={140}
+              step={5}
+              value={speedLimit}
+              onChange={(e) => setSpeedLimit(Number(e.target.value))}
+              className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-rose-500"
+            />
           </div>
         </div>
+      </div>
+    )}
 
+    {/* ========================================================================= */}
+    {/* CATEGORY 2: SECURITY, MASTER PIN & IMMOBILIZER                            */}
+    {/* ========================================================================= */}
+    {activeCategory === 'security' && (
+      <div className="space-y-4 animate-in fade-in">
         {/* 3. SIM Phone Number & Command Security PIN Setup */}
         <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl space-y-3">
           <div className="flex items-center space-x-2">
@@ -634,48 +692,26 @@ export const DeviceSettingsView: React.FC = () => {
             </div>
           </div>
 
-          <p className="text-[10px] text-slate-400">
-            {language === 'bn' 
-              ? 'এসএমএস কমান্ড পাঠানোর জন্য ডিভাইসের সিম নম্বর এবং অ্যাপ থেকে যেকোনো কমান্ড কার্যকর করার পূর্বে এই ৪-ডিজিট পিন যাচাই করা হবে।' 
-              : 'Device SIM number for sending commands and 4-digit PIN for security confirmation.'}
-          </p>
-        </div>
-
-        {/* 3.5. Alert Notification & Feedback Mode Selector */}
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl space-y-3">
-          <div className="flex items-center space-x-2">
-            <BellRing className="w-4 h-4 text-cyan-400" />
-            <span className="text-xs font-bold uppercase tracking-wider text-cyan-300">
-              {language === 'bn' ? '৩.৫. নোটিফিকেশন ও অ্যালার্ট ফিডব্যাক মোড' : '3.5. Alert Notification & Sound Mode'}
-            </span>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            {[
-              { id: 'sound_vibration', title: language === 'bn' ? '🔊+📳 শব্দ ও ভাইব্রেশন' : '🔊+📳 Sound & Vibration', desc: language === 'bn' ? 'সবচেয়ে নিরাপদ' : 'Recommended' },
-              { id: 'only_sound', title: language === 'bn' ? '🔊 শুধু শব্দ' : '🔊 Only Sound', desc: language === 'bn' ? 'সাউন্ড অ্যালার্ম' : 'Audio Only' },
-              { id: 'only_vibration', title: language === 'bn' ? '📳 শুধু ভাইব্রেশন' : '📳 Only Vibration', desc: language === 'bn' ? 'নীরব কম্পন' : 'Silent Buzz' },
-              { id: 'sms_push', title: language === 'bn' ? '📩 এসএমএস ও পুশ' : '📩 SMS & Push', desc: language === 'bn' ? 'টেক্সট বার্তা' : 'Text Alert' },
-              { id: 'sms_sound_vibration', title: language === 'bn' ? '🚨 ফুল অ্যালার্ম' : '🚨 Full Alarm', desc: language === 'bn' ? 'এসএমএস+শব্দ+কম্পন' : 'SMS+Audio+Vibe' },
-              { id: 'silent', title: language === 'bn' ? '🔕 সম্পূর্ণ নীরব' : '🔕 Silent', desc: language === 'bn' ? 'কোনো শব্দ নেই' : 'Mute All' },
-            ].map(mode => (
-              <button
-                key={mode.id}
-                type="button"
-                onClick={() => setAlertFeedbackMode(mode.id as AlertFeedbackMode)}
-                className={`p-2.5 rounded-2xl border text-left flex flex-col justify-between transition ${
-                  alertFeedbackMode === mode.id 
-                    ? 'bg-cyan-600/20 border-cyan-500 text-cyan-200 shadow-md ring-1 ring-cyan-500/50' 
-                    : 'bg-slate-800/60 border-slate-700/80 text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                <span className="text-xs font-bold">{mode.title}</span>
-                <span className="text-[9.5px] opacity-75 mt-0.5">{mode.desc}</span>
-              </button>
-            ))}
+          <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-2xl text-[11px] text-amber-200 space-y-1">
+            <div className="font-bold flex items-center space-x-1.5 text-amber-300">
+              <ShieldCheck className="w-4 h-4" />
+              <span>নিরাপত্তা সুরক্ষা গাইড:</span>
+            </div>
+            <p className="leading-tight">
+              {language === 'bn' 
+                ? 'ইঞ্জিন লক/আনলক, সেটিংস পরিবর্তন এবং এসওএস নম্বর পরিবর্তনের জন্য এই ৪-ডিজিট পিন ভেরিফিকেশন বাধ্যতামূলক।' 
+                : 'This 4-digit PIN is strictly required before executing engine immobilizer or changing critical settings.'}
+            </p>
           </div>
         </div>
+      </div>
+    )}
 
+    {/* ========================================================================= */}
+    {/* CATEGORY 3: SOS EMERGENCY NUMBERS & ALARM FEEDBACK                        */}
+    {/* ========================================================================= */}
+    {activeCategory === 'sos' && (
+      <div className="space-y-4 animate-in fade-in">
         {/* 4. SOS Emergency Numbers Setup & Hardware Auto-Dial */}
         <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl space-y-3">
           <div className="flex items-center justify-between">
@@ -785,111 +821,339 @@ export const DeviceSettingsView: React.FC = () => {
           </div>
         </div>
 
-        {/* 5. Owner / Driver & Vehicle Info */}
+        {/* 3.5. Alert Notification & Feedback Mode Selector */}
         <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl space-y-3">
           <div className="flex items-center space-x-2">
-            <User className="w-4 h-4 text-blue-400" />
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-300">
-              {language === 'bn' ? '৫. গাড়ির নম্বর ও মালিকের তথ্য' : '5. Vehicle & Owner Details'}
+            <BellRing className="w-4 h-4 text-cyan-400" />
+            <span className="text-xs font-bold uppercase tracking-wider text-cyan-300">
+              {language === 'bn' ? '৩.৫. নোটিফিকেশন ও অ্যালার্ট ফিডব্যাক মোড' : '3.5. Alert Notification & Sound Mode'}
             </span>
           </div>
 
-          <div>
-            <label className="text-xs text-slate-300 block mb-1">
-              {language === 'bn' ? 'গাড়ির রেজিস্ট্রেশন নম্বর (Vehicle / Plate No)' : 'Vehicle / License Plate Number'}
-            </label>
-            <input
-              type="text"
-              value={plateNumber}
-              onChange={(e) => setPlateNumber(e.target.value)}
-              placeholder={language === 'bn' ? 'যেমন: ঢাকা মেট্রো ল-১২-৩৪৫৬' : 'e.g. Dhaka Metro LA-12-3456'}
-              className="w-full bg-slate-800 border border-slate-700 rounded-2xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-blue-500"
-            />
-          </div>
-
           <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="text-xs text-slate-400 block mb-1">
-                {language === 'bn' ? 'মালিক / চালকের নাম' : 'Owner / Driver Name'}
-              </label>
-              <input
-                type="text"
-                value={driverName}
-                onChange={(e) => setDriverName(e.target.value)}
-                placeholder={language === 'bn' ? 'নাম লিখুন' : 'Name'}
-                className="w-full bg-slate-800 border border-slate-700 rounded-2xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-blue-500"
-              />
-            </div>
-            <div>
-              <label className="text-xs text-slate-400 block mb-1">
-                {language === 'bn' ? 'চালকের ফোন নম্বর' : 'Phone Number'}
-              </label>
-              <input
-                type="tel"
-                value={driverPhone}
-                onChange={(e) => setDriverPhone(e.target.value)}
-                placeholder="+880 17XXXXXXXX"
-                className="w-full bg-slate-800 border border-slate-700 rounded-2xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-blue-500"
-              />
-            </div>
-          </div>
-
-          {/* Mandatory Family KYC for Emergency Rescue & Police Verification */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 border-t border-slate-800/80">
-            <div className="bg-slate-950 p-2.5 rounded-2xl border border-blue-500/30 space-y-1">
-              <label className="text-[11px] font-extrabold text-blue-300 flex items-center justify-between">
-                <span>👤 পিতার নাম (Father's Name) *</span>
-                <span className="text-[9px] text-amber-400 font-bold uppercase">বাধ্যতামূলক</span>
-              </label>
-              <input
-                type="text"
-                required
-                value={fatherName}
-                onChange={(e) => setFatherName(e.target.value)}
-                placeholder={language === 'bn' ? 'পিতার পুরো নাম লিখুন' : "Father's Full Name"}
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-blue-400"
-              />
-              <span className="text-[9px] text-slate-400 block">রেসকিউ হটলাইন ও পুলিশ জিডি ভেরিফিকেশনে ব্যবহৃত হবে</span>
-            </div>
-
-            <div className="bg-slate-950 p-2.5 rounded-2xl border border-blue-500/30 space-y-1">
-              <label className="text-[11px] font-extrabold text-blue-300 flex items-center justify-between">
-                <span>👤 মাতার নাম (Mother's Name) *</span>
-                <span className="text-[9px] text-amber-400 font-bold uppercase">বাধ্যতামূলক</span>
-              </label>
-              <input
-                type="text"
-                required
-                value={motherName}
-                onChange={(e) => setMotherName(e.target.value)}
-                placeholder={language === 'bn' ? 'মাতার পুরো নাম লিখুন' : "Mother's Full Name"}
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-blue-400"
-              />
-              <span className="text-[9px] text-slate-400 block">জরুরি মালিকানা ও রেসকিউ বাইপাসে প্রয়োজনীয়</span>
-            </div>
-          </div>
-
-          {/* Speed Limit */}
-          <div className="pt-2">
-            <div className="flex justify-between text-xs mb-1">
-              <span className="text-slate-400 flex items-center space-x-1">
-                <Gauge className="w-3.5 h-3.5 text-rose-400" />
-                <span>{language === 'bn' ? 'গতিসীমা অ্যালার্ট' : 'Overspeed Limit'}</span>
-              </span>
-              <span className="font-bold text-rose-400">{speedLimit} km/h</span>
-            </div>
-            <input
-              type="range"
-              min={40}
-              max={140}
-              step={5}
-              value={speedLimit}
-              onChange={(e) => setSpeedLimit(Number(e.target.value))}
-              className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-rose-500"
-            />
+            {[
+              { id: 'sound_vibration', title: language === 'bn' ? '🔊+📳 শব্দ ও ভাইব্রেশন' : '🔊+📳 Sound & Vibration', desc: language === 'bn' ? 'সবচেয়ে নিরাপদ' : 'Recommended' },
+              { id: 'only_sound', title: language === 'bn' ? '🔊 শুধু শব্দ' : '🔊 Only Sound', desc: language === 'bn' ? 'সাউন্ড অ্যালার্ম' : 'Audio Only' },
+              { id: 'only_vibration', title: language === 'bn' ? '📳 শুধু ভাইব্রেশন' : '📳 Only Vibration', desc: language === 'bn' ? 'নীরব কম্পন' : 'Silent Buzz' },
+              { id: 'sms_push', title: language === 'bn' ? '📩 এসএমএস ও পুশ' : '📩 SMS & Push', desc: language === 'bn' ? 'টেক্সট বার্তা' : 'Text Alert' },
+              { id: 'sms_sound_vibration', title: language === 'bn' ? '🚨 ফুল অ্যালার্ম' : '🚨 Full Alarm', desc: language === 'bn' ? 'এসএমএস+শব্দ+কম্পন' : 'SMS+Audio+Vibe' },
+              { id: 'silent', title: language === 'bn' ? '🔕 সম্পূর্ণ নীরব' : '🔕 Silent', desc: language === 'bn' ? 'কোনো শব্দ নেই' : 'Mute All' },
+            ].map(mode => (
+              <button
+                key={mode.id}
+                type="button"
+                onClick={() => setAlertFeedbackMode(mode.id as AlertFeedbackMode)}
+                className={`p-2.5 rounded-2xl border text-left flex flex-col justify-between transition ${
+                  alertFeedbackMode === mode.id 
+                    ? 'bg-cyan-600/20 border-cyan-500 text-cyan-200 shadow-md ring-1 ring-cyan-500/50' 
+                    : 'bg-slate-800/60 border-slate-700/80 text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <span className="text-xs font-bold">{mode.title}</span>
+                <span className="text-[9.5px] opacity-75 mt-0.5">{mode.desc}</span>
+              </button>
+            ))}
           </div>
         </div>
+      </div>
+    )}
 
+    {/* ========================================================================= */}
+    {/* CATEGORY 4: MULTI-GEOFENCES SAFE ZONE MANAGEMENT                         */}
+    {/* ========================================================================= */}
+    {activeCategory === 'geofence' && (
+      <div className="space-y-4 animate-in fade-in">
+        {/* 2. Multi-Geofences Safe Zone Management */}
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Shield className="w-4 h-4 text-indigo-400" />
+              <span className="text-xs font-bold uppercase tracking-wider text-indigo-300">
+                {language === 'bn' ? '২. জিওফেন্স সেফ জোন ম্যানেজমেন্ট' : '2. Multiple Safe Zones (Geofence)'}
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleOpenAddGeofence}
+              className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center space-x-1 shadow-md shadow-indigo-600/30 transition active:scale-95"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>{language === 'bn' ? 'নতুন জোন' : 'Add Zone'}</span>
+            </button>
+          </div>
+
+          <p className="text-[11px] text-slate-400">
+            {language === 'bn' ? 'একাধিক নিরাপদ জোন তৈরি ও ড্র্যাগ করে সেট করুন। এক বা একাধিক জোন একইসাথে সক্রিয় থাকতে পারে।' : 'Create & drag safe zones on map. Multiple zones can be active at the same time.'}
+          </p>
+
+          {/* List of Geofences */}
+          <div className="space-y-2 pt-1">
+            {geofences.length === 0 ? (
+              <div className="p-4 rounded-2xl bg-slate-800/40 border border-dashed border-slate-700 text-center text-xs text-slate-400">
+                {language === 'bn' ? 'কোনো জিওফেন্স তৈরি করা হয়নি। "নতুন জোন" চাপুন।' : 'No geofences created yet. Click "Add Zone".'}
+              </div>
+            ) : (
+              geofences.map((geo) => {
+                const isEnabled = (geo.attributes as any)?.enabled !== false;
+                return (
+                  <div 
+                    key={geo.id}
+                    className="p-3 bg-slate-800/70 border border-slate-700/80 rounded-2xl flex items-center justify-between shadow-inner"
+                  >
+                    <div className="flex items-center space-x-2.5 min-w-0">
+                      <div 
+                        className="w-3.5 h-3.5 rounded-full shrink-0 shadow-sm"
+                        style={{ backgroundColor: geo.attributes?.color || '#3b82f6' }}
+                      />
+                      <div className="min-w-0">
+                        <div className="text-xs font-bold text-slate-100 truncate">{geo.name}</div>
+                        <div className="text-[10px] text-slate-400 flex items-center space-x-2">
+                          <span>ব্যাসার্ধ: {geo.radius} মি</span>
+                          <span>•</span>
+                          <span className={isEnabled ? 'text-emerald-400 font-bold' : 'text-slate-500'}>
+                            {isEnabled ? (language === 'bn' ? 'সক্রিয়' : 'Active') : (language === 'bn' ? 'নিষ্ক্রিয়' : 'Disabled')}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => toggleGeofence(geo.id)}
+                        className={`px-2.5 py-1 rounded-xl text-[10px] font-bold border transition ${
+                          isEnabled 
+                            ? 'bg-emerald-600/20 border-emerald-500/40 text-emerald-300' 
+                            : 'bg-slate-800 border-slate-700 text-slate-400'
+                        }`}
+                      >
+                        {isEnabled ? (language === 'bn' ? 'চালু' : 'ON') : (language === 'bn' ? 'বন্ধ' : 'OFF')}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEditGeofence(geo)}
+                        className="p-1.5 rounded-xl bg-slate-750 hover:bg-slate-700 text-slate-300 border border-slate-700"
+                        title="Edit Zone"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => deleteGeofence(geo.id)}
+                        className="p-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30"
+                        title="Delete Zone"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* ========================================================================= */}
+    {/* CATEGORY 5: EARN & REWARDS (REFERRAL & CASHBACK)                         */}
+    {/* ========================================================================= */}
+    {activeCategory === 'earn' && (
+      <div className="space-y-4 animate-in fade-in">
+        <div className="bg-gradient-to-br from-purple-950/70 via-slate-900 to-indigo-950/70 border border-purple-500/50 rounded-3xl p-4 shadow-2xl space-y-3.5">
+          <div className="flex items-center justify-between border-b border-purple-500/30 pb-2">
+            <div className="flex items-center space-x-2">
+              <Gift className="w-5 h-5 text-purple-400" />
+              <span className="text-xs font-black uppercase tracking-wider text-purple-200">
+                {language === 'bn' ? '🎁 রেফার করুন ও ক্যাশব্যাক আর্ন করুন' : 'Referral & Cashback Rewards'}
+              </span>
+            </div>
+            <span className="text-[9.5px] font-mono bg-purple-500/20 text-purple-300 border border-purple-500/40 px-2 py-0.5 rounded-full font-bold">
+              EARN REWARDS
+            </span>
+          </div>
+
+          {/* 2-Way Reward Explain Banner */}
+          <div className="grid grid-cols-2 gap-2">
+            <div className="bg-purple-950/70 border border-purple-500/40 p-3 rounded-2xl space-y-1">
+              <span className="text-[9px] bg-purple-500/20 text-purple-300 font-bold px-1.5 py-0.2 rounded font-mono">
+                আপনি পাচ্ছেন
+              </span>
+              <div className="text-base font-black text-white">৳১০০ / ১ মাস</div>
+              <p className="text-[10px] text-slate-300 leading-tight">
+                প্রতি সফল ইনস্টলেশনে ৳১০০ ক্যাশব্যাক বা ১ মাস ফ্রি সাবস্ক্রিপশন
+              </p>
+            </div>
+
+            <div className="bg-emerald-950/70 border border-emerald-500/40 p-3 rounded-2xl space-y-1">
+              <span className="text-[9px] bg-emerald-500/20 text-emerald-300 font-bold px-1.5 py-0.2 rounded font-mono">
+                আপনার বন্ধু পাচ্ছে
+              </span>
+              <div className="text-base font-black text-emerald-300">৳১০০ ছাড়</div>
+              <p className="text-[10px] text-slate-300 leading-tight">
+                রেফারেল কোড বসিয়ে অর্ডার করলেই পাচ্ছেন ইনস্ট্যান্ট ৳১০০ ডিসকাউন্ট
+              </p>
+            </div>
+          </div>
+
+          {/* Customer's Referral Code & Dynamic Link Card */}
+          <div className="bg-slate-950 p-3.5 rounded-2xl border border-purple-500/40 space-y-2">
+            <div className="text-[11px] font-bold text-slate-300 flex items-center justify-between">
+              <span>আপনার ইউনিক রেফারেল কোড:</span>
+              <span className="text-[10px] text-purple-400 font-mono">লাইফটাইম সক্রিয়</span>
+            </div>
+
+            <div className="bg-slate-900 border border-purple-500/50 rounded-xl py-2 px-3 text-center font-mono font-black text-base text-purple-300 tracking-wider">
+              {`EASY-${selectedDevice.id.toString().padStart(4, '0')}`}
+            </div>
+
+            <div className="flex space-x-2 pt-0.5">
+              <button
+                type="button"
+                onClick={() => {
+                  const code = `EASY-${selectedDevice.id.toString().padStart(4, '0')}`;
+                  if (typeof navigator !== 'undefined' && navigator.clipboard) {
+                    navigator.clipboard.writeText(code);
+                    alert(`✅ রেফারেল কোড "${code}" কপি হয়েছে!`);
+                  }
+                }}
+                className="flex-1 py-2 rounded-xl bg-purple-600/80 hover:bg-purple-600 text-white font-bold text-xs flex items-center justify-center space-x-1.5 transition active:scale-95 shadow-md shadow-purple-600/20"
+              >
+                <Copy className="w-3.5 h-3.5" />
+                <span>কোড কপি</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const code = `EASY-${selectedDevice.id.toString().padStart(4, '0')}`;
+                  const base = APP_CONFIG.referralBaseUrl || APP_CONFIG.website || (typeof window !== 'undefined' ? window.location.origin : 'https://easytracker.net');
+                  const link = `${base.replace(/\/$/, '')}/?ref=${code}`;
+                  if (typeof navigator !== 'undefined' && navigator.clipboard) {
+                    navigator.clipboard.writeText(link);
+                    alert(`🔗 ডায়নামিক রেফারেল লিংক কপি হয়েছে:\n${link}`);
+                  }
+                }}
+                className="flex-1 py-2 rounded-xl bg-indigo-600/80 hover:bg-indigo-600 text-white font-bold text-xs flex items-center justify-center space-x-1.5 transition active:scale-95 shadow-md shadow-indigo-600/20"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                <span>লিংক কপি</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Live Stats Counter */}
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <div className="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+              <span className="text-[9.5px] text-slate-400 block">মোট রেফারেল</span>
+              <span className="text-base font-mono font-black text-white mt-0.5 block">৩ জন</span>
+            </div>
+            <div className="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+              <span className="text-[9.5px] text-slate-400 block">অর্জিত ক্যাশব্যাক</span>
+              <span className="text-base font-mono font-black text-emerald-400 mt-0.5 block">৳৩০০</span>
+            </div>
+            <div className="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+              <span className="text-[9.5px] text-slate-400 block">ফ্রি সাবস্ক্রিপশন</span>
+              <span className="text-base font-mono font-black text-purple-400 mt-0.5 block">৩ মাস</span>
+            </div>
+          </div>
+
+          {/* 1-Click WhatsApp & Facebook Share */}
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            <button
+              type="button"
+              onClick={() => {
+                const code = `EASY-${selectedDevice.id.toString().padStart(4, '0')}`;
+                const base = APP_CONFIG.referralBaseUrl || APP_CONFIG.website || (typeof window !== 'undefined' ? window.location.origin : 'https://easytracker.net');
+                const link = `${base.replace(/\/$/, '')}/?ref=${code}`;
+                const msg = `*🚗 EasyTracker GPS Tracker Special Offer!*\n\nআমার ডায়নামিক রেফারেল লিংক ব্যবহার করে নতুন ট্র্যাকার বা সাবস্ক্রিপশন কিনলেই পাচ্ছেন ৳১০০ নগদ ছাড় ও ফ্রি ডোরস্টেপ ইনস্টলেশন!\n\nঅর্ডার করতে ভিজিট করুন: ${link}`;
+                const waUrl = `https://wa.me/?text=${encodeURIComponent(msg)}`;
+                if (typeof window !== 'undefined') window.open(waUrl, '_blank');
+              }}
+              className="py-2.5 px-2 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center justify-center space-x-1.5 shadow-lg shadow-emerald-600/30 transition active:scale-95"
+            >
+              <span>💬 হোয়াটসঅ্যাপ</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                const code = `EASY-${selectedDevice.id.toString().padStart(4, '0')}`;
+                const base = APP_CONFIG.referralBaseUrl || APP_CONFIG.website || (typeof window !== 'undefined' ? window.location.origin : 'https://easytracker.net');
+                const link = `${base.replace(/\/$/, '')}/?ref=${code}`;
+                const quote = `🚗 EasyTracker GPS Tracker Special Offer! আমার রেফারেল লিংক থেকে নতুন ট্র্যাকার বা সাবস্ক্রিপশন নিলেই পাচ্ছেন ৳১০০ নগদ ছাড়!`;
+                const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(link)}&quote=${encodeURIComponent(quote)}`;
+                if (typeof window !== 'undefined') window.open(fbUrl, '_blank');
+              }}
+              className="py-2.5 px-2 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black text-xs flex items-center justify-center space-x-1.5 shadow-lg shadow-blue-600/30 transition active:scale-95"
+            >
+              <span>🌐 ফেসবুক শেয়ার</span>
+            </button>
+          </div>
+
+          {/* 3-Way Cashback Redemption Options */}
+          <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-3 space-y-2">
+            <div className="text-[11px] font-bold text-slate-300 flex items-center justify-between">
+              <span>💰 আপনার ক্যাশব্যাক রিডিম / ব্যবহারের উপায়:</span>
+              <span className="text-[10px] text-emerald-400 font-bold">ব্যালেন্স: ৳৩০০</span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  alert('🔄 আপনার ৳৩০০ ক্যাশব্যাক পরবর্তী সাবস্ক্রিপশন রিনিউয়ালে সফলভাবে অ্যাডজাস্ট করা হয়েছে!');
+                }}
+                className="p-2 rounded-xl bg-slate-900 hover:bg-slate-850 border border-slate-700 hover:border-emerald-500/50 text-left transition active:scale-95 space-y-1"
+              >
+                <div className="flex items-center space-x-1 text-emerald-400 text-[10.5px] font-extrabold">
+                  <CreditCard className="w-3 h-3" />
+                  <span>সাবস্ক্রিপশন রিনিউ</span>
+                </div>
+                <p className="text-[9px] text-slate-400 leading-tight">পরবর্তী মাসের বিলে ৳১০০/৳৩০০ ছাড়</p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setIsDeviceStoreOpen(true);
+                }}
+                className="p-2 rounded-xl bg-slate-900 hover:bg-slate-850 border border-slate-700 hover:border-purple-500/50 text-left transition active:scale-95 space-y-1"
+              >
+                <div className="flex items-center space-x-1 text-purple-400 text-[10.5px] font-extrabold">
+                  <ShoppingBag className="w-3 h-3" />
+                  <span>নতুন ট্র্যাকার ক্রয়</span>
+                </div>
+                <p className="text-[9px] text-slate-400 leading-tight">স্টোর ক্রয়ে ক্যাশব্যাক ব্যবহার</p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  alert('💸 বিকাশ/নগদে ৳৩০০ ক্যাশআউট রিকোয়েস্ট গ্রহণ করা হয়েছে! ২৪ ঘণ্টার মধ্যে আপনার নম্বরে পাঠানো হবে।');
+                }}
+                className="p-2 rounded-xl bg-slate-900 hover:bg-slate-850 border border-slate-700 hover:border-amber-500/50 text-left transition active:scale-95 space-y-1"
+              >
+                <div className="flex items-center space-x-1 text-amber-400 text-[10.5px] font-extrabold">
+                  <DollarSign className="w-3 h-3" />
+                  <span>ক্যাশআউট রিকোয়েস্ট</span>
+                </div>
+                <p className="text-[9px] text-slate-400 leading-tight">বিকাশ/নগদ ওয়ালেটে সরাসরি টাকা</p>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* ========================================================================= */}
+    {/* CATEGORY 6: POLICIES, WARRANTY, 24/7 HELPLINE & LEGAL                      */}
+    {/* ========================================================================= */}
+    {activeCategory === 'policies' && (
+      <div className="space-y-4 animate-in fade-in">
         {/* 🚨 24/7 Red-Line Emergency Rescue & Hijack Helpline Card */}
         <div className="bg-gradient-to-br from-rose-950 via-slate-900 to-slate-900 border-2 border-rose-500 rounded-3xl p-4 shadow-2xl shadow-rose-950/60 space-y-3">
           <div className="flex items-center justify-between border-b border-rose-500/30 pb-2">
@@ -999,6 +1263,8 @@ export const DeviceSettingsView: React.FC = () => {
             <span>{language === 'bn' ? '⚠️ অ্যাকাউন্ট ও ডেটা ডিলিটেশন অনুরোধ (পিন আবশ্যক)' : '⚠️ Request Account & Data Deletion (PIN Required)'}</span>
           </button>
         </div>
+      </div>
+    )}
 
         {saveSuccess && (
           <div className="p-3 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-semibold flex items-center space-x-2 animate-in fade-in duration-150">
