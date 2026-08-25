@@ -159,8 +159,8 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
   const RoleIcon = roleInfo.icon;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-3 animate-in fade-in duration-150 select-none overflow-y-auto">
-      <div className="bg-slate-900 border border-slate-700/90 rounded-3xl max-w-sm w-full shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-2 sm:p-4 animate-in fade-in duration-150 select-none overflow-y-auto">
+      <div className="bg-slate-900 border border-slate-700/90 rounded-3xl w-full max-w-full sm:max-w-md md:max-w-2xl lg:max-w-3xl shadow-2xl overflow-hidden flex flex-col max-h-[94vh]">
         
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-slate-800 shrink-0 bg-slate-850">

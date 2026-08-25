@@ -236,9 +236,10 @@ export const DeviceSettingsView: React.FC = () => {
   };
 
   return (
-    <div className="w-full h-full flex flex-col bg-slate-950 text-slate-100 overflow-y-auto p-4 space-y-4 pb-24 select-none">
-      {/* Top Header with Back Button */}
-      <div className="flex items-center justify-between bg-slate-900/90 border border-slate-800 p-3 rounded-2xl shadow-md">
+    <div className="w-full h-full flex flex-col bg-slate-950 text-slate-100 overflow-y-auto p-3 sm:p-4 pb-24 select-none">
+      <div className="max-w-5xl mx-auto w-full space-y-4">
+        {/* Top Header with Back Button */}
+        <div className="flex items-center justify-between bg-slate-900/90 border border-slate-800 p-3 rounded-2xl shadow-md">
         <div className="flex items-center space-x-2.5">
           <button
             onClick={() => setActiveTab('map')}
@@ -1581,6 +1582,7 @@ export const DeviceSettingsView: React.FC = () => {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };
