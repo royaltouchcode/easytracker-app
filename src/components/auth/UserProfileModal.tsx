@@ -15,7 +15,19 @@ import {
   Sparkles,
   AlertTriangle,
   RefreshCcw,
-  FileText
+  FileText,
+  Briefcase,
+  Wrench,
+  Headphones,
+  Flame,
+  Building2,
+  MapPin,
+  Smartphone,
+  Check,
+  ChevronRight,
+  Receipt,
+  Layers,
+  Crown
 } from 'lucide-react';
 import { getAppConfig } from '../../config/appConfig';
 import { RenewSubscriptionModal } from '../subscription/RenewSubscriptionModal';
@@ -26,7 +38,6 @@ import { RefundPolicyModal } from '../compliance/RefundPolicyModal';
 import { CustomerWarrantyModal } from '../warranty/CustomerWarrantyModal';
 import { CustomerSupportModal } from '../support/CustomerSupportModal';
 import { PaidServiceBookingModal } from '../support/PaidServiceBookingModal';
-import { Headphones, Receipt } from 'lucide-react';
 
 interface UserProfileModalProps {
   isOpen: boolean;
@@ -34,7 +45,18 @@ interface UserProfileModalProps {
 }
 
 export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onClose }) => {
-  const { user, logout, devices, selectedDevice, language, currentRole, approvedPartners } = useApp();
+  const { 
+    user, 
+    logout, 
+    devices, 
+    selectedDevice, 
+    language, 
+    currentRole, 
+    approvedPartners,
+    setActiveTab,
+    setCurrentRole
+  } = useApp();
+
   const appConfig = getAppConfig();
   
   const [isRenewOpen, setIsRenewOpen] = useState(false);
@@ -50,10 +72,6 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
     return localStorage.getItem(`gps_subscription_cancelled_${selectedDevice?.id}`) === 'true';
   });
 
-  const isCustomerRole = currentRole === 'customer';
-  const isPartnerRole = currentRole === 'partner';
-  const isStaffRole = ['sales', 'technician', 'support', 'rescue', 'super_admin'].includes(currentRole);
-
   const partnerProfile = approvedPartners.find(p => 
     p.partnerId === user?.partnerId || 
     p.assignedUsername?.toLowerCase() === user?.email?.toLowerCase() ||
@@ -62,20 +80,84 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
 
   if (!isOpen) return null;
 
+  // Role Metadata for Staff / Partner
+  const getRoleHeaderInfo = () => {
+    switch (currentRole) {
+      case 'partner':
+        return {
+          titleBn: 'অথোরাইজড ফ্র্যাঞ্চাইজি পার্টনার',
+          titleEn: 'Authorized Franchise Partner',
+          icon: Building2,
+          color: 'from-purple-600 to-indigo-600',
+          badgeColor: 'bg-purple-500/20 text-purple-300 border-purple-500/40'
+        };
+      case 'sales':
+        return {
+          titleBn: 'সেলস ও অনবোর্ডিং এক্সিকিউটিভ',
+          titleEn: 'Sales & Onboarding Executive',
+          icon: Briefcase,
+          color: 'from-blue-600 to-indigo-600',
+          badgeColor: 'bg-blue-500/20 text-blue-300 border-blue-500/40'
+        };
+      case 'technician':
+        return {
+          titleBn: 'ফিল্ড ওয়্যারিং ও টেকনিক্যাল ইঞ্জিনিয়ার',
+          titleEn: 'Field Wiring & Technical Engineer',
+          icon: Wrench,
+          color: 'from-amber-600 to-orange-600',
+          badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+        };
+      case 'support':
+        return {
+          titleBn: 'কাস্টমার কেয়ার ও হেল্পডেস্ক স্পেশালিস্ট',
+          titleEn: 'Customer Care & Support Specialist',
+          icon: Headphones,
+          color: 'from-sky-600 to-blue-600',
+          badgeColor: 'bg-sky-500/20 text-sky-300 border-sky-500/40'
+        };
+      case 'rescue':
+        return {
+          titleBn: 'ইমার্জেন্সি রেসকিউ ও রিকভারি অফিসার',
+          titleEn: 'Emergency Rescue & Recovery Officer',
+          icon: Flame,
+          color: 'from-rose-600 to-red-600',
+          badgeColor: 'bg-rose-500/20 text-rose-300 border-rose-500/40'
+        };
+      case 'super_admin':
+        return {
+          titleBn: 'সুপার অ্যাডমিনিস্ট্রেটর',
+          titleEn: 'Super Administrator',
+          icon: Crown,
+          color: 'from-amber-500 to-yellow-600',
+          badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+        };
+      default:
+        return {
+          titleBn: 'রেজিস্টার্ড ভেহিকেল ওনার',
+          titleEn: 'Registered Vehicle Owner',
+          icon: User,
+          color: 'from-blue-600 to-cyan-600',
+          badgeColor: 'bg-blue-500/20 text-blue-300 border-blue-500/40'
+        };
+    }
+  };
+
+  const roleInfo = getRoleHeaderInfo();
+  const RoleIcon = roleInfo.icon;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-3 animate-in fade-in duration-150 select-none overflow-y-auto">
-      <div className="bg-slate-900 border border-slate-700/90 rounded-3xl max-w-sm w-full shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="bg-slate-900 border border-slate-700/90 rounded-3xl max-w-sm w-full shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
         
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-slate-800 shrink-0 bg-slate-850">
           <div className="flex items-center space-x-2.5">
-            <div className="w-9 h-9 rounded-2xl bg-blue-600/30 border border-blue-500/40 flex items-center justify-center text-blue-300 shadow-md">
-              <User className="w-5 h-5" />
+            <div className={`w-10 h-10 rounded-2xl bg-gradient-to-tr ${roleInfo.color} flex items-center justify-center text-white shadow-lg shrink-0`}>
+              <RoleIcon className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-extrabold text-sm text-slate-100">
-                {user?.name || 'User Account'}
+              <h3 className="font-extrabold text-sm text-slate-100 flex items-center space-x-1.5">
+                <span>{user?.name || 'User Account'}</span>
               </h3>
               <p className="text-[10.5px] text-slate-400 font-mono">
                 {user?.email || 'user@easytracker.com'}
@@ -94,17 +176,32 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
         {/* Modal Body */}
         <div className="p-4 space-y-3.5 overflow-y-auto">
           
-          {/* 1. If Partner Role: Show B2B Franchise & Slot Quota Details (NO consumer subscription fee) */}
-          {isPartnerRole && (
-            <div className="bg-gradient-to-br from-indigo-950/70 via-slate-900 to-slate-900 border border-indigo-500/40 rounded-2xl p-3.5 shadow-xl space-y-2.5">
+          {/* Active Operating Role Badge */}
+          <div className="flex items-center justify-between p-2.5 rounded-2xl bg-slate-950 border border-slate-800">
+            <div className="flex items-center space-x-2">
+              <RoleIcon className="w-4 h-4 text-indigo-400" />
+              <span className="text-xs font-bold text-slate-200">
+                {language === 'bn' ? roleInfo.titleBn : roleInfo.titleEn}
+              </span>
+            </div>
+            <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${roleInfo.badgeColor}`}>
+              {currentRole}
+            </span>
+          </div>
+
+          {/* ========================================================================= */}
+          {/* 1. BUSINESS PARTNER PROFILE CARD                                          */}
+          {/* ========================================================================= */}
+          {currentRole === 'partner' && (
+            <div className="bg-gradient-to-br from-purple-950/70 via-slate-900 to-slate-900 border border-purple-500/40 rounded-2xl p-3.5 shadow-xl space-y-2.5">
               <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-1.5 text-indigo-300">
-                  <Building2 className="w-4 h-4 text-indigo-400" />
+                <div className="flex items-center space-x-1.5 text-purple-300">
+                  <Building2 className="w-4 h-4 text-purple-400" />
                   <span className="text-xs font-bold uppercase tracking-wider">
                     {language === 'bn' ? 'ফ্র্যাঞ্চাইজি বিজনেস প্রোফাইল' : 'Franchise Partner Profile'}
                   </span>
                 </div>
-                <span className="px-2 py-0.5 rounded-full bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 font-extrabold text-[9.5px]">
+                <span className="px-2 py-0.5 rounded-full bg-purple-500/20 border border-purple-500/40 text-purple-300 font-extrabold text-[9.5px]">
                   {partnerProfile?.serviceTier === 'all_inclusive' ? '🌟 All-Inclusive' : '🏢 Dealer Network'}
                 </span>
               </div>
@@ -124,14 +221,241 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-slate-400">দোকানের অবস্থান:</span>
-                  <span className="font-bold text-emerald-300 truncate max-w-[150px]">{partnerProfile?.district || 'ঢাকা'}</span>
+                  <span className="font-bold text-emerald-300 truncate max-w-[150px]">{partnerProfile?.shopName || partnerProfile?.district || 'উত্তরা, ঢাকা'}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">লোকেশন স্ট্যাটাস:</span>
+                  <span className="text-emerald-400 font-bold flex items-center space-x-1">
+                    <CheckCircle2 className="w-3 h-3" />
+                    <span>ভেরিফাইড</span>
+                  </span>
                 </div>
               </div>
+
+              <button
+                onClick={() => {
+                  onClose();
+                  setActiveTab('saas_partner');
+                }}
+                className="w-full py-2 px-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs flex items-center justify-center space-x-1.5 shadow-md shadow-purple-600/30 transition active:scale-95"
+              >
+                <Building2 className="w-3.5 h-3.5" />
+                <span>পার্টনার ড্যাশবোর্ডে প্রবেশ করুন</span>
+              </button>
             </div>
           )}
 
-          {/* 2. If Customer Role: Show Consumer Subscription & Billing Card */}
-          {isCustomerRole && (
+          {/* ========================================================================= */}
+          {/* 2. SALES EXECUTIVE PROFILE CARD                                           */}
+          {/* ========================================================================= */}
+          {currentRole === 'sales' && (
+            <div className="bg-gradient-to-br from-blue-950/70 via-slate-900 to-slate-900 border border-blue-500/40 rounded-2xl p-3.5 shadow-xl space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-1.5 text-blue-300">
+                  <Briefcase className="w-4 h-4 text-blue-400" />
+                  <span className="text-xs font-bold uppercase tracking-wider">সেলস অনবোর্ডিং প্রোফাইল</span>
+                </div>
+                <span className="px-2 py-0.5 rounded-full bg-blue-500/20 border border-blue-500/40 text-blue-300 font-extrabold text-[9.5px]">
+                  ফিল্ড সেলস
+                </span>
+              </div>
+
+              <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-2.5 space-y-1.5 text-xs">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">কর্মরত শাখা / শপ:</span>
+                  <span className="font-bold text-white truncate max-w-[150px]">{user?.shopName || 'উত্তরা ফ্র্যাঞ্চাইজি হাব'}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">অ্যাক্টিভেশন কমিশন:</span>
+                  <span className="font-mono font-bold text-emerald-400">৳ ৫০০ / ডিভাইস</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">অনবোর্ড পারমিশন:</span>
+                  <span className="text-emerald-400 font-bold">সক্রিয় (IMEI + SIM)</span>
+                </div>
+              </div>
+
+              <button
+                onClick={() => {
+                  onClose();
+                  setActiveTab('saas_sales');
+                }}
+                className="w-full py-2 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center justify-center space-x-1.5 shadow-md shadow-blue-600/30 transition active:scale-95"
+              >
+                <Briefcase className="w-3.5 h-3.5" />
+                <span>সেলস পোর্টাল ওপেন করুন</span>
+              </button>
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* 3. FIELD TECHNICIAN PROFILE CARD                                          */}
+          {/* ========================================================================= */}
+          {currentRole === 'technician' && (
+            <div className="bg-gradient-to-br from-amber-950/70 via-slate-900 to-slate-900 border border-amber-500/40 rounded-2xl p-3.5 shadow-xl space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-1.5 text-amber-300">
+                  <Wrench className="w-4 h-4 text-amber-400" />
+                  <span className="text-xs font-bold uppercase tracking-wider">টেকনিশিয়ান সার্ভিস হাব</span>
+                </div>
+                <span className="px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 font-extrabold text-[9.5px]">
+                  সার্টিফাইড ইঞ্জিনিয়ার
+                </span>
+              </div>
+
+              <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-2.5 space-y-1.5 text-xs">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">সার্ভিস পয়েন্ট:</span>
+                  <span className="font-bold text-white truncate max-w-[150px]">{user?.shopName || 'উত্তরা ওয়্যারিং সেন্টার'}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">ওয়্যারিং টেস্ট টুলস:</span>
+                  <span className="text-emerald-400 font-bold">12V • ACC • Relay • GPS</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">ওয়ারেন্টি RMA হ্যান্ডলিং:</span>
+                  <span className="text-sky-300 font-bold">সক্রিয়</span>
+                </div>
+              </div>
+
+              <button
+                onClick={() => {
+                  onClose();
+                  setActiveTab('saas_technician');
+                }}
+                className="w-full py-2 px-3 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs flex items-center justify-center space-x-1.5 shadow-md shadow-amber-600/30 transition active:scale-95"
+              >
+                <Wrench className="w-3.5 h-3.5" />
+                <span>টেকনিশিয়ান ওয়ার্ক-অর্ডার হাবে যান</span>
+              </button>
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* 4. CUSTOMER SUPPORT PROFILE CARD                                          */}
+          {/* ========================================================================= */}
+          {currentRole === 'support' && (
+            <div className="bg-gradient-to-br from-sky-950/70 via-slate-900 to-slate-900 border border-sky-500/40 rounded-2xl p-3.5 shadow-xl space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-1.5 text-sky-300">
+                  <Headphones className="w-4 h-4 text-sky-400" />
+                  <span className="text-xs font-bold uppercase tracking-wider">সাপোর্ট ও টিকিট কেয়ার</span>
+                </div>
+                <span className="px-2 py-0.5 rounded-full bg-sky-500/20 border border-sky-500/40 text-sky-300 font-extrabold text-[9.5px]">
+                  ২৪/৭ হেল্পডেস্ক
+                </span>
+              </div>
+
+              <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-2.5 space-y-1.5 text-xs">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">টিকিট ম্যানেজমেন্ট:</span>
+                  <span className="text-emerald-400 font-bold">সক্রিয় ও লাইভ</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">টেকনিশিয়ান ডিসপ্যাচ:</span>
+                  <span className="text-sky-300 font-bold">অনুমোদিত</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">গড় সমাধান হার:</span>
+                  <span className="font-mono text-emerald-400 font-bold">৯৮.৫%</span>
+                </div>
+              </div>
+
+              <button
+                onClick={() => {
+                  onClose();
+                  setActiveTab('saas_support');
+                }}
+                className="w-full py-2 px-3 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs flex items-center justify-center space-x-1.5 shadow-md shadow-sky-600/30 transition active:scale-95"
+              >
+                <Headphones className="w-3.5 h-3.5" />
+                <span>সাপোর্ট টিকিট ডেস্কে যান</span>
+              </button>
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* 5. RESCUE SOS FORCE PROFILE CARD                                          */}
+          {/* ========================================================================= */}
+          {currentRole === 'rescue' && (
+            <div className="bg-gradient-to-br from-rose-950/70 via-slate-900 to-slate-900 border border-rose-500/40 rounded-2xl p-3.5 shadow-xl space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-1.5 text-rose-300">
+                  <Flame className="w-4 h-4 text-rose-400" />
+                  <span className="text-xs font-bold uppercase tracking-wider">রেসকিউ ও রিকভারি কমান্ড</span>
+                </div>
+                <span className="px-2 py-0.5 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 font-extrabold text-[9.5px]">
+                  ইমার্জেন্সি ফোর্স
+                </span>
+              </div>
+
+              <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-2.5 space-y-1.5 text-xs">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">ইমার্জেন্সি ইঞ্জিন কাটঅফ:</span>
+                  <span className="text-rose-400 font-bold">অনুমোদিত (Security Safe)</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">ইন্টারসেপ্ট ম্যাপ ট্র্যাকিং:</span>
+                  <span className="text-emerald-400 font-bold">লাইভ সিঙ্ক</span>
+                </div>
+              </div>
+
+              <button
+                onClick={() => {
+                  onClose();
+                  setActiveTab('saas_rescue');
+                }}
+                className="w-full py-2 px-3 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs flex items-center justify-center space-x-1.5 shadow-md shadow-rose-600/30 transition active:scale-95"
+              >
+                <Flame className="w-3.5 h-3.5" />
+                <span>রেসকিউ কমান্ড সেন্টারে যান</span>
+              </button>
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* 6. SUPER ADMIN PROFILE CARD                                               */}
+          {/* ========================================================================= */}
+          {currentRole === 'super_admin' && (
+            <div className="bg-gradient-to-br from-amber-950/70 via-slate-900 to-slate-900 border border-amber-500/40 rounded-2xl p-3.5 shadow-xl space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-1.5 text-amber-300">
+                  <Crown className="w-4 h-4 text-amber-400" />
+                  <span className="text-xs font-bold uppercase tracking-wider">সুপার অ্যাডমিন কন্ট্রোল</span>
+                </div>
+                <span className="px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 font-extrabold text-[9.5px]">
+                  Master Control
+                </span>
+              </div>
+
+              <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-2.5 space-y-1.5 text-xs">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">ক্লাস্টার সার্ভার সিঙ্ক:</span>
+                  <span className="text-emerald-400 font-bold">সক্রিয়</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">অনুমোদিত ফ্র্যাঞ্চাইজি:</span>
+                  <span className="font-mono font-bold text-purple-300">{approvedPartners.length} টি</span>
+                </div>
+              </div>
+
+              <button
+                onClick={() => {
+                  onClose();
+                  setActiveTab('saas_admin');
+                }}
+                className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 text-white font-bold text-xs flex items-center justify-center space-x-1.5 shadow-md shadow-amber-600/30 transition active:scale-95"
+              >
+                <Crown className="w-3.5 h-3.5" />
+                <span>মাস্টার অ্যাডমিন প্যানেলে যান</span>
+              </button>
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* 7. CUSTOMER / VEHICLE OWNER SUBSCRIPTION & BILLING CARD                   */}
+          {/* ========================================================================= */}
+          {currentRole === 'customer' && (
             <div className="bg-gradient-to-br from-indigo-950/70 via-slate-900 to-slate-900 border border-indigo-500/40 rounded-2xl p-3.5 shadow-xl space-y-2.5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-1.5 text-indigo-300">
@@ -197,22 +521,8 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
             </div>
           )}
 
-          {/* 3. If Staff / Admin Role: Show Staff Profile */}
-          {isStaffRole && !isPartnerRole && !isCustomerRole && (
-            <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-3 space-y-2 text-xs">
-              <div className="flex justify-between items-center">
-                <span className="text-slate-400">অপারেটিং রোল:</span>
-                <span className="font-bold text-indigo-300 uppercase">{currentRole}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-slate-400">অনুমোদিত রোলসমূহ:</span>
-                <span className="text-[10px] font-mono text-emerald-400">{user?.approvedRoles?.join(', ') || currentRole}</span>
-              </div>
-            </div>
-          )}
-
-          {/* Device Warranty & RMA Claims Card (For Tracked Vehicle Customers) */}
-          {isCustomerUser && selectedDevice && (
+          {/* Customer Warranty & RMA Claims Card (Only for Customer role) */}
+          {currentRole === 'customer' && selectedDevice && (
             <div className="bg-slate-800/60 border border-emerald-500/40 rounded-2xl p-3 space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-1.5 text-emerald-300">
@@ -236,8 +546,8 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
             </div>
           )}
 
-          {/* Customer Support & Helpdesk Tickets Card */}
-          {isCustomerUser && (
+          {/* Customer Support & Helpdesk Tickets Card (Only for Customer role) */}
+          {currentRole === 'customer' && (
             <div className="bg-slate-800/60 border border-sky-500/40 rounded-2xl p-3 space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-1.5 text-sky-300">
@@ -261,31 +571,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
             </div>
           )}
 
-          {/* Paid Maintenance & Rate-Card Hub Card */}
-          {isCustomerUser && (
-            <div className="bg-slate-800/60 border border-amber-500/40 rounded-2xl p-3 space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-1.5 text-amber-300">
-                  <Receipt className="w-4 h-4 text-amber-400" />
-                  <span className="text-xs font-bold">
-                    {language === 'bn' ? 'পেইড মেইনটেন্যান্স ও রেট-কার্ড হাব' : 'Paid Maintenance & Rate-Card'}
-                  </span>
-                </div>
-                <span className="text-[9.5px] font-bold text-amber-300 bg-amber-950 px-2 py-0.5 rounded-full border border-amber-700">
-                  স্বচ্ছ রেট
-                </span>
-              </div>
-
-              <button
-                onClick={() => setIsPaidServiceOpen(true)}
-                className="w-full py-2 px-3 rounded-xl bg-amber-600/30 hover:bg-amber-600/50 border border-amber-500/50 text-amber-300 font-bold text-[11px] flex items-center justify-center space-x-1.5 transition active:scale-95 shadow-sm"
-              >
-                <Receipt className="w-3.5 h-3.5" />
-                <span>{language === 'bn' ? 'রেট-কার্ড দেখুন ও জব-কার্ড বুক করুন' : 'View Rates & Book Job-Card'}</span>
-              </button>
-            </div>
-          )}
-
+          {/* Security Command PIN (Available for All Roles) */}
           <div className="bg-slate-800/60 border border-slate-700/80 rounded-2xl p-3 space-y-2">
             <div className="flex items-center space-x-1.5 text-slate-300">
               <KeyRound className="w-4 h-4 text-amber-400" />
@@ -303,17 +589,16 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
             </button>
           </div>
 
-          {/* Direct Support Contacts */}
+          {/* Direct Support Contacts & Logout */}
           <div className="space-y-1.5 pt-1">
             <a
               href={`tel:${appConfig.supportPhone}`}
               className="w-full py-2 px-3 rounded-xl bg-slate-800/80 hover:bg-slate-750 border border-slate-700 text-slate-300 font-bold text-xs flex items-center justify-center space-x-2 transition"
             >
               <Phone className="w-3.5 h-3.5 text-blue-400" />
-              <span>{language === 'bn' ? `হেল্পলাইনে কল করুন (${appConfig.supportPhone})` : `Call Support (${appConfig.supportPhone})`}</span>
+              <span>{language === 'bn' ? `সেন্ট্রাল হেল্পলাইন (${appConfig.supportPhone})` : `Central Support (${appConfig.supportPhone})`}</span>
             </a>
 
-            {/* Logout Button */}
             <button
               onClick={() => {
                 onClose();
@@ -325,6 +610,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
               <span>{language === 'bn' ? 'লগআউট করুন (Logout)' : 'Logout'}</span>
             </button>
           </div>
+
         </div>
       </div>
 
