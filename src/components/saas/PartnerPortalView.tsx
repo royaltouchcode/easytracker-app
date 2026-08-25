@@ -690,7 +690,7 @@ export const PartnerPortalView: React.FC = () => {
                     <Layers className="w-4 h-4 text-indigo-400" />
                   </div>
                   <div className="text-2xl font-mono font-black text-indigo-300 mt-2">
-                    {remainingSlots} <span className="text-xs font-normal text-slate-400">/ {totalAllocatedSlots}</span>
+                    {availableSlots} <span className="text-xs font-normal text-slate-400">/ {totalAllocatedSlots}</span>
                   </div>
                   <span className="text-[9.5px] text-indigo-300">নতুন গাড়ি যুক্ত করার জন্য রেডি</span>
                 </div>
