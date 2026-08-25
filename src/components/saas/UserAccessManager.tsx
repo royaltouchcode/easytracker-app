@@ -27,6 +27,13 @@ export interface EnterpriseUser {
   status: 'active' | 'suspended';
   primaryRole: SaasRole;
   approvedRoles: SaasRole[];
+  shopName?: string;
+  shopAddress?: string;
+  geoLat?: number;
+  geoLng?: number;
+  googleMapsUrl?: string;
+  locationVerified?: boolean;
+  locationVerifiedAt?: string;
   permissions: {
     canCutEngine: boolean;
     canDispatchTech: boolean;
@@ -219,6 +226,9 @@ export const UserAccessManager: React.FC = () => {
     );
   };
 
+  const [newShopName, setNewShopName] = useState('');
+  const [newShopAddress, setNewShopAddress] = useState('');
+
   const handleCreateNewUser = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newName.trim() || !newPhone.trim()) {
@@ -235,6 +245,9 @@ export const UserAccessManager: React.FC = () => {
       status: 'active',
       primaryRole: newRoles[0] || 'customer',
       approvedRoles: newRoles,
+      shopName: newShopName.trim() || undefined,
+      shopAddress: newShopAddress.trim() || undefined,
+      locationVerified: false,
       permissions: {
         canCutEngine: newRoles.includes('rescue') || newRoles.includes('super_admin') || newRoles.includes('technician'),
         canDispatchTech: newRoles.includes('support') || newRoles.includes('super_admin'),
@@ -255,6 +268,9 @@ export const UserAccessManager: React.FC = () => {
     setNewName('');
     setNewPhone('');
     setNewEmail('');
+    setNewShopName('');
+    setNewShopAddress('');
+    alert('✅ নতুন স্টাফ সফলভাবে যুক্ত হয়েছে! স্টাফ তার সার্ভিস পয়েন্টে গিয়ে রিয়েল জিপিএস ক্যাপচার করে অ্যাকাউন্ট ভেরিফাই করবে।');
   };
 
   const filteredUsers = users.filter(u => 
@@ -628,15 +644,27 @@ export const UserAccessManager: React.FC = () => {
                 </div>
               </div>
 
-              <div>
-                <label className="text-[10.5px] font-bold text-slate-300 block mb-1">ইমেইল এড্রেস (ঐচ্ছিক)</label>
-                <input
-                  type="email"
-                  value={newEmail}
-                  onChange={(e) => setNewEmail(e.target.value)}
-                  placeholder="user@easytracker.com"
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white focus:border-indigo-500 focus:outline-none"
-                />
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[10.5px] font-bold text-slate-300 block mb-1">দোকান / সার্ভিস সেন্টারের নাম</label>
+                  <input
+                    type="text"
+                    value={newShopName}
+                    onChange={(e) => setNewShopName(e.target.value)}
+                    placeholder="যেমন: উত্তরা টেকনিশিয়ান হাব"
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white focus:border-indigo-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10.5px] font-bold text-slate-300 block mb-1">ঠিকানা / লোকেশন</label>
+                  <input
+                    type="text"
+                    value={newShopAddress}
+                    onChange={(e) => setNewShopAddress(e.target.value)}
+                    placeholder="যেমন: উত্তরা সেক্টর ৪, ঢাকা"
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white focus:border-indigo-500 focus:outline-none"
+                  />
+                </div>
               </div>
 
               <div>

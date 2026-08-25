@@ -218,6 +218,14 @@ export interface UserSession {
   partnerId?: string;
   partnerBrandName?: string;
   serviceTier?: PartnerServiceTier;
+  locationVerified?: boolean;
+  locationVerifiedAt?: string;
+  locationVerifiedBy?: string;
+  shopName?: string;
+  shopAddress?: string;
+  geoLat?: number;
+  geoLng?: number;
+  googleMapsUrl?: string;
 }
 
 export type MapLayerType = 'carto_positron' | 'google_roadmap' | 'google_satellite' | 'google_hybrid' | 'google_terrain' | 'osm' | 'baidu_dark';
@@ -249,13 +257,10 @@ export interface WarrantyClaimTicket {
   imei: string;
   customerName: string;
   customerPhone: string;
-  issueType: 'hardware_fault' | 'no_gps_signal' | 'battery_drain' | 'relay_fault' | 'water_damage' | 'other';
-  issueTitleBn: string;
-  issueDetails: string;
-  preferredLocation: string;
-  servicePointAddress: string;
-  claimDate: string;
+  issueDescription: string;
   status: WarrantyClaimStatus;
+  createdAt: string;
+  assignedTechId?: string;
   assignedTechName?: string;
   assignedTechPhone?: string;
   technicianNotes?: string;
@@ -278,10 +283,15 @@ export interface PartnerRegistrationEntry {
   email?: string;
   emergencyPhone?: string;
   district: string;
+  thana?: string;
   fullAddress: string;
+  shopName?: string;
   geoLat?: number;
   geoLng?: number;
   googleMapsUrl?: string;
+  locationVerified?: boolean;
+  locationVerifiedAt?: string;
+  locationVerifiedBy?: string;
   desiredRoles: SaasRole[];
   requestedServices: ('server_tracking' | 'shared_technicians' | 'shared_rescue' | 'shared_support' | 'shared_sales')[];
   serviceTier: PartnerServiceTier;
@@ -292,6 +302,8 @@ export interface PartnerRegistrationEntry {
   adminReviewNotes?: string;
   customServerUrl?: string; // Custom B2B Traccar server endpoint e.g. https://gps.meghnalogistics.com
   customServerPort?: string; // Custom API/Web port e.g. 8082
+  maxSlotQuota?: number; // Allocated 4096 slots
+  floatingCreditLimit?: number; // Floating limit e.g. 10000 BDT
 }
 
 // Customer Support & Helpdesk Ticket Types

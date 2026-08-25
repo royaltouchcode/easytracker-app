@@ -196,6 +196,9 @@ interface AppContextType {
   partnerRegistrations: PartnerRegistrationEntry[];
   approvedPartners: PartnerRegistrationEntry[];
   registerPartner: (entry: Omit<PartnerRegistrationEntry, 'id' | 'status' | 'submittedAt'>) => Promise<PartnerRegistrationEntry>;
+  addDirectPartner: (entry: Omit<PartnerRegistrationEntry, 'id' | 'status' | 'submittedAt'>) => Promise<PartnerRegistrationEntry>;
+  updatePartnerDetails: (id: string, updates: Partial<PartnerRegistrationEntry>) => void;
+  verifyLocation: (partnerIdOrEmail: string, lat: number, lng: number, shopAddress?: string, shopName?: string, googleMapsUrl?: string) => void;
   approvePartner: (id: string, serviceTier: PartnerServiceTier, username: string, assignedRoles: SaasRole[], adminNotes?: string, customServerUrl?: string, customServerPort?: string) => void;
   rejectPartner: (id: string, reason?: string) => void;
 
@@ -1131,6 +1134,98 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       'subscription_reminder',
       `✅ পার্টনার অনুমোদন সম্পন্ন! ব্র্যান্ড/পার্টনার: ${target.brandName || target.applicantName}। ইউজারনেম: ${username}। সার্ভিস টিয়ার: ${serviceTier}।`
     );
+  };
+
+  const addDirectPartner = async (entry: Omit<PartnerRegistrationEntry, 'id' | 'status' | 'submittedAt'>): Promise<PartnerRegistrationEntry> => {
+    const partnerId = entry.partnerId || `PRT-${Math.floor(1000 + Math.random() * 9000)}`;
+    const newEntry: PartnerRegistrationEntry = {
+      ...entry,
+      id: `PREG-${Date.now().toString().slice(-4)}`,
+      partnerId,
+      status: 'approved',
+      locationVerified: !!(entry.geoLat && entry.geoLng),
+      submittedAt: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+    };
+
+    setApprovedPartners(prev => {
+      const next = [newEntry, ...prev.filter(p => p.id !== newEntry.id && p.partnerId !== partnerId)];
+      localStorage.setItem('gps_approved_partners', JSON.stringify(next));
+      return next;
+    });
+
+    triggerManualAlert(
+      'subscription_reminder',
+      `👑 অ্যাডমিন কর্তৃক সরাসরি পার্টনার অনবোর্ড সম্পন্ন! পার্টনার ID: ${partnerId} (${newEntry.brandName || newEntry.applicantName})।`
+    );
+
+    return newEntry;
+  };
+
+  const updatePartnerDetails = (id: string, updates: Partial<PartnerRegistrationEntry>) => {
+    setApprovedPartners(prev => {
+      const next = prev.map(p => (p.id === id || p.partnerId === id) ? { ...p, ...updates } : p);
+      localStorage.setItem('gps_approved_partners', JSON.stringify(next));
+      return next;
+    });
+
+    // If current logged-in user belongs to this partner, update active session
+    if (user?.partnerId && (user.partnerId === id || user.email === id)) {
+      setUser(prev => prev ? {
+        ...prev,
+        partnerBrandName: updates.brandName || prev.partnerBrandName,
+        serviceTier: updates.serviceTier || prev.serviceTier,
+        locationVerified: updates.locationVerified !== undefined ? updates.locationVerified : prev.locationVerified,
+        geoLat: updates.geoLat !== undefined ? updates.geoLat : prev.geoLat,
+        geoLng: updates.geoLng !== undefined ? updates.geoLng : prev.geoLng,
+        googleMapsUrl: updates.googleMapsUrl || prev.googleMapsUrl
+      } : null);
+    }
+  };
+
+  const verifyLocation = (partnerIdOrEmail: string, lat: number, lng: number, shopAddress?: string, shopName?: string, googleMapsUrl?: string) => {
+    const mapsUrl = googleMapsUrl || `https://maps.google.com/?q=${lat},${lng}`;
+    const verifiedAt = new Date().toISOString();
+
+    setApprovedPartners(prev => {
+      const next = prev.map(p => {
+        if (p.partnerId === partnerIdOrEmail || p.id === partnerIdOrEmail || p.email === partnerIdOrEmail || p.assignedUsername === partnerIdOrEmail) {
+          return {
+            ...p,
+            geoLat: lat,
+            geoLng: lng,
+            googleMapsUrl: mapsUrl,
+            shopAddress: shopAddress || p.fullAddress,
+            shopName: shopName || p.brandName || p.applicantName,
+            locationVerified: true,
+            locationVerifiedAt: verifiedAt,
+            locationVerifiedBy: user?.name || 'On-Site GPS Capture'
+          };
+        }
+        return p;
+      });
+      localStorage.setItem('gps_approved_partners', JSON.stringify(next));
+      return next;
+    });
+
+    // Update active user state
+    setUser(prev => {
+      if (!prev) return null;
+      const updated: UserSession = {
+        ...prev,
+        geoLat: lat,
+        geoLng: lng,
+        googleMapsUrl: mapsUrl,
+        shopAddress: shopAddress || prev.shopAddress,
+        shopName: shopName || prev.shopName,
+        locationVerified: true,
+        locationVerifiedAt: verifiedAt,
+        locationVerifiedBy: prev.name
+      };
+      localStorage.setItem('gps_auth_user', JSON.stringify(updated));
+      return updated;
+    });
+
+    triggerAlertFeedback('overspeed', 'দোকানের রিয়েল জিপিএস ও গুগল ম্যাপস লোকেশন সফলভাবে ভেরিফাই হয়েছে!');
   };
 
   const rejectPartner = (id: string, reason?: string) => {
