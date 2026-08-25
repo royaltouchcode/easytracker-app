@@ -55,7 +55,7 @@ interface ServicingHistoryEntry {
   notes?: string;
 }
 
-export type DetailedReportType = 'trip' | 'stoppage' | 'ignition' | 'sensor' | 'summary' | 'daily' | 'overspeed' | 'geofence' | null;
+export type DetailedReportType = 'trip' | 'stoppage' | 'ignition' | 'engine_lock' | 'sensor' | 'summary' | 'daily' | 'overspeed' | 'geofence' | null;
 
 export const ReportsHubView: React.FC = () => {
   const { 
@@ -63,6 +63,7 @@ export const ReportsHubView: React.FC = () => {
     selectedPosition, 
     fuelRefillLogs: fuelLogs = [], 
     addFuelRefillLog: addFuelLog, 
+    engineLogs = [],
     language,
     t,
     devices,
@@ -578,6 +579,27 @@ export const ReportsHubView: React.FC = () => {
                   </div>
                 </button>
 
+                {/* 2. Remote Engine Lock & Rescue Audit Report */}
+                <button
+                  onClick={() => setSelectedReportType('engine_lock')}
+                  className="bg-gradient-to-br from-slate-900 via-rose-950/20 to-slate-900 hover:bg-slate-850 border border-slate-800 hover:border-rose-500/60 p-3.5 rounded-3xl flex flex-col justify-between text-left transition active:scale-95 shadow-md group"
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <div className="w-10 h-10 rounded-2xl bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-400 text-lg shadow-inner">
+                      🛑
+                    </div>
+                    <span className="text-[8px] font-extrabold bg-rose-600/30 text-rose-300 border border-rose-500/40 px-1.5 py-0.5 rounded font-mono">
+                      RESCUE / RELAY
+                    </span>
+                  </div>
+                  <div className="mt-3">
+                    <div className="font-extrabold text-xs text-slate-100 group-hover:text-rose-300 transition">
+                      {language === 'bn' ? 'রিমোট ইঞ্জিন লক ও রেসকিউ রিপোর্ট' : 'Remote Engine Lock & Rescue'}
+                    </div>
+                    <div className="text-[10px] text-slate-400 mt-0.5">রিলে কাটঅফ, আনলক ও রেসকিউ অডিট</div>
+                  </div>
+                </button>
+
                 {/* 2. AC & Sensors Report */}
                 <button
                   onClick={() => setSelectedReportType('sensor')}
@@ -1065,6 +1087,114 @@ export const ReportsHubView: React.FC = () => {
                       </div>
                     </div>
                   </div>
+                </div>
+              )}
+
+              {/* 3.1 REMOTE ENGINE LOCK & RESCUE AUDIT REPORT LIST */}
+              {selectedReportType === 'engine_lock' && (
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between text-[11px] font-bold text-slate-300 px-1">
+                    <span>রিমোট ইঞ্জিন রিলে কাটঅফ, আনলক ও রেসকিউ অডিট হিস্ট্রি</span>
+                    <span className="text-[10px] text-rose-400 font-mono">লাইভ রিলে স্ট্যাটাস</span>
+                  </div>
+
+                  {/* Current Relay / Immobilizer Status Card */}
+                  <div className="bg-slate-900 border border-slate-800 rounded-3xl p-3.5 shadow-xl space-y-2.5">
+                    <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                      <div className="flex items-center space-x-2">
+                        <Power className="w-4 h-4 text-rose-500" />
+                        <span className="font-extrabold text-xs text-white">বর্তমান রিলে ইমোবিলাইজার স্ট্যাটাস</span>
+                      </div>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                        (localStorage.getItem(`gps_relay_cut_${selectedDevice?.id}`) === 'true' || selectedPosition?.attributes?.relay || selectedPosition?.attributes?.blocked)
+                          ? 'text-rose-300 bg-rose-950/80 border-rose-600 animate-pulse' 
+                          : 'text-emerald-300 bg-emerald-950/80 border-emerald-700'
+                      }`}>
+                        {(localStorage.getItem(`gps_relay_cut_${selectedDevice?.id}`) === 'true' || selectedPosition?.attributes?.relay || selectedPosition?.attributes?.blocked) 
+                          ? '🚨 ইঞ্জিন লকড (ইমোবিলাইজড)' 
+                          : '🛡️ সচল (স্বাভাবিক সংযোগ)'}
+                      </span>
+                    </div>
+
+                    <div className="p-2.5 rounded-2xl bg-slate-950 border border-slate-800 text-xs space-y-1.5">
+                      <div className="flex justify-between text-slate-300">
+                        <span className="text-slate-400">সর্বশেষ রিলে স্ট্যাটাস:</span>
+                        <span className="font-mono font-bold text-slate-200">GPRS ACK ভেরিফাইড</span>
+                      </div>
+                      <div className="flex justify-between text-slate-300">
+                        <span className="text-slate-400">গাড়ির বর্তমান অবস্থান:</span>
+                        <span className="text-emerald-300 font-bold truncate max-w-[220px]">
+                          {selectedPosition?.address || `${selectedPosition?.latitude || 0}°N, ${selectedPosition?.longitude || 0}°E`}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Engine Lock Audit History Entries */}
+                  {engineLogs.length === 0 ? (
+                    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 text-center text-slate-500 text-xs shadow-xl">
+                      <Power className="w-8 h-8 mx-auto mb-2 text-slate-600" />
+                      <span>{language === 'bn' ? 'নির্বাচিত সময়কালে কোনো রিমোট ইঞ্জিন লক/আনলক ইভেন্ট নেই' : 'No remote engine lock/resume events in this period'}</span>
+                    </div>
+                  ) : (
+                    engineLogs.map((log) => (
+                      <div 
+                        key={log.id} 
+                        className={`border rounded-3xl p-3.5 shadow-xl transition space-y-2 ${
+                          log.sourceFlag === 'EMERGENCY_RESCUE'
+                            ? 'bg-gradient-to-r from-rose-950/40 via-slate-900 to-slate-900 border-rose-500/70 shadow-rose-950/40 ring-1 ring-rose-500/30'
+                            : 'bg-slate-900 border-slate-800'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                          <div className="flex items-center space-x-2">
+                            <div className={`w-7 h-7 rounded-xl flex items-center justify-center font-bold text-xs ${
+                              log.action === 'cut' ? 'bg-rose-600/20 text-rose-400 border border-rose-500/40' : 'bg-emerald-600/20 text-emerald-400 border border-emerald-500/40'
+                            }`}>
+                              <Power className="w-3.5 h-3.5" />
+                            </div>
+                            <div>
+                              <div className="flex items-center space-x-1.5">
+                                <span className="font-extrabold text-xs text-white block">
+                                  {log.action === 'cut' 
+                                    ? (language === 'bn' ? '🛑 রিমোট ইঞ্জিন লক (Cut-Off)' : '🛑 Remote Engine Cut-Off')
+                                    : (language === 'bn' ? '🟢 রিমোট ইঞ্জিন আনলক (Resume)' : '🟢 Remote Engine Resume')}
+                                </span>
+                                {log.sourceFlag === 'EMERGENCY_RESCUE' && (
+                                  <span className="text-[8.5px] font-black bg-rose-600 text-white px-1.5 py-0.2 rounded font-mono uppercase tracking-wider">
+                                    🚨 RESCUE
+                                  </span>
+                                )}
+                              </div>
+                              <span className="text-[10px] text-slate-400 font-mono">
+                                {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {new Date(log.timestamp).toLocaleDateString()}
+                              </span>
+                            </div>
+                          </div>
+
+                          <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full border ${
+                            log.status === 'executed' 
+                              ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' 
+                              : 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                          }`}>
+                            {log.status === 'executed' ? '✅ কার্যকর' : log.status}
+                          </span>
+                        </div>
+
+                        <div className="text-[11px] text-slate-300 bg-slate-950/80 p-2.5 rounded-2xl border border-slate-800/80 space-y-1">
+                          <div className="flex justify-between">
+                            <span className="text-slate-400">অনুমোদনকারী:</span>
+                            <span className="font-bold text-amber-300">{log.authorizedBy || 'Customer App / Super Admin'}</span>
+                          </div>
+                          {log.note && (
+                            <div className="text-slate-300 text-[10.5px] pt-1 border-t border-slate-800/60">
+                              💬 {log.note}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               )}
 
