@@ -41,6 +41,7 @@ import { SalesLeadEntry } from './SalesPortalView';
 import { VehicleCatalogManager } from './VehicleCatalogManager';
 import { WarrantyAdminManager } from './WarrantyAdminManager';
 import { PartnerOnboardingManager } from './PartnerOnboardingManager';
+import { UserAccessManager } from './UserAccessManager';
 import { ServiceRateCardManager } from './ServiceRateCardManager';
 import { SellerQuotaAndLedgerManager } from './SellerQuotaAndLedgerManager';
 import { EnterpriseInventoryManager } from './EnterpriseInventoryManager';
