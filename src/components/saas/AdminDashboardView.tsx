@@ -91,10 +91,7 @@ export const AdminDashboardView: React.FC = () => {
     triggerManualAlert,
     language, 
     setActiveTab, 
-    setCurrentRole, 
-    purgeDemoFleetData, 
-    restoreDemoFleetData, 
-    isDemoPurged 
+    setCurrentRole
   } = useApp();
 
   // Active Left Sidebar Section
@@ -181,6 +178,21 @@ export const AdminDashboardView: React.FC = () => {
   }));
   const [saveRateSuccess, setSaveRateSuccess] = useState(false);
   const [showPurgeConfirm, setShowPurgeConfirm] = useState(false);
+  const [isDemoPurged, setIsDemoPurged] = useState(() => {
+    return localStorage.getItem('gps_demo_purged') === 'true';
+  });
+
+  const purgeDemoFleetData = () => {
+    setIsDemoPurged(true);
+    localStorage.setItem('gps_demo_purged', 'true');
+    triggerManualAlert('subscription_reminder', '🗑️ ডেমো ডাটা সফলভাবে মুছে ফেলা হয়েছে!');
+  };
+
+  const restoreDemoFleetData = () => {
+    setIsDemoPurged(false);
+    localStorage.removeItem('gps_demo_purged');
+    triggerManualAlert('subscription_reminder', '🔄 ডেমো ডাটা সফলভাবে রিস্টোর হয়েছে!');
+  };
 
   // Sales Leads Queue state
   const [salesLeads, setSalesLeads] = useState<SalesLeadEntry[]>(() => {
