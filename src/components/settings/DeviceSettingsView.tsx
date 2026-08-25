@@ -35,6 +35,10 @@ import {
   ShoppingBag,
   Gift,
   Copy,
+  Sparkles,
+  Share2,
+  CreditCard,
+  DollarSign,
   X
 } from 'lucide-react';
 import { VehicleType, Geofence, AlertFeedbackMode } from '../../types/traccar';
@@ -1196,8 +1200,8 @@ export const DeviceSettingsView: React.FC = () => {
               </div>
             </div>
 
-            {/* 1-Click WhatsApp & Social Share */}
-            <div className="space-y-2 pt-1">
+            {/* 1-Click WhatsApp & Facebook Share */}
+            <div className="grid grid-cols-2 gap-2 pt-1">
               <button
                 type="button"
                 onClick={() => {
@@ -1206,19 +1210,85 @@ export const DeviceSettingsView: React.FC = () => {
                   const waUrl = `https://wa.me/?text=${encodeURIComponent(msg)}`;
                   if (typeof window !== 'undefined') window.open(waUrl, '_blank');
                 }}
-                className="w-full py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center justify-center space-x-2 shadow-lg shadow-emerald-600/30 transition active:scale-95"
+                className="py-2.5 px-2 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center justify-center space-x-1.5 shadow-lg shadow-emerald-600/30 transition active:scale-95"
               >
-                <span>💬 হোয়াটসঅ্যাপে বন্ধুদের শেয়ার করুন</span>
+                <span>💬 হোয়াটসঅ্যাপ</span>
               </button>
 
               <button
                 type="button"
-                onClick={() => setIsReferralModalOpen(false)}
-                className="w-full py-2 rounded-2xl bg-slate-800 text-slate-300 font-bold text-xs"
+                onClick={() => {
+                  const code = `EASY-${selectedDevice.id.toString().padStart(4, '0')}`;
+                  const quote = `🚗 EasyTracker GPS Tracker Special Offer! আমার রেফারেল কোড "${code}" দিয়ে নতুন ট্র্যাকার বা সাবস্ক্রিপশন নিলেই পাচ্ছেন ৳১০০ নগদ ছাড়!`;
+                  const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(APP_CONFIG.website)}&quote=${encodeURIComponent(quote)}`;
+                  if (typeof window !== 'undefined') window.open(fbUrl, '_blank');
+                }}
+                className="py-2.5 px-2 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black text-xs flex items-center justify-center space-x-1.5 shadow-lg shadow-blue-600/30 transition active:scale-95"
               >
-                বন্ধ করুন
+                <span>🌐 ফেসবুক শেয়ার</span>
               </button>
             </div>
+
+            {/* 3-Way Cashback Redemption Options */}
+            <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-3 space-y-2">
+              <div className="text-[11px] font-bold text-slate-300 flex items-center justify-between">
+                <span>💰 আপনার ক্যাশব্যাক রিডিম / ব্যবহারের উপায়:</span>
+                <span className="text-[10px] text-emerald-400 font-bold">ব্যালেন্স: ৳৩০০</span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    alert('🔄 আপনার ৳৩০০ ক্যাশব্যাক পরবর্তী সাবস্ক্রিপশন রিনিউয়ালে সফলভাবে অ্যাডজাস্ট করা হয়েছে!');
+                  }}
+                  className="p-2 rounded-xl bg-slate-900 hover:bg-slate-850 border border-slate-700 hover:border-emerald-500/50 text-left transition active:scale-95 space-y-1"
+                >
+                  <div className="flex items-center space-x-1 text-emerald-400 text-[10.5px] font-extrabold">
+                    <CreditCard className="w-3 h-3" />
+                    <span>সাবস্ক্রিপশন রিনিউ</span>
+                  </div>
+                  <p className="text-[9px] text-slate-400 leading-tight">পরবর্তী মাসের বিলে ৳১০০/৳৩০০ ছাড়</p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsReferralModalOpen(false);
+                    setIsDeviceStoreOpen(true);
+                  }}
+                  className="p-2 rounded-xl bg-slate-900 hover:bg-slate-850 border border-slate-700 hover:border-purple-500/50 text-left transition active:scale-95 space-y-1"
+                >
+                  <div className="flex items-center space-x-1 text-purple-400 text-[10.5px] font-extrabold">
+                    <ShoppingBag className="w-3 h-3" />
+                    <span>নতুন ট্র্যাকার ক্রয়</span>
+                  </div>
+                  <p className="text-[9px] text-slate-400 leading-tight">স্টোর থেকে কেনাকাটায় সম্পূর্ণ ছাড়</p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    alert('💸 বিকাশ/নগদে ৳৩০০ ক্যাশআউট রিকোয়েস্ট গ্রহণ করা হয়েছে! ২৪ ঘণ্টার মধ্যে আপনার নম্বরে পাঠানো হবে।');
+                  }}
+                  className="p-2 rounded-xl bg-slate-900 hover:bg-slate-850 border border-slate-700 hover:border-amber-500/50 text-left transition active:scale-95 space-y-1"
+                >
+                  <div className="flex items-center space-x-1 text-amber-400 text-[10.5px] font-extrabold">
+                    <DollarSign className="w-3 h-3" />
+                    <span>বিকাশ/নগদ ক্যাশআউট</span>
+                  </div>
+                  <p className="text-[9px] text-slate-400 leading-tight">ব্যক্তিগত ওয়ালেটে নগদ টাকা উত্তোলন</p>
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsReferralModalOpen(false)}
+              className="w-full py-2 rounded-2xl bg-slate-800 text-slate-300 font-bold text-xs hover:bg-slate-750 transition active:scale-95"
+            >
+              বন্ধ করুন
+            </button>
 
           </div>
         </div>

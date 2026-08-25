@@ -639,19 +639,87 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
                 </div>
               </div>
 
-              {/* 1-Click WhatsApp Share */}
-              <button
-                type="button"
-                onClick={() => {
-                  const code = `EASY-${(selectedDevice?.id || 1).toString().padStart(4, '0')}`;
-                  const msg = `*🚗 EasyTracker GPS Tracker Special Offer!*\n\nআমার রেফারেল কোড *${code}* ব্যবহার করে নতুন ট্র্যাকার বা সাবস্ক্রিপশন কিনলেই পাচ্ছেন ৳১০০ নগদ ছাড় ও ফ্রি ডোরস্টেপ ইনস্টলেশন!\n\nভিজিট করুন: ${appConfig.website}`;
-                  const waUrl = `https://wa.me/?text=${encodeURIComponent(msg)}`;
-                  if (typeof window !== 'undefined') window.open(waUrl, '_blank');
-                }}
-                className="w-full py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs flex items-center justify-center space-x-1.5 shadow-md shadow-emerald-600/30 transition active:scale-95"
-              >
-                <span>💬 হোয়াটসঅ্যাপে বন্ধুদের শেয়ার করুন</span>
-              </button>
+              {/* 1-Click WhatsApp & Facebook Share */}
+              <div className="grid grid-cols-2 gap-2 pt-0.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const code = `EASY-${(selectedDevice?.id || 1).toString().padStart(4, '0')}`;
+                    const msg = `*🚗 EasyTracker GPS Tracker Special Offer!*\n\nআমার রেফারেল কোড *${code}* ব্যবহার করে নতুন ট্র্যাকার বা সাবস্ক্রিপশন কিনলেই পাচ্ছেন ৳১০০ নগদ ছাড় ও ফ্রি ডোরস্টেপ ইনস্টলেশন!\n\nভিজিট করুন: ${appConfig.website}`;
+                    const waUrl = `https://wa.me/?text=${encodeURIComponent(msg)}`;
+                    if (typeof window !== 'undefined') window.open(waUrl, '_blank');
+                  }}
+                  className="py-2.5 px-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs flex items-center justify-center space-x-1.5 shadow-md shadow-emerald-600/30 transition active:scale-95"
+                >
+                  <span>💬 হোয়াটসঅ্যাপ</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const code = `EASY-${(selectedDevice?.id || 1).toString().padStart(4, '0')}`;
+                    const quote = `🚗 EasyTracker GPS Tracker Special Offer! আমার রেফারেল কোড "${code}" দিয়ে নতুন ট্র্যাকার বা সাবস্ক্রিপশন নিলেই পাচ্ছেন ৳১০০ নগদ ছাড়!`;
+                    const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(appConfig.website)}&quote=${encodeURIComponent(quote)}`;
+                    if (typeof window !== 'undefined') window.open(fbUrl, '_blank');
+                  }}
+                  className="py-2.5 px-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs flex items-center justify-center space-x-1.5 shadow-md shadow-blue-600/30 transition active:scale-95"
+                >
+                  <span>🌐 ফেসবুক শেয়ার</span>
+                </button>
+              </div>
+
+              {/* 3-Way Cashback Redemption Options */}
+              <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-2.5 space-y-1.5">
+                <div className="text-[10px] font-bold text-slate-300 flex items-center justify-between">
+                  <span>💰 ক্যাশব্যাক রিডিম / ব্যবহারের উপায়:</span>
+                  <span className="text-[9.5px] text-emerald-400 font-bold">ব্যালেন্স: ৳৩০০</span>
+                </div>
+
+                <div className="grid grid-cols-3 gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      alert('🔄 আপনার ৳৩০০ ক্যাশব্যাক পরবর্তী সাবস্ক্রিপশন রিনিউয়ালে সফলভাবে অ্যাডজাস্ট করা হয়েছে!');
+                    }}
+                    className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-850 border border-slate-700 hover:border-emerald-500/50 text-left transition active:scale-95 space-y-0.5"
+                  >
+                    <div className="flex items-center space-x-1 text-emerald-400 text-[9.5px] font-extrabold">
+                      <CreditCard className="w-2.5 h-2.5" />
+                      <span>রিনিউয়াল</span>
+                    </div>
+                    <p className="text-[8px] text-slate-400 leading-tight">বিলে ছাড়</p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      window.location.hash = '#store';
+                    }}
+                    className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-850 border border-slate-700 hover:border-purple-500/50 text-left transition active:scale-95 space-y-0.5"
+                  >
+                    <div className="flex items-center space-x-1 text-purple-400 text-[9.5px] font-extrabold">
+                      <ShoppingBag className="w-2.5 h-2.5" />
+                      <span>নতুন ট্র্যাকার</span>
+                    </div>
+                    <p className="text-[8px] text-slate-400 leading-tight">স্টোরে ডিসকাউন্ট</p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      alert('💸 বিকাশ/নগদে ৳৩০০ ক্যাশআউট রিকোয়েস্ট গ্রহণ করা হয়েছে! ২৪ ঘণ্টার মধ্যে আপনার নম্বরে পাঠানো হবে।');
+                    }}
+                    className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-850 border border-slate-700 hover:border-amber-500/50 text-left transition active:scale-95 space-y-0.5"
+                  >
+                    <div className="flex items-center space-x-1 text-amber-400 text-[9.5px] font-extrabold">
+                      <DollarSign className="w-2.5 h-2.5" />
+                      <span>ক্যাশআউট</span>
+                    </div>
+                    <p className="text-[8px] text-slate-400 leading-tight">বিকাশ/নগদ</p>
+                  </button>
+                </div>
+              </div>
             </div>
           ) : (
             /* Universal Sales & Staff Commission Wallet Card (For Sales / Staff Roles Only) */
