@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import { 
   Video, 
@@ -15,9 +15,21 @@ import {
   Calendar,
   AlertCircle,
   FileCheck2,
-  Check
+  Check,
+  CheckCircle2,
+  Sparkles,
+  Sliders,
+  AlertTriangle,
+  Lock,
+  Eye,
+  Play,
+  HardDrive,
+  Cpu,
+  Layers,
+  PhoneCall
 } from 'lucide-react';
 import { MediaEvidence } from '../../types/traccar';
+import { PinVerificationModal } from '../commands/PinVerificationModal';
 
 export const SurveillanceView: React.FC = () => {
   const { 
@@ -30,154 +42,269 @@ export const SurveillanceView: React.FC = () => {
     t 
   } = useApp();
 
-  const [activeCam, setActiveCam] = useState<'front' | 'cabin'>('front');
+  const [activeCam, setActiveCam] = useState<'front' | 'cabin' | 'rear' | '360'>('front');
   const [isRecording, setIsRecording] = useState(false);
   const [isListeningAudio, setIsListeningAudio] = useState(false);
   const [snapshotTakenNotice, setSnapshotTakenNotice] = useState(false);
+  const [isStorageModalOpen, setIsStorageModalOpen] = useState(false);
+  const [isPinModalOpen, setIsPinModalOpen] = useState(false);
+  const [selectedBlackboxItem, setSelectedBlackboxItem] = useState<any | null>(null);
 
-  const videoRef = useRef<HTMLVideoElement>(null);
+  // Storage Flexi-Plan Subscription State
+  const [storageTier, setStorageTier] = useState<{ capMb: number; retentionDays: number; priceBdt: number }>({
+    capMb: 200,
+    retentionDays: 3,
+    priceBdt: 0
+  });
 
   const speedKmh = selectedPosition ? Math.round(selectedPosition.speed) : 0;
   const address = selectedPosition?.address || 'Gulshan-2, Dhaka';
-  const plate = selectedDevice?.attributes?.plateNumber || 'DM-GA-11-2233';
+  const plate = selectedDevice?.attributes?.plateNumber || 'DHAKA METRO-LA 28-9798';
+  const imei = selectedDevice?.uniqueId || '354778343153865';
 
-  // Handle Live Snapshot Capture with GPS & Timestamp Watermark
+  // Calculate Used Storage
+  const usedStorageMb = Math.min(186, Math.round(evidenceList.length * 18.5 + 42));
+  const storagePercent = Math.min(100, Math.round((usedStorageMb / storageTier.capMb) * 100));
+
+  // Accident Crash Blackbox Footage Mock/Real Data
+  const [crashRecordings, setCrashRecordings] = useState([
+    {
+      id: 'crash-001',
+      title: '🚨 তীব্র ক্র্যাশ ইমপ্যাক্ট (4.6G) - ৫ মিনিট অটো-লকড ফুটেজ',
+      date: '18 Aug 2026, 04:32 PM',
+      location: 'Airport Road, Kuril Flyover, Dhaka',
+      impactG: '4.6 G',
+      duration: '05:00 min',
+      cameras: 'Dual (Front + Cabin)',
+      status: 'LOCKED_LEGAL_EVIDENCE',
+      sosAlertSent: true,
+      fileSize: '48.2 MB'
+    }
+  ]);
+
+  // Traffic Sign Violations AI Auto-Clips
+  const [violationClips, setViolationClips] = useState([
+    {
+      id: 'viol-01',
+      title: '🚦 ট্রাফিক রেড লাইট স্কিপ ভায়োলেশন (৮ সেকেন্ড ক্লিপ)',
+      timestamp: 'Today, 11:24 AM',
+      location: 'Mohakhali Intersection (23.7781°N, 90.3972°E)',
+      speed: '44 km/h',
+      sign: 'Red Traffic Signal Breached',
+      duration: '00:08 min',
+      size: '2.4 MB',
+      isDeletedFile: false
+    },
+    {
+      id: 'viol-02',
+      title: '⚠️ রং লেন ও ওভারস্পিড সতর্কতা (৬ সেকেন্ড ক্লিপ)',
+      timestamp: 'Yesterday, 06:15 PM',
+      location: 'Bijoy Sarani, Dhaka (23.7658°N, 90.3884°E)',
+      speed: '78 km/h',
+      sign: 'Speed Limit 50 Exceeded',
+      duration: '00:06 min',
+      size: '1.9 MB',
+      isDeletedFile: true // File deleted to save storage, metadata preserved!
+    }
+  ]);
+
+  // Handle Live Snapshot Capture with GPS & Legal Watermark
   const handleTakeSnapshot = () => {
-    // Generate watermarked canvas snapshot
     const canvas = document.createElement('canvas');
-    canvas.width = 800;
-    canvas.height = 450;
+    canvas.width = 1280;
+    canvas.height = 720;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Draw background placeholder or video frame
-    const gradient = ctx.createLinearGradient(0, 0, 800, 450);
-    gradient.addColorStop(0, '#0f172a');
-    gradient.addColorStop(1, '#1e293b');
+    // Draw background placeholder
+    const gradient = ctx.createLinearGradient(0, 0, 1280, 720);
+    gradient.addColorStop(0, '#020617');
+    gradient.addColorStop(1, '#0f172a');
     ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, 800, 450);
+    ctx.fillRect(0, 0, 1280, 720);
 
-    // Draw simulated road / cabin view graphics
-    ctx.fillStyle = activeCam === 'front' ? '#22c55e' : '#3b82f6';
-    ctx.font = 'bold 24px sans-serif';
-    ctx.fillText(activeCam === 'front' ? 'CAM 1: ROAD FORWARD VIEW' : 'CAM 2: DRIVER CABIN VIEW', 30, 50);
+    // Draw camera header
+    ctx.fillStyle = activeCam === 'front' ? '#22c55e' : activeCam === 'cabin' ? '#38bdf8' : activeCam === 'rear' ? '#f59e0b' : '#a855f7';
+    ctx.font = 'bold 36px sans-serif';
+    ctx.fillText(`CAM: ${activeCam.toUpperCase()} LIVE STREAM | EASYTRACKER HD`, 40, 60);
 
-    // Draw Watermark Overlay at bottom
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
-    ctx.fillRect(0, 360, 800, 90);
+    // Draw Legal Digital Watermark Overlay at bottom
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+    ctx.fillRect(0, 560, 1280, 160);
 
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 15px monospace';
-    ctx.fillText(`VEHICLE: ${selectedDevice?.name || 'Car'} | PLATE: ${plate}`, 20, 385);
-    ctx.fillText(`SPEED: ${speedKmh} km/h | GPS: 23.7937N, 90.4066E | ${address}`, 20, 410);
-    ctx.fillText(`TIME: ${new Date().toLocaleString()} | POLICE & INSURANCE EVIDENCE`, 20, 435);
+    ctx.fillStyle = '#f8fafc';
+    ctx.font = 'bold 22px monospace';
+    ctx.fillText(`VEHICLE: ${selectedDevice?.name || 'Vehicle'} | PLATE: ${plate} | IMEI: ${imei}`, 40, 600);
+    ctx.fillText(`SPEED: ${speedKmh} km/h | GPS: ${selectedPosition?.latitude?.toFixed(5) || '23.79370'}N, ${selectedPosition?.longitude?.toFixed(5) || '90.40660'}E | ${address}`, 40, 640);
+    ctx.fillText(`TIME: ${new Date().toLocaleString()} | DURATION: LIVE SNAP | LEGAL WATERMARK`, 40, 680);
 
-    const dataUrl = canvas.toDataURL('image/jpeg');
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
 
     addEvidence({
       deviceId: selectedDevice?.id || 101,
-      deviceName: selectedDevice?.name || 'Car',
+      deviceName: selectedDevice?.name || 'Vehicle',
       type: 'photo',
       url: dataUrl,
       thumbnailUrl: dataUrl,
       latitude: selectedPosition?.latitude || 23.7937,
       longitude: selectedPosition?.longitude || 90.4066,
       speed: speedKmh,
-      triggerEvent: `Manual Live Capture (${activeCam === 'front' ? 'Front Cam' : 'Cabin Cam'})`,
-      note: 'Snapshot captured by user for evidence'
+      triggerEvent: `Manual Snapshot (${activeCam.toUpperCase()} Cam)`,
+      note: `Legal Watermark Embedded | Plate: ${plate} | IMEI: ${imei}`
     });
 
     setSnapshotTakenNotice(true);
     setTimeout(() => setSnapshotTakenNotice(false), 2500);
   };
 
-  // Download Evidence locally
+  // Download Evidence locally with Watermarked filename
   const handleDownloadEvidence = (item: MediaEvidence) => {
     const a = document.createElement('a');
     a.href = item.url;
-    a.download = `Evidence_${item.deviceName.replace(/\s+/g, '_')}_${new Date(item.timestamp).toISOString().slice(0, 19)}.jpg`;
+    a.download = `EasyTracker_Evidence_${plate}_${new Date(item.timestamp).toISOString().slice(0, 19)}.jpg`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
   };
 
-  return (
-    <div className="w-full h-full flex flex-col bg-slate-950 text-slate-100 overflow-y-auto p-4 space-y-4 pb-20 select-none">
-      {/* Header */}
-      <div className="flex items-center space-x-3">
-        <div className="w-10 h-10 rounded-2xl bg-purple-500/20 text-purple-400 border border-purple-500/30 flex items-center justify-center">
-          <Video className="w-5 h-5" />
-        </div>
-        <div>
-          <h2 className="text-base font-bold">
-            {language === 'bn' ? 'লাইভ ভিডিও ও ভয়েস মনিটরিং' : 'Live Video & Voice Surveillance'}
-          </h2>
-          <p className="text-xs text-slate-400">
-            {selectedDevice?.name || 'Selected Vehicle'}
-          </p>
-        </div>
-      </div>
+  const handleUnlockBlackbox = (item: any) => {
+    setSelectedBlackboxItem(item);
+    setIsPinModalOpen(true);
+  };
 
-      {/* 1. Live Dashcam Video Stream Container */}
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl">
-        {/* Video Player Header / Cam Toggle */}
-        <div className="bg-slate-850 px-4 py-2.5 border-b border-slate-800 flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping" />
-            <span className="text-xs font-bold text-slate-200">
-              {activeCam === 'front' ? 'Front Road Camera (CAM 1)' : 'Driver Cabin Camera (CAM 2)'}
+  return (
+    <div className="w-full h-full flex flex-col bg-slate-950 text-slate-100 overflow-y-auto p-4 space-y-4 pb-24 select-none">
+      {/* Header with Storage Meter */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-slate-900/90 border border-slate-800 p-4 rounded-3xl shadow-xl gap-3">
+        <div className="flex items-center space-x-3">
+          <div className="w-11 h-11 rounded-2xl bg-purple-500/20 text-purple-400 border border-purple-500/30 flex items-center justify-center shadow-md">
+            <Video className="w-6 h-6" />
+          </div>
+          <div>
+            <div className="flex items-center space-x-2">
+              <h2 className="text-base font-bold">
+                {language === 'bn' ? 'স্মার্ট ড্যাশ-ক্যাম ও অডিও সার্ভেল্যান্স' : 'Smart Dashcam & Audio Surveillance'}
+              </h2>
+              <span className="text-[9.5px] font-mono text-purple-300 font-bold bg-purple-950 px-2 py-0.5 rounded-full border border-purple-800">
+                360° AI ADAS
+              </span>
+            </div>
+            <p className="text-xs text-slate-400">
+              {selectedDevice?.name} • {plate} • IMEI: {imei}
+            </p>
+          </div>
+        </div>
+
+        {/* Storage Cap Gauge & Flexi-Builder Button */}
+        <div className="w-full sm:w-auto bg-slate-950 border border-slate-800 rounded-2xl p-2.5 flex items-center justify-between space-x-3 shrink-0">
+          <div className="min-w-[140px]">
+            <div className="flex items-center justify-between text-[10px] font-bold mb-1">
+              <span className="text-slate-400 flex items-center space-x-1">
+                <HardDrive className="w-3 h-3 text-purple-400" />
+                <span>স্টোরেজ স্লট</span>
+              </span>
+              <span className={storagePercent > 80 ? 'text-rose-400' : 'text-purple-300'}>
+                {usedStorageMb} MB / {storageTier.capMb} MB
+              </span>
+            </div>
+            <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+              <div 
+                className={`h-full transition-all duration-500 rounded-full ${
+                  storagePercent > 80 ? 'bg-rose-500' : 'bg-gradient-to-r from-blue-500 to-purple-500'
+                }`}
+                style={{ width: `${storagePercent}%` }}
+              />
+            </div>
+            <span className="text-[8.5px] text-slate-500 block mt-0.5 font-mono">
+              {storageTier.retentionDays} দিন রোলিং ব্যাকআপ • MinIO S3
             </span>
           </div>
 
-          {/* Camera Switcher */}
-          <div className="flex items-center space-x-1 bg-slate-800 p-1 rounded-xl border border-slate-700">
-            <button
-              onClick={() => setActiveCam('front')}
-              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition ${
-                activeCam === 'front' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              Road Front
-            </button>
-            <button
-              onClick={() => setActiveCam('cabin')}
-              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition ${
-                activeCam === 'cabin' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              Inside Cabin
-            </button>
+          <button
+            onClick={() => setIsStorageModalOpen(true)}
+            className="px-2.5 py-1.5 rounded-xl bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/40 text-[10px] font-bold flex items-center space-x-1 transition active:scale-95 shrink-0"
+          >
+            <Sliders className="w-3 h-3" />
+            <span>আপগ্রেড</span>
+          </button>
+        </div>
+      </div>
+
+      {/* 1. Multi-Camera 360° Viewport Container */}
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl">
+        {/* Video Viewport Header */}
+        <div className="bg-slate-850 px-4 py-2.5 border-b border-slate-800 flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping" />
+            <span className="text-xs font-bold text-slate-200 uppercase tracking-wide font-mono">
+              {activeCam === 'front' ? 'CAM 1: ROAD FORWARD 1080P' : activeCam === 'cabin' ? 'CAM 2: CABIN DRIVER VIEW' : activeCam === 'rear' ? 'CAM 3: REAR ROAD BACK' : 'CAM 4: 360° PANORAMA'}
+            </span>
+          </div>
+
+          {/* Camera Selector Pills */}
+          <div className="flex items-center space-x-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-[11px] font-bold">
+            {[
+              { id: 'front', label: 'সামনে' },
+              { id: 'cabin', label: 'কেবিন' },
+              { id: 'rear', label: 'পিছনে' },
+              { id: '360', label: '৩৬০°' }
+            ].map(cam => (
+              <button
+                key={cam.id}
+                onClick={() => setActiveCam(cam.id as any)}
+                className={`px-2.5 py-1 rounded-lg transition ${
+                  activeCam === cam.id 
+                    ? 'bg-purple-600 text-white shadow-sm' 
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                {cam.label}
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* Video Viewport */}
+        {/* Video Viewport with Live Watermark */}
         <div className="relative w-full aspect-video bg-black flex items-center justify-center overflow-hidden">
           <img
             src={activeCam === 'front' 
               ? 'https://images.unsplash.com/photo-1508974239320-0a029497e820?auto=format&fit=crop&w=1200&q=80' 
-              : 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=1200&q=80'}
-            alt="Live Dashcam Stream"
+              : activeCam === 'cabin'
+              ? 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=1200&q=80'
+              : 'https://images.unsplash.com/photo-1511919884226-fd3cad34687c?auto=format&fit=crop&w=1200&q=80'}
+            alt="Live Stream"
             className="w-full h-full object-cover"
           />
 
-          {/* Live Watermark Overlay on video */}
-          <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-xl text-[10px] font-mono text-white flex items-center space-x-2 border border-white/10">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-            <span>LIVE 1080P HD | 25 FPS</span>
+          {/* Live Watermark Overlay (Real-Time GPS + Plate + IMEI) */}
+          <div className="absolute top-3 left-3 bg-black/75 backdrop-blur-md px-3 py-1.5 rounded-xl text-[10px] font-mono text-white flex items-center space-x-2 border border-white/15 shadow-lg">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span>LIVE 1080P HD • 30 FPS • H.265</span>
           </div>
 
-          <div className="absolute bottom-3 left-3 right-3 bg-black/70 backdrop-blur-md p-2 rounded-xl text-[10px] font-mono text-slate-200 border border-white/10 flex justify-between items-center">
+          <div className="absolute bottom-3 left-3 right-3 bg-black/85 backdrop-blur-md p-2.5 rounded-2xl text-[10px] font-mono text-slate-200 border border-white/15 flex justify-between items-center shadow-2xl">
             <div>
-              <div className="font-bold text-white">{plate} | Speed: {speedKmh} km/h</div>
-              <div className="text-slate-400 text-[9px] truncate max-w-[240px]">{address}</div>
+              <div className="font-bold text-white text-xs flex items-center space-x-2">
+                <span>🚗 {plate}</span>
+                <span className="text-slate-500">|</span>
+                <span className="text-emerald-400">⚡ {speedKmh} km/h</span>
+                <span className="text-slate-500">|</span>
+                <span className="text-purple-300">📟 {imei}</span>
+              </div>
+              <div className="text-slate-300 text-[9.5px] truncate max-w-[340px] mt-0.5">
+                📍 {selectedPosition?.latitude?.toFixed(5) || '23.79370'}°N, {selectedPosition?.longitude?.toFixed(5) || '90.40660'}°E • {address}
+              </div>
             </div>
-            <div className="text-right text-slate-300">
-              {new Date().toLocaleTimeString()}
+            <div className="text-right text-slate-300 shrink-0 font-bold text-[10px]">
+              <div>{new Date().toLocaleTimeString()}</div>
+              <span className="text-[8px] text-amber-400 font-bold bg-amber-950/80 px-1 rounded border border-amber-500/40">
+                POLICE & BRTA WATERMARK
+              </span>
             </div>
           </div>
         </div>
 
-        {/* Surveillance Quick Action Bar */}
+        {/* Surveillance Quick Actions Bar */}
         <div className="p-3 bg-slate-900 border-t border-slate-800 grid grid-cols-3 gap-2">
           {/* Instant Photo Snapshot */}
           <button
@@ -198,7 +325,7 @@ export const SurveillanceView: React.FC = () => {
             }`}
           >
             <Video className="w-4 h-4" />
-            <span>{isRecording ? 'Recording...' : (language === 'bn' ? 'ভিডিও রেকর্ড' : 'Record Clip')}</span>
+            <span>{isRecording ? 'রেকর্ড হচ্ছে...' : (language === 'bn' ? 'ভিডিও ক্লিপ রেকর্ড' : 'Record Clip')}</span>
           </button>
 
           {/* Remote Voice Listen-in */}
@@ -211,7 +338,7 @@ export const SurveillanceView: React.FC = () => {
             }`}
           >
             <Mic className="w-4 h-4" />
-            <span>{isListeningAudio ? 'Listening...' : (language === 'bn' ? 'ভয়েস শুনুন' : 'Listen Voice')}</span>
+            <span>{isListeningAudio ? 'শুনছেন...' : (language === 'bn' ? 'ভয়েস শুনুন' : 'Listen Voice')}</span>
           </button>
         </div>
       </div>
@@ -219,33 +346,114 @@ export const SurveillanceView: React.FC = () => {
       {snapshotTakenNotice && (
         <div className="p-3 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-semibold flex items-center space-x-2 animate-in fade-in duration-200">
           <Check className="w-4 h-4 shrink-0" />
-          <span>{language === 'bn' ? 'ছবিটি সফলভাবে এভিডেন্স লকারে সংরক্ষণ করা হয়েছে!' : 'Snapshot saved to Evidence Locker with GPS Watermark!'}</span>
+          <span>{language === 'bn' ? 'ছবিটি সফলভাবে জিপিএস ও আইএমইআই ওয়াটারমার্ক সহ এভিডেন্স লকারে সংরক্ষণ করা হয়েছে!' : 'Snapshot saved with full Legal GPS Watermark!'}</span>
         </div>
       )}
 
-      {/* Voice Monitor Active Banner */}
-      {isListeningAudio && (
-        <div className="bg-slate-900 border border-emerald-500/40 rounded-3xl p-4 shadow-xl flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center animate-pulse">
-              <Volume2 className="w-5 h-5" />
+      {/* 2. 🚨 Autonomous Crash & Accident Blackbox Security Vault */}
+      <div className="bg-gradient-to-br from-rose-950/40 via-slate-900 to-slate-900 border border-rose-500/50 rounded-3xl p-4 shadow-xl space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2.5">
+            <div className="w-9 h-9 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center border border-rose-500/40">
+              <AlertTriangle className="w-5 h-5 animate-pulse" />
             </div>
             <div>
-              <div className="text-xs font-bold text-slate-100">
-                {language === 'bn' ? 'ভয়েস মনিটরিং সংযোগ সক্রিয়' : 'Live In-Cabin Audio Stream Active'}
-              </div>
-              <div className="text-[10px] text-slate-400">Silent microphone monitoring without ringing</div>
+              <span className="text-xs font-black uppercase tracking-wider text-rose-300 block">
+                {language === 'bn' ? '🚨 এক্সিডেন্ট ব্ল্যাকবক্স ভল্ট (Autonomous Crash Vault)' : 'Autonomous Crash Blackbox Vault'}
+              </span>
+              <p className="text-[10px] text-slate-400">
+                দুর্ঘটনায় পড়া মাত্রই ৫ মিনিটের সকল ক্যামেরার ফুটেজ অটো-লক ও ৩টি SOS নম্বরে পাঠানো হয়
+              </p>
             </div>
           </div>
-          <div className="flex space-x-1">
-            <span className="w-1 h-4 bg-emerald-400 rounded-full animate-bounce" />
-            <span className="w-1 h-6 bg-emerald-400 rounded-full animate-bounce [animation-delay:0.1s]" />
-            <span className="w-1 h-3 bg-emerald-400 rounded-full animate-bounce [animation-delay:0.2s]" />
-          </div>
+          <span className="text-[10px] font-bold text-rose-300 bg-rose-950 px-2 py-0.5 rounded-full border border-rose-800">
+            লকড এভিডেন্স
+          </span>
         </div>
-      )}
 
-      {/* 2. Evidence Locker & Media Gallery */}
+        <div className="space-y-2">
+          {crashRecordings.map(crash => (
+            <div key={crash.id} className="bg-slate-950 border border-rose-500/30 rounded-2xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+              <div className="space-y-1">
+                <div className="flex items-center space-x-2">
+                  <span className="text-xs font-bold text-white">{crash.title}</span>
+                  <span className="text-[8.5px] font-bold bg-rose-600 text-white px-1.5 py-0.2 rounded font-mono">
+                    {crash.impactG} IMPACT
+                  </span>
+                </div>
+                <div className="text-[10px] text-slate-400 flex items-center space-x-3">
+                  <span>🕒 {crash.date}</span>
+                  <span>📍 {crash.location}</span>
+                  <span>📁 {crash.fileSize}</span>
+                </div>
+                <div className="text-[9.5px] text-emerald-400 font-bold flex items-center space-x-1">
+                  <CheckCircle2 className="w-3 h-3" />
+                  <span>SOS 1, SOS 2, SOS 3 নম্বরে রিয়েল-টাইম ক্র্যাশ অ্যালার্ট পাঠানো হয়েছে</span>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2 shrink-0">
+                <button
+                  onClick={() => handleUnlockBlackbox(crash)}
+                  className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold flex items-center space-x-1.5 transition active:scale-95 shadow-md shadow-rose-600/30"
+                >
+                  <Lock className="w-3.5 h-3.5" />
+                  <span>আইনি ফুটেজ আনলক</span>
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 3. 🚦 Traffic Rule Violations AI Auto-Snippets */}
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <AlertCircle className="w-4 h-4 text-amber-400" />
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-200">
+              {language === 'bn' ? '🚦 ট্রাফিক সাইন ভায়োলেশন এআই অটো-ক্লিপস' : 'AI Traffic Sign Violation Clips'}
+            </span>
+          </div>
+          <span className="text-[10px] text-slate-400 font-mono">
+            ৫-১০ সেকেন্ডের অটো এভিডেন্স
+          </span>
+        </div>
+
+        <div className="space-y-2">
+          {violationClips.map(clip => (
+            <div key={clip.id} className="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-3 flex items-center justify-between gap-2">
+              <div className="space-y-0.5 min-w-0">
+                <div className="flex items-center space-x-2">
+                  <span className="text-xs font-bold text-white truncate">{clip.title}</span>
+                  {clip.isDeletedFile && (
+                    <span className="text-[8px] font-bold bg-amber-950 text-amber-300 border border-amber-700 px-1 rounded shrink-0">
+                      📄 অডিট হিস্ট্রি সংরক্ষিত (ফাইল মুছে দেওয়া হয়েছে)
+                    </span>
+                  )}
+                </div>
+                <div className="text-[10px] text-slate-400 truncate">
+                  {clip.timestamp} • {clip.location} • স্পিড: {clip.speed}
+                </div>
+              </div>
+
+              {!clip.isDeletedFile ? (
+                <button
+                  onClick={() => alert(`ট্রাফিক ভায়োলেশন ক্লিপ (${clip.duration}) ওয়াটারমার্ক সহ ডাউনলোড হচ্ছে...`)}
+                  className="px-2.5 py-1 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/40 text-[10px] font-bold flex items-center space-x-1 shrink-0"
+                >
+                  <Download className="w-3 h-3" />
+                  <span>ভিডিও</span>
+                </button>
+              ) : (
+                <span className="text-[10px] font-mono text-slate-500 shrink-0">স্টোরেজ খালি</span>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 4. Evidence Locker & Media Gallery */}
       <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center space-x-2">
@@ -304,7 +512,7 @@ export const SurveillanceView: React.FC = () => {
                 <button
                   onClick={() => deleteEvidence(item.id)}
                   className="p-1.5 rounded-xl bg-slate-800 hover:bg-rose-600/30 text-slate-400 hover:text-rose-400 transition"
-                  title="Delete Evidence"
+                  title="Delete Video (Preserves Permanent Event Metadata)"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -313,6 +521,75 @@ export const SurveillanceView: React.FC = () => {
           ))}
         </div>
       </div>
+
+      {/* Storage Flexi-Builder Subscription Modal */}
+      {isStorageModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-in fade-in">
+          <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-md w-full p-5 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <HardDrive className="w-5 h-5 text-purple-400" />
+                <h3 className="text-sm font-bold text-white">সার্ভেল্যান্স স্টোরেজ ও ব্যাকআপ বিল্ডার</h3>
+              </div>
+              <button onClick={() => setIsStorageModalOpen(false)} className="text-slate-400 hover:text-white">✕</button>
+            </div>
+
+            <p className="text-xs text-slate-400">
+              আপনার গাড়ির ড্যাশ-ক্যাম ও ভয়েস ফুটেজ কত দিন ক্লাউডে সেভ থাকবে এবং কত মেমোরি প্রয়োজন তা নির্বাচন করুন:
+            </p>
+
+            <div className="grid grid-cols-2 gap-2.5">
+              {[
+                { capMb: 200, retentionDays: 3, priceBdt: 0, label: 'বেসিক (ফ্রি)', desc: '২০০ MB • ৩ দিন ব্যাকআপ' },
+                { capMb: 500, retentionDays: 7, priceBdt: 50, label: 'সিলভার প্যাকেজ', desc: '৫০০ MB • ৭ দিন ব্যাকআপ' },
+                { capMb: 1024, retentionDays: 15, priceBdt: 100, label: 'গোল্ড প্যাকেজ', desc: '১ GB • ১৫ দিন ব্যাকআপ' },
+                { capMb: 5120, retentionDays: 30, priceBdt: 200, label: 'প্লাটিনাম ফ্লিট', desc: '৫ GB • ৩০ দিন ব্যাকআপ' },
+              ].map((tier) => (
+                <button
+                  key={tier.capMb}
+                  onClick={() => setStorageTier(tier)}
+                  className={`p-3 rounded-2xl border text-left transition ${
+                    storageTier.capMb === tier.capMb
+                      ? 'bg-purple-600/20 border-purple-500 text-purple-200 shadow-md ring-1 ring-purple-500'
+                      : 'bg-slate-850 border-slate-750 text-slate-300 hover:bg-slate-800'
+                  }`}
+                >
+                  <div className="font-bold text-xs">{tier.label}</div>
+                  <div className="text-[10px] text-slate-400 mt-0.5">{tier.desc}</div>
+                  <div className="text-xs font-black text-emerald-400 mt-1 font-mono">
+                    {tier.priceBdt === 0 ? 'ফ্রি' : `৳ ${tier.priceBdt}/মাস`}
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={() => {
+                setIsStorageModalOpen(false);
+                alert(`স্টোরেজ সফলভাবে ${storageTier.capMb} MB তে আপগ্রেড করা হয়েছে!`);
+              }}
+              className="w-full py-2.5 rounded-2xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs transition"
+            >
+              প্যাকেজ নিশ্চিত করুন
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Master PIN Verification Modal for Blackbox Video Access */}
+      <PinVerificationModal
+        isOpen={isPinModalOpen}
+        onClose={() => {
+          setIsPinModalOpen(false);
+          setSelectedBlackboxItem(null);
+        }}
+        onSuccess={() => {
+          setIsPinModalOpen(false);
+          alert(`মাস্টার পিন ভেরিফাইড! ${selectedBlackboxItem?.title} এর লিগ্যাল এভিডেন্স ওয়াটারমার্ক সহ ডাউনলোড হচ্ছে...`);
+        }}
+        title="আইনি ব্ল্যাকবক্স এক্সিডেন্ট ফুটেজ অ্যাক্সেস"
+        description="পুলিশ ও লিগ্যাল সিকিউরিটির জন্য ক্র্যাশ ফুটেজ দেখতে ও ডাউনলোড করতে আপনার মাস্টার সিকিউরিটি পিন দিন।"
+      />
     </div>
   );
 };

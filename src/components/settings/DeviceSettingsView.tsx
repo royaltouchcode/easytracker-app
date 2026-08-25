@@ -40,7 +40,7 @@ import { DataDeletionModal } from '../compliance/DataDeletionModal';
 import { VehicleSpecSelectorModal } from './VehicleSpecSelectorModal';
 import { PinVerificationModal } from '../commands/PinVerificationModal';
 import { APP_CONFIG } from '../../config/appConfig';
-import { VehicleIcon } from '../../utils/vehicleIcons';
+import { VehicleIcon, getVehicleMarkerSvg } from '../../utils/vehicleIcons';
 
 const VEHICLE_ICONS: { type: VehicleType; label: string }[] = [
   { type: 'motorcycle', label: 'Bike (মোটরসাইকেল)' },
@@ -232,13 +232,20 @@ export const DeviceSettingsView: React.FC = () => {
       </div>
 
       <form onSubmit={handleTriggerSaveProfile} className="space-y-4">
-        {/* 1. Vehicle Icon & Color Selection */}
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-300 mb-3 block">
-            {language === 'bn' ? '১. গাড়ির আইকন ও মার্কার কালার' : '1. Vehicle Icon & Marker Color'}
-          </span>
+        {/* 1. Vehicle Icon & Color Selection (My GPS Pro Interactive Style) */}
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl space-y-4">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center space-x-2">
+              <Sparkles className="w-4 h-4 text-amber-400" />
+              <span>{language === 'bn' ? '১. ইন্টারেক্টিভ ভেহিকেল আইকন ও মার্কার' : '1. Interactive Vehicle Icon & Marker'}</span>
+            </span>
+            <span className="text-[10px] text-blue-400 font-mono bg-blue-500/10 border border-blue-500/30 px-2 py-0.5 rounded-full">
+              My GPS 3D Vector
+            </span>
+          </div>
 
-          <div className="grid grid-cols-2 gap-2">
+          {/* Interactive Vehicle Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
             {VEHICLE_ICONS.map((item) => {
               const isSelected = category === item.type;
               return (
@@ -246,44 +253,114 @@ export const DeviceSettingsView: React.FC = () => {
                   key={item.type}
                   type="button"
                   onClick={() => setCategory(item.type)}
-                  className={`p-2.5 rounded-2xl border text-left flex items-center space-x-2.5 transition active:scale-95 ${
+                  className={`p-3 rounded-2xl border text-left flex flex-col justify-between transition-all duration-200 active:scale-95 group relative overflow-hidden ${
                     isSelected 
-                      ? 'bg-blue-600/20 border-blue-500 text-blue-300 shadow-md' 
-                      : 'bg-slate-800/60 border-slate-700/80 text-slate-300 hover:bg-slate-800'
+                      ? 'bg-gradient-to-br from-blue-900/40 via-indigo-900/30 to-slate-900 border-blue-500 shadow-lg shadow-blue-950/50 ring-1 ring-blue-500/60' 
+                      : 'bg-slate-800/40 border-slate-700/70 hover:bg-slate-800/80 hover:border-slate-600'
                   }`}
                 >
-                  <div 
-                    className="w-8 h-8 rounded-xl flex items-center justify-center text-white shrink-0 shadow-sm"
-                    style={{ backgroundColor: isSelected ? selectedColor : '#475569' }}
-                  >
-                    <VehicleIcon type={item.type} className="w-4 h-4" />
+                  {/* Selection indicator pill */}
+                  {isSelected && (
+                    <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-blue-400 animate-ping" />
+                  )}
+
+                  <div className="flex items-center justify-between mb-2">
+                    <div 
+                      className={`w-10 h-10 rounded-xl flex items-center justify-center p-1.5 transition-transform duration-300 group-hover:scale-110 shadow-inner ${
+                        isSelected ? 'bg-slate-900/90 border border-blue-400/40' : 'bg-slate-900/60 border border-slate-800'
+                      }`}
+                    >
+                      <div 
+                        dangerouslySetInnerHTML={{ 
+                          __html: getVehicleMarkerSvg(item.type, isSelected ? selectedColor : '#94a3b8') 
+                        }} 
+                        className="w-full h-full flex items-center justify-center"
+                      />
+                    </div>
+
+                    {isSelected && (
+                      <span className="text-[9px] font-bold text-blue-300 bg-blue-500/20 border border-blue-500/40 px-1.5 py-0.5 rounded-md">
+                        সক্রিয়
+                      </span>
+                    )}
                   </div>
-                  <span className="text-xs font-semibold truncate">{item.label}</span>
+
+                  <div>
+                    <span className={`text-xs font-bold block leading-tight ${isSelected ? 'text-white' : 'text-slate-300'}`}>
+                      {item.label.split('(')[0]}
+                    </span>
+                    <span className="text-[10px] text-slate-400 block truncate mt-0.5">
+                      {item.label.includes('(') ? `(${item.label.split('(')[1]}` : ''}
+                    </span>
+                  </div>
                 </button>
               );
             })}
           </div>
 
-          {/* Color Picker */}
-          <div className="mt-3.5 pt-3 border-t border-slate-800">
-            <div className="flex items-center space-x-2 mb-2">
-              <Palette className="w-3.5 h-3.5 text-purple-400" />
-              <span className="text-xs font-bold text-slate-300">
-                {language === 'bn' ? 'মার্কারের রং (Color)' : 'Marker Color'}
+          {/* Color Picker Palette */}
+          <div className="pt-3 border-t border-slate-800">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center space-x-2">
+                <Palette className="w-3.5 h-3.5 text-purple-400" />
+                <span className="text-xs font-bold text-slate-300">
+                  {language === 'bn' ? 'মার্কারের কাস্টম রং (Marker Color)' : 'Custom Marker Color'}
+                </span>
+              </div>
+              <span className="text-[10px] font-mono text-slate-400">
+                {selectedColor.toUpperCase()}
               </span>
             </div>
-            <div className="flex items-center space-x-2.5">
+            <div className="flex items-center space-x-3 overflow-x-auto py-1">
               {VEHICLE_COLORS.map((c) => (
                 <button
                   key={c}
                   type="button"
                   onClick={() => setSelectedColor(c)}
-                  className={`w-7 h-7 rounded-full border-2 transition active:scale-90 shadow-md ${
-                    selectedColor === c ? 'border-white scale-110 shadow-[0_0_8px_#ffffff]' : 'border-transparent opacity-75 hover:opacity-100'
+                  className={`w-8 h-8 rounded-full border-2 transition-all duration-200 active:scale-90 shrink-0 ${
+                    selectedColor === c 
+                      ? 'border-white scale-110 shadow-[0_0_12px_rgba(255,255,255,0.6)] ring-2 ring-blue-500/50' 
+                      : 'border-slate-800 opacity-70 hover:opacity-100 hover:scale-105'
                   }`}
                   style={{ backgroundColor: c }}
                 />
               ))}
+            </div>
+          </div>
+
+          {/* Live Map Radar Simulation Box */}
+          <div className="bg-slate-950 border border-blue-500/30 rounded-2xl p-3 flex items-center justify-between shadow-inner">
+            <div className="flex items-center space-x-3">
+              {/* Radar pulse container */}
+              <div className="relative w-12 h-12 rounded-xl bg-slate-900 border border-blue-500/40 flex items-center justify-center overflow-hidden">
+                <div className="absolute inset-0 bg-[radial-gradient(#3b82f6_1px,transparent_1px)] [background-size:8px_8px] opacity-30" />
+                <div className="absolute w-8 h-8 rounded-full border border-blue-500/30 animate-ping opacity-40" />
+                <div 
+                  dangerouslySetInnerHTML={{ 
+                    __html: getVehicleMarkerSvg(category, selectedColor) 
+                  }} 
+                  className="w-8 h-8 relative z-10 drop-shadow-[0_0_8px_rgba(59,130,246,0.6)]"
+                />
+              </div>
+
+              <div>
+                <div className="flex items-center space-x-1.5">
+                  <span className="text-xs font-bold text-white">লাইভ মার্কার প্রিভিউ</span>
+                  <span className="text-[9px] font-bold text-emerald-400 bg-emerald-950 border border-emerald-800 px-1.5 rounded">
+                    রিয়েল-টাইম
+                  </span>
+                </div>
+                <p className="text-[10px] text-slate-400 mt-0.5">
+                  ম্যাপে আপনার গাড়িটি এই নির্দিষ্ট কালার ও শেপে ঘুরবে
+                </p>
+              </div>
+            </div>
+
+            <div className="text-right">
+              <span className="text-[9px] font-mono text-slate-400 block font-bold">
+                {selectedDevice.attributes?.plateNumber || selectedDevice.name}
+              </span>
+              <span className="text-[8.5px] font-bold text-blue-400">EasyTracker HD</span>
             </div>
           </div>
 

@@ -721,6 +721,38 @@ export const ReportsHubView: React.FC = () => {
                     <div className="text-[10px] text-slate-400 mt-0.5">জিরো-ডেমো ক্যালিব্রেশন</div>
                   </div>
                 </button>
+
+                {/* 11. 🎥 Smart Dashcam & 360 Video Log */}
+                <button
+                  onClick={() => setActiveTab('surveillance')}
+                  className="bg-gradient-to-br from-slate-900 to-purple-950/40 border border-purple-500/40 hover:border-purple-400 p-3.5 rounded-3xl flex flex-col justify-between text-left transition active:scale-95 shadow-md group"
+                >
+                  <div className="w-10 h-10 rounded-2xl bg-purple-500/20 border border-purple-500/40 flex items-center justify-center text-purple-300 text-lg shadow-inner">
+                    🎥
+                  </div>
+                  <div className="mt-3">
+                    <div className="font-extrabold text-xs text-purple-200 group-hover:text-white transition">
+                      {language === 'bn' ? 'ভিডিও ও ড্যাশ-ক্যাম রেকর্ড' : 'Dashcam Video Records'}
+                    </div>
+                    <div className="text-[10px] text-slate-400 mt-0.5">৩৬০° ক্র্যাশ ও ট্রাফিক ক্লিপস</div>
+                  </div>
+                </button>
+
+                {/* 12. 🎙️ Voice & In-Cabin Audio Surveillance */}
+                <button
+                  onClick={() => setActiveTab('surveillance')}
+                  className="bg-gradient-to-br from-slate-900 to-emerald-950/40 border border-emerald-500/40 hover:border-emerald-400 p-3.5 rounded-3xl flex flex-col justify-between text-left transition active:scale-95 shadow-md group"
+                >
+                  <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-300 text-lg shadow-inner">
+                    🎙️
+                  </div>
+                  <div className="mt-3">
+                    <div className="font-extrabold text-xs text-emerald-200 group-hover:text-white transition">
+                      {language === 'bn' ? 'ভয়েস ও অডিও অডিট লগ' : 'Voice & Audio Logs'}
+                    </div>
+                    <div className="text-[10px] text-slate-400 mt-0.5">কেবিন লিসেন ও ওয়াটারমার্ক</div>
+                  </div>
+                </button>
               </div>
             </div>
           ) : (

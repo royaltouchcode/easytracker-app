@@ -602,7 +602,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, [selectedDeviceId, positions[selectedDeviceId]?.latitude, positions[selectedDeviceId]?.longitude]);
 
-  const [mapLayer, setMapLayer] = useState<MapLayerType>('google_hybrid');
+  const [mapLayer, setMapLayer] = useState<MapLayerType>(() => {
+    return (localStorage.getItem('easytracker_default_map_layer') as MapLayerType) || 'carto_positron';
+  });
   const [showTraffic, setShowTraffic] = useState(true);
   const [showDistanceLine, setShowDistanceLine] = useState(true);
   const [showGeofenceOnMap, setShowGeofenceOnMap] = useState(true);

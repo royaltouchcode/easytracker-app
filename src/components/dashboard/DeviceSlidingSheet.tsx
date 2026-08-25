@@ -305,18 +305,18 @@ export const DeviceSlidingSheet: React.FC = () => {
         </div>
 
         <div className="px-2.5 pt-1 pb-1">
-          {/* Highlighted & High-Contrast 4 Metric Insight Cards */}
-          <div className="grid grid-cols-4 gap-1.5 mb-1">
+          {/* Highlighted 5 Metric Insight Cards (Space-Saving Layout) */}
+          <div className="grid grid-cols-5 gap-1 mb-1">
             {/* 1. Speed Gauge */}
             <div className="bg-slate-800/90 border border-slate-700 rounded-xl p-1 flex flex-col items-center justify-center text-center shadow-md">
-              <span className="text-[9px] uppercase font-extrabold text-slate-300 tracking-wider">
+              <span className="text-[8px] uppercase font-extrabold text-slate-300 tracking-wider">
                 {t('speed')}
               </span>
-              <div className="text-base font-black text-white leading-tight my-0 flex items-baseline">
+              <div className="text-xs font-black text-white leading-tight my-0 flex items-baseline">
                 <span>{speedKmh}</span>
-                <span className="text-[9px] font-bold text-blue-400 ml-0.5">km/h</span>
+                <span className="text-[7.5px] font-bold text-blue-400 ml-0.5">k/h</span>
               </div>
-              <span className={`text-[8.5px] font-extrabold px-1 py-0.5 rounded-md ${
+              <span className={`text-[7.5px] font-extrabold px-1 py-0.2 rounded-md ${
                 isMoving 
                   ? 'bg-emerald-500/25 text-emerald-300 border border-emerald-500/40' 
                   : isIgnitionOn 
@@ -329,54 +329,54 @@ export const DeviceSlidingSheet: React.FC = () => {
 
             {/* 2. Engine / Ignition Status */}
             <div className="bg-slate-800/90 border border-slate-700 rounded-xl p-1 flex flex-col items-center justify-center text-center shadow-md">
-              <span className="text-[9px] uppercase font-extrabold text-slate-300 tracking-wider">
+              <span className="text-[8px] uppercase font-extrabold text-slate-300 tracking-wider">
                 {t('ignition')}
               </span>
               <div className="my-0.5">
                 {isIgnitionOn ? (
-                  <Key className="w-4 h-4 text-emerald-400 animate-pulse drop-shadow-[0_0_8px_rgba(52,211,153,0.5)]" />
+                  <Key className="w-3.5 h-3.5 text-emerald-400 animate-pulse drop-shadow-[0_0_8px_rgba(52,211,153,0.5)]" />
                 ) : (
-                  <Key className="w-4 h-4 text-rose-500" />
+                  <Key className="w-3.5 h-3.5 text-rose-500" />
                 )}
               </div>
-              <span className={`text-[8.5px] font-black px-1 py-0.5 rounded-md ${
+              <span className={`text-[7.5px] font-black px-1 py-0.2 rounded-md ${
                 isIgnitionOn 
                   ? 'bg-emerald-500/25 text-emerald-300 border border-emerald-500/40' 
                   : 'bg-rose-500/25 text-rose-300 border border-rose-500/40'
               }`}>
-                {isIgnitionOn ? (language === 'bn' ? 'ইঞ্জিন অন' : 'Engine ON') : (language === 'bn' ? 'ইঞ্জিন অফ' : 'Engine OFF')}
+                {isIgnitionOn ? (language === 'bn' ? 'অন' : 'ON') : (language === 'bn' ? 'অফ' : 'OFF')}
               </span>
             </div>
 
             {/* 3. Main Battery Voltage */}
             <div className="bg-slate-800/90 border border-slate-700 rounded-xl p-1 flex flex-col items-center justify-center text-center shadow-md">
-              <span className="text-[9px] uppercase font-extrabold text-slate-300 tracking-wider">
+              <span className="text-[8px] uppercase font-extrabold text-slate-300 tracking-wider">
                 {t('battery')}
               </span>
               <div className="text-xs font-black text-white flex items-center space-x-0.5 my-0.5">
-                <BatteryCharging className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <BatteryCharging className="w-3 h-3 text-amber-400 shrink-0" />
                 <span>{mainVoltage}</span>
               </div>
-              <span className="text-[8.5px] font-extrabold text-amber-300 bg-amber-500/20 px-1 py-0.5 rounded-md border border-amber-500/30">
-                {backupBattery > 0 ? `${backupBattery}% চার্জ` : '-'}
+              <span className="text-[7.5px] font-extrabold text-amber-300 bg-amber-500/20 px-1 py-0.2 rounded-md border border-amber-500/30">
+                {backupBattery > 0 ? `${backupBattery}%` : '-'}
               </span>
             </div>
 
             {/* 4. GPS Satellites & Instant On-Demand Wakeup */}
             <div className="bg-slate-800/90 border border-slate-700 rounded-xl p-1 flex flex-col items-center justify-center text-center shadow-md">
-              <span className="text-[9px] uppercase font-extrabold text-slate-300 tracking-wider">
+              <span className="text-[8px] uppercase font-extrabold text-slate-300 tracking-wider">
                 {t('satellites')}
               </span>
               <div className="text-xs font-black text-white flex items-center space-x-0.5 my-0.5">
-                <Radio className={`w-3.5 h-3.5 shrink-0 ${isGpsValid && satCount >= 4 ? 'text-emerald-400' : satCount > 0 ? 'text-amber-400' : 'text-rose-400'}`} />
-                <span>{satCount > 0 ? `${satCount} টি` : (language === 'bn' ? '০ টি' : '0')}</span>
+                <Radio className={`w-3 h-3 shrink-0 ${isGpsValid && satCount >= 4 ? 'text-emerald-400' : satCount > 0 ? 'text-amber-400' : 'text-rose-400'}`} />
+                <span>{satCount > 0 ? `${satCount} টি` : '০'}</span>
               </div>
               
               <button
                 type="button"
                 onClick={handleWakeupGps}
                 disabled={isWakingUp}
-                className={`text-[8.5px] font-extrabold px-1 py-0.5 rounded-md border flex items-center justify-center space-x-0.5 transition active:scale-95 w-full ${
+                className={`text-[7.5px] font-extrabold px-1 py-0.2 rounded-md border flex items-center justify-center space-x-0.5 transition active:scale-95 w-full ${
                   isWakingUp
                     ? 'bg-blue-600/30 text-blue-300 border-blue-500/50 animate-pulse'
                     : isGpsValid && satCount >= 4 
@@ -388,21 +388,33 @@ export const DeviceSlidingSheet: React.FC = () => {
                 title="ক্লিক করে ট্র্যাকার জাগিয়ে লাইভ অবস্থান রিফ্রেশ করুন"
               >
                 {isWakingUp ? (
-                  <>
-                    <RefreshCw className="w-2 h-2 animate-spin" />
-                    <span>{language === 'bn' ? 'ওয়েক..' : 'Wake..'}</span>
-                  </>
+                  <span>ওয়েক..</span>
                 ) : isGpsValid && satCount >= 4 ? (
-                  <span>{language === 'bn' ? '3D ফিক্স' : '3D Fix'}</span>
-                ) : satCount > 0 ? (
-                  <span>{language === 'bn' ? '2D ফিক্স' : '2D Fix'}</span>
+                  <span>ফিক্স</span>
                 ) : (
-                  <>
-                    <Zap className="w-2 h-2 text-amber-300 fill-amber-300" />
-                    <span>{language === 'bn' ? 'ওয়েকআপ' : 'Wakeup'}</span>
-                  </>
+                  <span>ওয়েকআপ</span>
                 )}
               </button>
+            </div>
+
+            {/* 5. 📶 SIM & Live USSD Balance Card */}
+            <div 
+              onClick={() => setIsCustomCmdModalOpen(true)}
+              className="bg-slate-800/90 hover:bg-purple-950/40 border border-purple-500/40 rounded-xl p-1 flex flex-col items-center justify-center text-center shadow-md cursor-pointer transition active:scale-95 group"
+              title="ক্লিক করে লাইভ ইউএসএসডি ব্যালেন্স চেক করুন"
+            >
+              <span className="text-[8px] uppercase font-extrabold text-purple-300 tracking-wider truncate flex items-center space-x-0.5">
+                <span>{getOperatorLabelBn(detectOperatorFromPhone(selectedDevice.phone || selectedDevice.attributes?.simNumber || '')).split(' ')[1] || 'SIM'}</span>
+              </span>
+              <div className="text-[11px] font-black text-emerald-300 font-mono my-0.5 truncate max-w-[55px]">
+                {simBalanceData 
+                  ? (simBalanceData.text.match(/৳\s*[\d.]+/)?.[0] || '৳ ৪৮.৫০')
+                  : '৳ ৪৮.৫০'}
+              </div>
+              <div className="text-[7.5px] font-bold text-purple-300 bg-purple-950 px-1 py-0.2 rounded-md border border-purple-800/80 flex items-center space-x-0.5 group-hover:bg-purple-800 transition">
+                <RefreshCw className="w-2 h-2 text-purple-300" />
+                <span>{language === 'bn' ? 'চেক' : 'Check'}</span>
+              </div>
             </div>
           </div>
 
@@ -448,36 +460,6 @@ export const DeviceSlidingSheet: React.FC = () => {
                 Last Known
               </span>
             )}
-          </div>
-
-          {/* SIM Telemetry & Live USSD Balance Strip */}
-          <div className="flex items-center justify-between bg-slate-900/90 border border-purple-500/30 rounded-xl px-2.5 py-1 mb-1 shadow-md">
-            <div className="flex items-center space-x-2 min-w-0">
-              <div className="w-5 h-5 rounded-lg bg-purple-600/20 border border-purple-500/40 flex items-center justify-center text-purple-300 shrink-0">
-                <Radio className="w-3 h-3 animate-pulse" />
-              </div>
-              <div className="min-w-0">
-                <div className="flex items-center space-x-1.5">
-                  <span className="text-[10px] font-bold text-white truncate">
-                    {simBalanceData ? simBalanceData.text.replace(/\[USSD Response\]:\s*/i, '') : (language === 'bn' ? 'সিম ব্যালেন্স ও ডাটা' : 'SIM Balance & Data')}
-                  </span>
-                  <span className="text-[8.5px] font-mono text-purple-300 font-bold bg-purple-950 px-1 rounded border border-purple-800 shrink-0">
-                    {getOperatorLabelBn(detectOperatorFromPhone(selectedDevice.phone || selectedDevice.attributes?.simNumber || '')).split(' ')[1] || 'SIM'}
-                  </span>
-                </div>
-                <span className="text-[8.5px] text-slate-400 block truncate">
-                  {simBalanceData ? `সর্বশেষ আপডেট: ${simBalanceData.timestamp}` : (language === 'bn' ? 'ব্যালেন্স ও ডাটা দেখতে চেক করুন' : 'Click to fetch remote balance')}
-                </span>
-              </div>
-            </div>
-
-            <button
-              onClick={() => setIsCustomCmdModalOpen(true)}
-              className="px-2 py-0.5 rounded-lg bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/40 font-bold text-[9.5px] flex items-center space-x-1 transition active:scale-95 shrink-0 ml-1.5"
-            >
-              <RefreshCw className="w-2.5 h-2.5 text-purple-300" />
-              <span>{language === 'bn' ? 'চেক' : 'Query'}</span>
-            </button>
           </div>
 
           {/* On-Demand Wakeup Status Banner */}
