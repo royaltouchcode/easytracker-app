@@ -37,47 +37,104 @@ export const RenewSubscriptionModal: React.FC<RenewSubscriptionModalProps> = ({
   const customMonthlyRate = affiliatedPartner?.customRetailMonthlyPrice || 350;
   const customYearlyRate = affiliatedPartner?.customRetailYearlyPrice || (customMonthlyRate * 10);
 
-  // Dynamic Plans based on Partner Custom Pricing
-  const dynamicPlans: SubscriptionPlanTier[] = [
-    {
-      months: 1,
-      name: '১ মাস বেসিক প্ল্যান',
-      priceBdt: customMonthlyRate,
-      originalPriceBdt: customMonthlyRate,
-      discountPercentage: 0,
-      labelBn: '১ মাস মেয়াদী',
-      savingsTextBn: 'মাসিক পে-অ্যাজ-ইউ-গো'
-    },
-    {
-      months: 3,
-      name: '৩ মাস কোয়ার্টারলি প্ল্যান',
-      priceBdt: Math.round(customMonthlyRate * 3 * 0.95),
-      originalPriceBdt: customMonthlyRate * 3,
-      discountPercentage: 5,
-      labelBn: '৩ মাস মেয়াদী',
-      savingsTextBn: '৫% সাশ্রয়ী'
-    },
-    {
-      months: 6,
-      name: '৬ মাস হাফ-ইয়ারলি প্ল্যান',
-      priceBdt: Math.round(customMonthlyRate * 6 * 0.90),
-      originalPriceBdt: customMonthlyRate * 6,
-      discountPercentage: 10,
-      popular: true,
-      labelBn: '৬ মাস মেয়াদী',
-      savingsTextBn: '১০% সাশ্রয়ী'
-    },
-    {
-      months: 12,
-      name: '১২ মাস বাৎসরিক মেগা প্ল্যান',
-      priceBdt: customYearlyRate,
-      originalPriceBdt: customMonthlyRate * 12,
-      discountPercentage: Math.round(((customMonthlyRate * 12 - customYearlyRate) / (customMonthlyRate * 12)) * 100),
-      bestValue: true,
-      labelBn: '১ বছর (১২ মাস)',
-      savingsTextBn: 'সর্বাধিক সাশ্রয়ী ও বোনাস'
+  const [planCategory, setPlanCategory] = useState<'all_inclusive' | 'server_only'>('all_inclusive');
+
+  // Dynamic Plans based on Partner / EasyTracker Direct Custom Pricing
+  const dynamicPlans: SubscriptionPlanTier[] = React.useMemo(() => {
+    if (planCategory === 'server_only') {
+      const srv1 = affiliatedPartner?.serverOnlyPricing?.month1 || 150;
+      const srv3 = affiliatedPartner?.serverOnlyPricing?.month3 || 450;
+      const srv6 = affiliatedPartner?.serverOnlyPricing?.month6 || 850;
+      const srv12 = affiliatedPartner?.serverOnlyPricing?.month12 || 1500;
+
+      return [
+        {
+          months: 1,
+          name: '১ মাস অনলি সার্ভার প্ল্যান',
+          priceBdt: srv1,
+          originalPriceBdt: srv1,
+          discountPercentage: 0,
+          labelBn: '১ মাস (সার্ভার অনলি)',
+          savingsTextBn: 'গ্রাহকের নিজস্ব সিম'
+        },
+        {
+          months: 3,
+          name: '৩ মাস অনলি সার্ভার প্যাক',
+          priceBdt: srv3,
+          originalPriceBdt: srv1 * 3,
+          discountPercentage: Math.max(0, Math.round(((srv1 * 3 - srv3) / (srv1 * 3)) * 100)),
+          labelBn: '৩ মাস (সার্ভার অনলি)',
+          savingsTextBn: 'কোয়ার্টারলি সাশ্রয়ী'
+        },
+        {
+          months: 6,
+          name: '৬ মাস অনলি সার্ভার প্যাক',
+          priceBdt: srv6,
+          originalPriceBdt: srv1 * 6,
+          discountPercentage: Math.max(0, Math.round(((srv1 * 6 - srv6) / (srv1 * 6)) * 100)),
+          popular: true,
+          labelBn: '৬ মাস (সার্ভার অনলি)',
+          savingsTextBn: 'হাফ-ইয়ারলি সেভার'
+        },
+        {
+          months: 12,
+          name: '১২ মাস বাৎসরিক সার্ভার প্যাক',
+          priceBdt: srv12,
+          originalPriceBdt: srv1 * 12,
+          discountPercentage: Math.max(0, Math.round(((srv1 * 12 - srv12) / (srv1 * 12)) * 100)),
+          bestValue: true,
+          labelBn: '১ বছর (সার্ভার অনলি)',
+          savingsTextBn: 'সর্বাধিক সাশ্রয়ী ও বোনাস'
+        }
+      ];
+    } else {
+      const inc1 = affiliatedPartner?.allInclusivePricing?.month1 || customMonthlyRate || 350;
+      const inc3 = affiliatedPartner?.allInclusivePricing?.month3 || 1000;
+      const inc6 = affiliatedPartner?.allInclusivePricing?.month6 || 1900;
+      const inc12 = affiliatedPartner?.allInclusivePricing?.month12 || customYearlyRate || 3500;
+
+      return [
+        {
+          months: 1,
+          name: '১ মাস অল-ইন-ওয়ান',
+          priceBdt: inc1,
+          originalPriceBdt: inc1,
+          discountPercentage: 0,
+          labelBn: '১ মাস (সিম + সার্ভার)',
+          savingsTextBn: 'সিম ডেটাসহ পে-অ্যাজ-ইউ-গো'
+        },
+        {
+          months: 3,
+          name: '৩ মাস অল-ইন-ওয়ান',
+          priceBdt: inc3,
+          originalPriceBdt: inc1 * 3,
+          discountPercentage: Math.max(0, Math.round(((inc1 * 3 - inc3) / (inc1 * 3)) * 100)),
+          labelBn: '৩ মাস (সিম + সার্ভার)',
+          savingsTextBn: '৫% সাশ্রয়ী'
+        },
+        {
+          months: 6,
+          name: '৬ মাস অল-ইন-ওয়ান',
+          priceBdt: inc6,
+          originalPriceBdt: inc1 * 6,
+          discountPercentage: Math.max(0, Math.round(((inc1 * 6 - inc6) / (inc1 * 6)) * 100)),
+          popular: true,
+          labelBn: '৬ মাস (সিম + সার্ভার)',
+          savingsTextBn: '১০% সাশ্রয়ী'
+        },
+        {
+          months: 12,
+          name: '১২ মাস অল-ইন-ওয়ান মেগা',
+          priceBdt: inc12,
+          originalPriceBdt: inc1 * 12,
+          discountPercentage: Math.max(0, Math.round(((inc1 * 12 - inc12) / (inc1 * 12)) * 100)),
+          bestValue: true,
+          labelBn: '১ বছর (সিম + সার্ভার)',
+          savingsTextBn: 'সর্বাধিক সাশ্রয়ী ও বোনাস'
+        }
+      ];
     }
-  ];
+  }, [planCategory, affiliatedPartner, customMonthlyRate, customYearlyRate]);
   
   const [selectedPlanMonths, setSelectedPlanMonths] = useState<number>(12); // Default to 12 months best value
   const [paymentMethod, setPaymentMethod] = useState<'bkash' | 'nagad' | 'card'>('bkash');
@@ -99,7 +156,10 @@ export const RenewSubscriptionModal: React.FC<RenewSubscriptionModalProps> = ({
       
       // Central Auto-Settlement Split: EasyTracker Wholesale vs Partner Profit
       if (affiliatedPartner) {
-        const wholesaleCostPerMonth = affiliatedPartner.wholesaleServerFeeMonthly || 50;
+        const wholesaleCostPerMonth = planCategory === 'all_inclusive' 
+          ? (affiliatedPartner.wholesaleAllInclusiveMonthly || 100) 
+          : (affiliatedPartner.wholesaleServerFeeMonthly || 50);
+
         const totalWholesaleFee = wholesaleCostPerMonth * currentPlan.months;
         const netPartnerProfit = Math.max(0, currentPlan.priceBdt - totalWholesaleFee);
 
@@ -120,6 +180,7 @@ export const RenewSubscriptionModal: React.FC<RenewSubscriptionModalProps> = ({
           userEmail: user?.email,
           deviceName: selectedDevice?.name,
           partnerId: affiliatedPartner?.partnerId,
+          packageType: planCategory,
           months: currentPlan.months,
           amountBdt: currentPlan.priceBdt,
           trxId: trxId || 'Auto-Checkout',
@@ -170,6 +231,36 @@ export const RenewSubscriptionModal: React.FC<RenewSubscriptionModalProps> = ({
             </div>
           ) : (
             <form onSubmit={handleProcessRenewal} className="space-y-3.5">
+              
+              {/* Category Switcher Tabs: All-Inclusive vs Server-Only */}
+              <div className="p-1 bg-slate-950 rounded-2xl border border-slate-800 flex">
+                <button
+                  type="button"
+                  onClick={() => setPlanCategory('all_inclusive')}
+                  className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-bold transition flex items-center justify-center space-x-1.5 ${
+                    planCategory === 'all_inclusive'
+                      ? 'bg-emerald-600 text-white shadow-md'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                  <span>📦 অল-ইন-ওয়ান (সিমসহ)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPlanCategory('server_only')}
+                  className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-bold transition flex items-center justify-center space-x-1.5 ${
+                    planCategory === 'server_only'
+                      ? 'bg-purple-600 text-white shadow-md'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <ShieldCheck className="w-3.5 h-3.5 text-purple-300" />
+                  <span>🌐 অনলি সার্ভার (নিজের সিম)</span>
+                </button>
+              </div>
+
               {/* Plan Selection Cards Grid */}
               <div className="space-y-2">
                 <label className="text-[11px] font-bold text-slate-400 block">
@@ -177,7 +268,7 @@ export const RenewSubscriptionModal: React.FC<RenewSubscriptionModalProps> = ({
                 </label>
 
                 <div className="grid grid-cols-2 gap-2">
-                  {config.plans.map((plan) => {
+                  {dynamicPlans.map((plan) => {
                     const isSelected = selectedPlanMonths === plan.months;
                     return (
                       <div
@@ -185,7 +276,9 @@ export const RenewSubscriptionModal: React.FC<RenewSubscriptionModalProps> = ({
                         onClick={() => setSelectedPlanMonths(plan.months)}
                         className={`p-3 rounded-2xl border cursor-pointer relative transition-all duration-150 active:scale-[0.98] flex flex-col justify-between ${
                           isSelected
-                            ? 'bg-emerald-600/20 border-emerald-500 text-emerald-200 shadow-lg shadow-emerald-500/10'
+                            ? planCategory === 'all_inclusive' 
+                              ? 'bg-emerald-600/20 border-emerald-500 text-emerald-200 shadow-lg shadow-emerald-500/10'
+                              : 'bg-purple-600/20 border-purple-500 text-purple-200 shadow-lg shadow-purple-500/10'
                             : 'bg-slate-800/60 border-slate-700/80 text-slate-300 hover:bg-slate-800'
                         }`}
                       >

@@ -305,11 +305,75 @@ export interface PartnerRegistrationEntry {
   maxSlotQuota?: number; // Allocated 4096 slots
   floatingCreditLimit?: number; // Floating limit e.g. 10000 BDT
   wholesaleServerFeeMonthly?: number; // Wholesale fee EasyTracker charges partner, e.g. 50 BDT
-  customRetailMonthlyPrice?: number; // Partner's custom retail rate for end-customer, e.g. 350 BDT
-  customRetailYearlyPrice?: number; // Partner's custom yearly rate, e.g. 3500 BDT
+  wholesaleAllInclusiveMonthly?: number; // Wholesale fee for All-Inclusive, e.g. 100 BDT
+  customRetailMonthlyPrice?: number; // Legacy partner custom monthly rate, e.g. 350 BDT
+  customRetailYearlyPrice?: number; // Legacy partner custom yearly rate, e.g. 3500 BDT
+  allInclusivePricing?: {
+    month1: number;
+    month3: number;
+    month6: number;
+    month12: number;
+    customDays?: number;
+    customPrice?: number;
+  };
+  serverOnlyPricing?: {
+    month1: number;
+    month3: number;
+    month6: number;
+    month12: number;
+    customDays?: number;
+    customPrice?: number;
+  };
   accumulatedPartnerProfitBdt?: number; // Total profit accumulated via Central Auto-Settlement
   settlementPayoutMethod?: 'bkash' | 'nagad' | 'bank';
   settlementPayoutNumber?: string;
+}
+
+// 📦 Enterprise Hardware & SIM Inventory ERP Types
+export type DeviceInventoryStatus = 'in_stock' | 'assigned_to_partner' | 'sold_active' | 'returned_reinstall' | 'damaged_scrap' | 'rma_repair';
+export type SimInventoryStatus = 'in_stock_ready' | 'paired_with_device' | 'active_live' | 'unsubscribed_unpaired' | 'blocked_expired' | 'damaged_lost';
+export type SimType = 'm2m_general' | 'm2m_special_voice' | 'consumer_regular' | 'byos_customer_sim';
+export type AutoCallRoutingMode = 'cloud_server_call' | 'sim_direct_call' | 'dual_redundant';
+
+export interface DeviceInventoryItem {
+  id: string;
+  barcode: string;
+  imei: string;
+  serialNumber: string;
+  manufacturer: string;
+  model: string;
+  protocol: string;
+  firmwareVersion?: string;
+  purchasePriceBdt?: number;
+  batchLot?: string;
+  partnerId?: string;
+  assignedVehiclePlate?: string;
+  assignedCustomerName?: string;
+  assignedCustomerPhone?: string;
+  pairedSimNumber?: string;
+  status: DeviceInventoryStatus;
+  addedDate: string;
+  updatedDate?: string;
+  notes?: string;
+}
+
+export interface SimInventoryItem {
+  id: string;
+  simBarcode: string; // ICCID
+  msisdn: string; // Phone number
+  operator: 'grameenphone' | 'robi' | 'banglalink' | 'teletalk' | 'airtel';
+  simType: SimType;
+  puk1: string;
+  puk2?: string;
+  pin1?: string;
+  apn: string;
+  partnerId?: string;
+  pairedImei?: string;
+  assignedVehiclePlate?: string;
+  assignedCustomerName?: string;
+  status: SimInventoryStatus;
+  addedDate: string;
+  notes?: string;
 }
 
 // Customer Support & Helpdesk Ticket Types

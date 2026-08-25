@@ -31,7 +31,9 @@ import {
   TechnicianLedgerConfig,
   TechnicianTransaction,
   DigitalPaymentOffer,
-  StaffCommissionEntry
+  StaffCommissionEntry,
+  DeviceInventoryItem,
+  SimInventoryItem
 } from '../types/traccar';
 import { traccarApi } from '../services/traccarApi';
 import { traccarSocket } from '../services/traccarSocket';
@@ -256,6 +258,27 @@ interface AppContextType {
     paidOut: number;
     myCommissions: StaffCommissionEntry[];
   };
+
+  // 📦 Enterprise Hardware & SIM Inventory ERP
+  deviceInventory: DeviceInventoryItem[];
+  simInventory: SimInventoryItem[];
+  addDeviceToInventory: (device: Omit<DeviceInventoryItem, 'id' | 'addedDate'>) => void;
+  updateDeviceInventoryItem: (id: string, updates: Partial<DeviceInventoryItem>) => void;
+  deleteDeviceInventoryItem: (id: string) => void;
+  unbindDeviceFromVehicle: (id: string) => void;
+  addSimToInventory: (sim: Omit<SimInventoryItem, 'id' | 'addedDate'>) => void;
+  updateSimInventoryItem: (id: string, updates: Partial<SimInventoryItem>) => void;
+  deleteSimInventoryItem: (id: string) => void;
+  unbindSimFromDevice: (id: string) => void;
+  bulkImportDevices: (devices: Omit<DeviceInventoryItem, 'id' | 'addedDate'>[]) => void;
+  bulkImportSims: (sims: Omit<SimInventoryItem, 'id' | 'addedDate'>[]) => void;
+  updatePartnerTierPricing: (
+    partnerId: string, 
+    allInclusivePricing: PartnerRegistrationEntry['allInclusivePricing'], 
+    serverOnlyPricing: PartnerRegistrationEntry['serverOnlyPricing'],
+    payoutMethod?: 'bkash' | 'nagad' | 'bank',
+    payoutNumber?: string
+  ) => void;
 
   language: Language;
   setLanguage: (lang: Language) => void;
@@ -2017,6 +2040,320 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     ];
   });
 
+  // 📦 Enterprise Hardware & SIM Inventory ERP State
+  const [deviceInventory, setDeviceInventory] = useState<DeviceInventoryItem[]>(() => {
+    const saved = localStorage.getItem('gps_device_inventory');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) { console.error(e); }
+    }
+    return [
+      {
+        id: 'DEV-INV-1001',
+        barcode: 'BC-GT06-3865',
+        imei: '354778343153865',
+        serialNumber: 'SN-2026-GT01',
+        manufacturer: 'Concox / Jimi IoT',
+        model: 'GT06N GPS Tracker',
+        protocol: 'gt06',
+        firmwareVersion: 'v2.4.1',
+        purchasePriceBdt: 1650,
+        batchLot: 'LOT-2026-AUG-01',
+        partnerId: 'PRT-8801',
+        assignedVehiclePlate: 'DHAKA METRO-LA 44-5566',
+        assignedCustomerName: 'mdaaziz',
+        assignedCustomerPhone: '01711-223344',
+        pairedSimNumber: '01711-223344',
+        status: 'sold_active',
+        addedDate: '20 Aug 2026',
+        notes: 'অনবোর্ডেড কাস্টমার ভেহিক্যাল'
+      },
+      {
+        id: 'DEV-INV-1002',
+        barcode: 'BC-TEL-9201',
+        imei: '864720058291088',
+        serialNumber: 'SN-2026-FMB02',
+        manufacturer: 'Teltonika',
+        model: 'FMB920 High-Precision',
+        protocol: 'teltonika',
+        firmwareVersion: 'v03.28.02',
+        purchasePriceBdt: 2400,
+        batchLot: 'LOT-2026-AUG-02',
+        partnerId: 'PRT-8801',
+        status: 'in_stock',
+        addedDate: '22 Aug 2026',
+        notes: 'ইউরোপিয়ান স্ট্যান্ডার্ড টেলিমেটিক্স ট্র্যাকার'
+      },
+      {
+        id: 'DEV-INV-1003',
+        barcode: 'BC-JC400-88',
+        imei: '869104047812390',
+        serialNumber: 'SN-2026-JC400',
+        manufacturer: 'Jimi IoT',
+        model: 'JC400 Dual 4G AI Dashcam',
+        protocol: 'gt06',
+        firmwareVersion: 'v4.1.0',
+        purchasePriceBdt: 7500,
+        batchLot: 'LOT-2026-AUG-02',
+        partnerId: 'PRT-8801',
+        status: 'in_stock',
+        addedDate: '23 Aug 2026',
+        notes: 'লাইভ ভিডিও স্ট্রিমিং ড্যাশকাম'
+      },
+      {
+        id: 'DEV-INV-1004',
+        barcode: 'BC-MV72-10',
+        imei: '860192039485712',
+        serialNumber: 'SN-2026-MV72',
+        manufacturer: 'Micodus',
+        model: 'MV720 Hidden Relay Tracker',
+        protocol: 'h02',
+        firmwareVersion: 'v1.8.0',
+        purchasePriceBdt: 1200,
+        batchLot: 'LOT-2026-JUL-03',
+        partnerId: 'PRT-8801',
+        status: 'returned_reinstall',
+        addedDate: '15 Aug 2026',
+        notes: 'বাইক বিক্রি করায় খুলে আনা হয়েছে - টেস্ট ওকে, রি-ইনস্টল উপযোগী'
+      },
+      {
+        id: 'DEV-INV-1005',
+        barcode: 'BC-TK303-99',
+        imei: '863920192847561',
+        serialNumber: 'SN-2026-TK303',
+        manufacturer: 'Coban',
+        model: 'TK303G GPS',
+        protocol: 'gt06',
+        firmwareVersion: 'v1.2',
+        purchasePriceBdt: 1400,
+        batchLot: 'LOT-2026-JUN-01',
+        partnerId: 'PRT-8801',
+        status: 'damaged_scrap',
+        addedDate: '10 Aug 2026',
+        notes: 'শর্ট-সার্কিট ও ওয়াটার ড্যামেজ / স্ক্র্যাপ'
+      }
+    ];
+  });
+
+  const [simInventory, setSimInventory] = useState<SimInventoryItem[]>(() => {
+    const saved = localStorage.getItem('gps_sim_inventory');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) { console.error(e); }
+    }
+    return [
+      {
+        id: 'SIM-INV-2001',
+        simBarcode: '8988018001234567890',
+        msisdn: '01811-223344',
+        operator: 'robi',
+        simType: 'm2m_special_voice',
+        puk1: '44556677',
+        puk2: '11223344',
+        pin1: '1234',
+        apn: 'm2m.robi.com.bd',
+        partnerId: 'PRT-8801',
+        pairedImei: '354778343153865',
+        assignedVehiclePlate: 'DHAKA METRO-LA 44-5566',
+        assignedCustomerName: 'mdaaziz',
+        status: 'paired_with_device',
+        addedDate: '20 Aug 2026',
+        notes: 'ভয়েস ও কল সক্রিয় টেলিমেটিক্স সিম'
+      },
+      {
+        id: 'SIM-INV-2002',
+        simBarcode: '8988017009876543210',
+        msisdn: '01700-112233',
+        operator: 'grameenphone',
+        simType: 'm2m_general',
+        puk1: '11223344',
+        apn: 'gpinternet',
+        partnerId: 'PRT-8801',
+        status: 'in_stock_ready',
+        addedDate: '22 Aug 2026',
+        notes: 'জিপি আইওটি ডেটা-অনলি সিম'
+      },
+      {
+        id: 'SIM-INV-2003',
+        simBarcode: '8988019004561237890',
+        msisdn: '01900-556677',
+        operator: 'banglalink',
+        simType: 'm2m_general',
+        puk1: '99887766',
+        apn: 'blweb',
+        partnerId: 'PRT-8801',
+        status: 'in_stock_ready',
+        addedDate: '23 Aug 2026',
+        notes: 'বাংলালিংক টেলিমেটিক্স সিম'
+      },
+      {
+        id: 'SIM-INV-2004',
+        simBarcode: '8988015007788994455',
+        msisdn: '01511-998877',
+        operator: 'teletalk',
+        simType: 'byos_customer_sim',
+        puk1: '33445566',
+        apn: 'teletalk',
+        partnerId: 'PRT-8801',
+        status: 'in_stock_ready',
+        addedDate: '24 Aug 2026',
+        notes: 'গ্রাহকের নিজস্ব সিম (BYOS)'
+      },
+      {
+        id: 'SIM-INV-2005',
+        simBarcode: '8988018006655443322',
+        msisdn: '01800-998811',
+        operator: 'robi',
+        simType: 'm2m_general',
+        puk1: '00112233',
+        apn: 'm2m.robi.com.bd',
+        partnerId: 'PRT-8801',
+        status: 'damaged_lost',
+        addedDate: '10 Aug 2026',
+        notes: 'সিম কার্ড ক্ষতিগ্রস্ত / নষ্ট'
+      }
+    ];
+  });
+
+  // Device Inventory CRUD & Lifecycle
+  const addDeviceToInventory = (device: Omit<DeviceInventoryItem, 'id' | 'addedDate'>) => {
+    const newItem: DeviceInventoryItem = {
+      ...device,
+      id: `DEV-INV-${Date.now().toString().slice(-4)}`,
+      addedDate: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+    };
+    setDeviceInventory(prev => {
+      const next = [newItem, ...prev];
+      localStorage.setItem('gps_device_inventory', JSON.stringify(next));
+      return next;
+    });
+    triggerManualAlert('geofenceEnter', `📦 নতুন ডিভাইস (IMEI: ${device.imei}) ইনভেন্টরি স্টকে যুক্ত হয়েছে!`);
+  };
+
+  const updateDeviceInventoryItem = (id: string, updates: Partial<DeviceInventoryItem>) => {
+    setDeviceInventory(prev => {
+      const next = prev.map(d => d.id === id ? { ...d, ...updates, updatedDate: new Date().toLocaleDateString('en-GB') } : d);
+      localStorage.setItem('gps_device_inventory', JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const deleteDeviceInventoryItem = (id: string) => {
+    setDeviceInventory(prev => {
+      const next = prev.filter(d => d.id !== id);
+      localStorage.setItem('gps_device_inventory', JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const unbindDeviceFromVehicle = (id: string) => {
+    setDeviceInventory(prev => {
+      const next = prev.map(d => d.id === id ? {
+        ...d,
+        status: 'returned_reinstall' as const,
+        assignedVehiclePlate: undefined,
+        assignedCustomerName: undefined,
+        assignedCustomerPhone: undefined,
+        pairedSimNumber: undefined,
+        updatedDate: new Date().toLocaleDateString('en-GB')
+      } : d);
+      localStorage.setItem('gps_device_inventory', JSON.stringify(next));
+      return next;
+    });
+    triggerManualAlert('geofenceEnter', `🔄 ডিভাইস আনবাইন্ড সফল হয়েছে! স্ট্যাটাস: 'রি-ইনস্টল উপযোগী স্টকে মজুদ'।`);
+  };
+
+  const bulkImportDevices = (devices: Omit<DeviceInventoryItem, 'id' | 'addedDate'>[]) => {
+    const newItems: DeviceInventoryItem[] = devices.map((d, i) => ({
+      ...d,
+      id: `DEV-INV-${Date.now().toString().slice(-4)}-${i}`,
+      addedDate: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+    }));
+    setDeviceInventory(prev => {
+      const next = [...newItems, ...prev];
+      localStorage.setItem('gps_device_inventory', JSON.stringify(next));
+      return next;
+    });
+    triggerManualAlert('geofenceEnter', `📦 বাল্ক বারকোড স্ক্যানে ${devices.length} টি ডিভাইস সফলভাবে ইনওয়ার্ড হয়েছে!`);
+  };
+
+  // SIM Inventory CRUD & Lifecycle
+  const addSimToInventory = (sim: Omit<SimInventoryItem, 'id' | 'addedDate'>) => {
+    const newItem: SimInventoryItem = {
+      ...sim,
+      id: `SIM-INV-${Date.now().toString().slice(-4)}`,
+      addedDate: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+    };
+    setSimInventory(prev => {
+      const next = [newItem, ...prev];
+      localStorage.setItem('gps_sim_inventory', JSON.stringify(next));
+      return next;
+    });
+    triggerManualAlert('geofenceEnter', `📡 নতুন সিম (${sim.msisdn}) ইনভেন্টরি স্টকে যুক্ত হয়েছে!`);
+  };
+
+  const updateSimInventoryItem = (id: string, updates: Partial<SimInventoryItem>) => {
+    setSimInventory(prev => {
+      const next = prev.map(s => s.id === id ? { ...s, ...updates } : s);
+      localStorage.setItem('gps_sim_inventory', JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const deleteSimInventoryItem = (id: string) => {
+    setSimInventory(prev => {
+      const next = prev.filter(s => s.id !== id);
+      localStorage.setItem('gps_sim_inventory', JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const unbindSimFromDevice = (id: string) => {
+    setSimInventory(prev => {
+      const next = prev.map(s => s.id === id ? {
+        ...s,
+        status: 'unsubscribed_unpaired' as const,
+        pairedImei: undefined,
+        assignedVehiclePlate: undefined,
+        assignedCustomerName: undefined
+      } : s);
+      localStorage.setItem('gps_sim_inventory', JSON.stringify(next));
+      return next;
+    });
+    triggerManualAlert('geofenceEnter', `🔄 সিম কার্ড আনবাইন্ড সফল হয়েছে! স্ট্যাটাস: 'স্টকে ফেরত'।`);
+  };
+
+  const bulkImportSims = (sims: Omit<SimInventoryItem, 'id' | 'addedDate'>[]) => {
+    const newItems: SimInventoryItem[] = sims.map((s, i) => ({
+      ...s,
+      id: `SIM-INV-${Date.now().toString().slice(-4)}-${i}`,
+      addedDate: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+    }));
+    setSimInventory(prev => {
+      const next = [...newItems, ...prev];
+      localStorage.setItem('gps_sim_inventory', JSON.stringify(next));
+      return next;
+    });
+    triggerManualAlert('geofenceEnter', `📡 বাল্ক স্ক্যানে ${sims.length} টি সিম কার্ড ইনভেন্টরিতে যুক্ত হয়েছে!`);
+  };
+
+  // Update Partner Tier Pricing & Auto-Settlement Channels
+  const updatePartnerTierPricing = (
+    partnerId: string, 
+    allInclusivePricing: PartnerRegistrationEntry['allInclusivePricing'], 
+    serverOnlyPricing: PartnerRegistrationEntry['serverOnlyPricing'],
+    payoutMethod?: 'bkash' | 'nagad' | 'bank',
+    payoutNumber?: string
+  ) => {
+    updatePartnerDetails(partnerId, {
+      allInclusivePricing,
+      serverOnlyPricing,
+      customRetailMonthlyPrice: allInclusivePricing?.month1 || 350,
+      customRetailYearlyPrice: allInclusivePricing?.month12 || 3500,
+      settlementPayoutMethod: payoutMethod,
+      settlementPayoutNumber: payoutNumber
+    });
+    triggerManualAlert('geofenceEnter', `💾 সাবস্ক্রিপশন প্যাকেজ রেট ও সেন্ট্রাল অটো-সেটেলমেন্ট সফলভাবে সেভ হয়েছে!`);
+  };
+
   const registerUniversalSale = async (sale: {
     customerName: string;
     customerPhone: string;
@@ -2050,6 +2387,75 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setStaffCommissions(prev => {
       const next = [newComm, ...prev];
       localStorage.setItem('gps_staff_commissions', JSON.stringify(next));
+      return next;
+    });
+
+    // Auto-sync with Device Inventory: mark sold_active and link plate/customer
+    setDeviceInventory(prev => {
+      const matched = prev.some(d => d.imei === sale.imei);
+      let next: DeviceInventoryItem[];
+      if (matched) {
+        next = prev.map(d => d.imei === sale.imei ? {
+          ...d,
+          status: 'sold_active' as const,
+          assignedVehiclePlate: sale.plateNumber,
+          assignedCustomerName: sale.customerName,
+          assignedCustomerPhone: sale.customerPhone,
+          pairedSimNumber: sale.simNumber,
+          updatedDate: new Date().toLocaleDateString('en-GB')
+        } : d);
+      } else {
+        const autoAdded: DeviceInventoryItem = {
+          id: `DEV-INV-${Date.now().toString().slice(-4)}`,
+          barcode: `BC-${sale.imei.slice(-6)}`,
+          imei: sale.imei,
+          serialNumber: `SN-${Date.now().toString().slice(-6)}`,
+          manufacturer: 'EasyTracker OEM',
+          model: 'EasyTracker GT06 Pro',
+          protocol: 'gt06',
+          status: 'sold_active',
+          assignedVehiclePlate: sale.plateNumber,
+          assignedCustomerName: sale.customerName,
+          assignedCustomerPhone: sale.customerPhone,
+          pairedSimNumber: sale.simNumber,
+          addedDate: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+        };
+        next = [autoAdded, ...prev];
+      }
+      localStorage.setItem('gps_device_inventory', JSON.stringify(next));
+      return next;
+    });
+
+    // Auto-sync with SIM Inventory: mark paired_with_device
+    setSimInventory(prev => {
+      const matched = prev.some(s => s.msisdn === sale.simNumber);
+      let next: SimInventoryItem[];
+      if (matched) {
+        next = prev.map(s => s.msisdn === sale.simNumber ? {
+          ...s,
+          status: 'paired_with_device' as const,
+          pairedImei: sale.imei,
+          assignedVehiclePlate: sale.plateNumber,
+          assignedCustomerName: sale.customerName
+        } : s);
+      } else {
+        const autoAddedSim: SimInventoryItem = {
+          id: `SIM-INV-${Date.now().toString().slice(-4)}`,
+          simBarcode: `898801${sale.simNumber.replace(/\D/g, '')}`,
+          msisdn: sale.simNumber,
+          operator: 'robi',
+          simType: 'm2m_general',
+          puk1: '12345678',
+          apn: 'm2m.robi.com.bd',
+          status: 'paired_with_device',
+          pairedImei: sale.imei,
+          assignedVehiclePlate: sale.plateNumber,
+          assignedCustomerName: sale.customerName,
+          addedDate: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+        };
+        next = [autoAddedSim, ...prev];
+      }
+      localStorage.setItem('gps_sim_inventory', JSON.stringify(next));
       return next;
     });
 
@@ -2842,6 +3248,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         registerUniversalSale,
         payoutStaffCommission,
         getMyCommissionSummary,
+        deviceInventory,
+        simInventory,
+        addDeviceToInventory,
+        updateDeviceInventoryItem,
+        deleteDeviceInventoryItem,
+        unbindDeviceFromVehicle,
+        addSimToInventory,
+        updateSimInventoryItem,
+        deleteSimInventoryItem,
+        unbindSimFromDevice,
+        bulkImportDevices,
+        bulkImportSims,
+        updatePartnerTierPricing,
         language,
         setLanguage,
         t,
