@@ -37,9 +37,9 @@ import {
   X,
   Radio,
   Clock,
-  Car,
   Activity,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Receipt
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Device, PartnerRegistrationEntry, SaasRole } from '../../types/traccar';
