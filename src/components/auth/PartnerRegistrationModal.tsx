@@ -134,11 +134,12 @@ export const PartnerRegistrationModal: React.FC<PartnerRegistrationModalProps> =
     if (regType === 'staff_partner') {
       if (staffRoleCombo === 'sales') desiredRoles = ['sales'];
       else if (staffRoleCombo === 'technician') desiredRoles = ['technician'];
-      else if (staffRoleCombo === 'sales_tech') desiredRoles = ['sales', 'technician'];
-      else if (staffRoleCombo === 'sales_tech_rescue') desiredRoles = ['sales', 'technician', 'rescue'];
       else if (staffRoleCombo === 'support') desiredRoles = ['support'];
+      else if (staffRoleCombo === 'sales_tech') desiredRoles = ['sales', 'technician'];
+      else if (staffRoleCombo === 'sales_tech_support') desiredRoles = ['sales', 'technician', 'support'];
+      else if (staffRoleCombo === 'sales_tech_rescue') desiredRoles = ['sales', 'technician', 'rescue', 'support'];
     } else {
-      desiredRoles = ['sales', 'technician'];
+      desiredRoles = ['partner', 'sales', 'technician', 'support', 'customer'];
     }
 
     const googleMapsUrl = (geoLat && geoLng) ? `https://maps.google.com/?q=${geoLat},${geoLng}` : undefined;
@@ -267,7 +268,8 @@ export const PartnerRegistrationModal: React.FC<PartnerRegistrationModalProps> =
               </label>
               <div className="space-y-1.5">
                 {[
-                  { id: 'sales_tech', label: '💼 + 🔧 সেলস + ফিল্ড টেকনিশিয়ান (সবচেয়ে জনপ্রিয়)', desc: 'ডিভাইস বিক্রি ও ইনস্টলেশন উভয়ের ইনকাম পাবেন' },
+                  { id: 'sales_tech_support', label: '💼 + 🔧 + 🎧 সেলস + টেকনিশিয়ান + সাপোর্ট হাব (Most Recommended)', desc: 'ডিভাইস বিক্রি, ইনস্টলেশন ও কাস্টমার কমপ্লেইন সম্পূর্ণ পরিচালনা' },
+                  { id: 'sales_tech', label: '💼 + 🔧 সেলস + ফিল্ড টেকনিশিয়ান', desc: 'ডিভাইস বিক্রি ও ইনস্টলেশন উভয়ের ইনকাম পাবেন' },
                   { id: 'sales_tech_rescue', label: '💼 + 🔧 + 🚨 সেলস + টেকনিশিয়ান + রেসকিউ টিম', desc: 'ফুল ফিল্ড অপারেশনাল এক্সেস ও হাই প্রায়োরিটি ট্র্যাকিং' },
                   { id: 'sales', label: '💼 শুধু সেলস এজেন্ট (Sales Agent Only)', desc: 'প্রতিটি ডিভাইসে লাইভ সেলস কমিশন পাবেন' },
                   { id: 'technician', label: '🔧 শুধু ফিল্ড টেকনিশিয়ান (Technician Only)', desc: 'ইনস্টলেশন ও ওয়্যারিং সার্ভিস ফি পাবেন' },
