@@ -32,14 +32,26 @@ const PortalLoader = () => (
 );
 
 // Resilient Error Boundary to eliminate blank screens across all user roles
-class PortalErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
-  constructor(props: { children: React.ReactNode }) {
+interface PortalErrorBoundaryProps {
+  children: React.ReactNode;
+  resetKey?: string;
+  onResetToMap?: () => void;
+}
+
+class PortalErrorBoundary extends React.Component<PortalErrorBoundaryProps, { hasError: boolean }> {
+  constructor(props: PortalErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false };
   }
 
   static getDerivedStateFromError() {
     return { hasError: true };
+  }
+
+  componentDidUpdate(prevProps: PortalErrorBoundaryProps) {
+    if (prevProps.resetKey !== this.props.resetKey && this.state.hasError) {
+      this.setState({ hasError: false });
+    }
   }
 
   componentDidCatch(error: any, errorInfo: any) {
@@ -49,20 +61,37 @@ class PortalErrorBoundary extends React.Component<{ children: React.ReactNode },
   render() {
     if (this.state.hasError) {
       return (
-        <div className="flex-1 flex flex-col items-center justify-center p-6 bg-slate-950 text-slate-100 text-center space-y-3">
-          <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 text-xl font-black">
+        <div className="flex-1 flex flex-col items-center justify-center p-6 bg-slate-950 text-slate-100 text-center space-y-4 animate-in fade-in">
+          <div className="w-14 h-14 rounded-3xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 text-2xl font-black shadow-lg">
             ⚠️
           </div>
-          <h3 className="font-extrabold text-sm text-white">পোর্টাল লোড করতে সাময়িক সমস্যা হয়েছে</h3>
-          <p className="text-xs text-slate-400 max-w-sm">
-            অনুগ্রহ করে পেজটি রিফ্রেশ করুন অথবা কাস্টমার ম্যাপ ভিউতে সুইচ করুন।
-          </p>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg transition active:scale-95"
-          >
-            🔄 পেজ রিফ্রেশ করুন
-          </button>
+          <div>
+            <h3 className="font-extrabold text-base text-white">পোর্টাল লোড করতে সাময়িক সমস্যা হয়েছে</h3>
+            <p className="text-xs text-slate-400 max-w-sm mt-1">
+              নিচের বাটনে ক্লিক করে সরাসরি লাইভ ম্যাপে ফিরে যান অথবা পেজটি রিফ্রেশ করুন।
+            </p>
+          </div>
+          
+          <div className="flex items-center space-x-2.5 pt-1">
+            {this.props.onResetToMap && (
+              <button
+                onClick={() => {
+                  this.setState({ hasError: false });
+                  this.props.onResetToMap?.();
+                }}
+                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg transition active:scale-95 flex items-center space-x-1.5"
+              >
+                <span>🗺️ লাইভ ম্যাপে যান</span>
+              </button>
+            )}
+
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg transition active:scale-95 flex items-center space-x-1.5"
+            >
+              <span>🔄 পেজ রিফ্রেশ করুন</span>
+            </button>
+          </div>
         </div>
       );
     }
@@ -71,7 +100,7 @@ class PortalErrorBoundary extends React.Component<{ children: React.ReactNode },
 }
 
 const MainAppContent: React.FC = () => {
-  const { user, activeTab, currentRole } = useApp();
+  const { user, activeTab, setActiveTab, currentRole, setCurrentRole } = useApp();
   const [isInitialPinModalOpen, setIsInitialPinModalOpen] = useState(false);
 
   useEffect(() => {
@@ -95,7 +124,13 @@ const MainAppContent: React.FC = () => {
 
       {/* Main View Area with Strict Role Isolation & Error Resilience */}
       <main className="flex-1 relative overflow-hidden flex flex-col">
-        <PortalErrorBoundary>
+        <PortalErrorBoundary 
+          resetKey={`${currentRole}-${activeTab}`}
+          onResetToMap={() => {
+            setCurrentRole('customer');
+            setActiveTab('map');
+          }}
+        >
           <Suspense fallback={<PortalLoader />}>
             {/* Partner Role: Dedicated Partner Portal + Multi-role switching */}
             {currentRole === 'partner' && (

@@ -33,7 +33,8 @@ import {
   CreditCard,
   Building2,
   UserCheck,
-  Car
+  Car,
+  Cpu
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { APP_CONFIG } from '../../config/appConfig';
