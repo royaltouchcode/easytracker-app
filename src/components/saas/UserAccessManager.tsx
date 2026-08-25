@@ -267,6 +267,7 @@ export const UserAccessManager: React.FC = () => {
 
   const roleBadges: Record<SaasRole, { labelBn: string; color: string; icon: any }> = {
     super_admin: { labelBn: '👑 সুপার অ্যাডমিন', color: 'bg-amber-950/80 text-amber-300 border-amber-700/60', icon: Crown },
+    partner: { labelBn: '🏢 বিজনেস পার্টনার', color: 'bg-indigo-950/80 text-indigo-300 border-indigo-700/60', icon: ShieldCheck },
     sales: { labelBn: '💼 সেলস', color: 'bg-emerald-950/80 text-emerald-300 border-emerald-700/60', icon: Briefcase },
     technician: { labelBn: '🔧 টেকনিশিয়ান', color: 'bg-purple-950/80 text-purple-300 border-purple-700/60', icon: Wrench },
     support: { labelBn: '🎧 সাপোর্ট', color: 'bg-sky-950/80 text-sky-300 border-sky-700/60', icon: Headphones },

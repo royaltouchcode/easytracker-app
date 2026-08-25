@@ -45,6 +45,18 @@ const ALL_ROLES: {
     targetTab: 'map'
   },
   {
+    id: 'partner',
+    titleBn: 'বিজনেস পার্টনার পোর্টাল (Partner Franchise Hub)',
+    titleEn: 'Business Partner Franchise Hub',
+    descBn: '৪,০৯৬ স্লট কোটা, ফ্লোটিং ব্যালেন্স লেজার, স্টাফ ম্যানেজমেন্ট ও শপ প্রোফাইল।',
+    descEn: '4096 Slot quotas, floating ledger, staff management & shop profile.',
+    icon: ShieldCheck,
+    color: 'text-indigo-400',
+    bg: 'bg-indigo-600/20',
+    border: 'border-indigo-500/40',
+    targetTab: 'saas_partner'
+  },
+  {
     id: 'super_admin',
     titleBn: 'সুপার অ্যাডমিন ড্যাশবোর্ড (Super Admin SaaS)',
     titleEn: 'Super Admin Control Center',

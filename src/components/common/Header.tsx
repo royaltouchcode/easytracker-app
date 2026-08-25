@@ -146,6 +146,23 @@ export const Header: React.FC = () => {
             </>
           )}
 
+          {/* If Business Partner: Show Franchise Brand Name & Partner Badge */}
+          {currentRole === 'partner' && (
+            <div className="flex items-center space-x-2">
+              <div className="w-7 h-7 rounded-xl bg-indigo-600/30 border border-indigo-500/50 flex items-center justify-center text-indigo-400 shadow-sm">
+                <Building2 className="w-4 h-4" />
+              </div>
+              <div>
+                <span className="font-extrabold text-xs text-slate-100 block leading-tight truncate max-w-[140px]">
+                  {user?.partnerBrandName || 'Franchise Partner'}
+                </span>
+                <span className="text-[9px] text-indigo-400 font-semibold leading-none">
+                  পার্টনার হাব ও স্লট কোটা
+                </span>
+              </div>
+            </div>
+          )}
+
           {/* If Sales Agent / B2B Partner: Show Brand Logo & Branding */}
           {currentRole === 'sales' && (
             <div className="flex items-center space-x-2">

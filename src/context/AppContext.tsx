@@ -37,7 +37,7 @@ import { traccarSocket } from '../services/traccarSocket';
 import { audioAlertService } from '../services/audioAlertService';
 import { reverseGeocodeCoords } from '../utils/reverseGeocoding';
 
-export type TabType = 'map' | 'reports' | 'playback' | 'commands' | 'surveillance' | 'geofence' | 'alerts' | 'settings' | 'saas_admin' | 'saas_sales' | 'saas_technician' | 'saas_support' | 'saas_rescue';
+export type TabType = 'map' | 'reports' | 'playback' | 'commands' | 'surveillance' | 'geofence' | 'alerts' | 'settings' | 'saas_admin' | 'saas_partner' | 'saas_sales' | 'saas_technician' | 'saas_support' | 'saas_rescue';
 export type Language = 'en' | 'bn';
 
 export interface UserLocation {
@@ -2163,23 +2163,23 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       let serviceTier: PartnerServiceTier | undefined = undefined;
 
       if (matchingPartner) {
-        determinedRole = matchingPartner.desiredRoles[0] || 'sales';
-        defaultTab = determinedRole === 'sales' ? 'saas_sales' : determinedRole === 'technician' ? 'saas_technician' : 'saas_admin';
-        approvedRoles = matchingPartner.desiredRoles.length > 0 ? matchingPartner.desiredRoles : ['sales', 'technician', 'customer'];
+        determinedRole = 'partner';
+        defaultTab = 'saas_partner';
+        approvedRoles = ['partner', 'sales', 'technician', 'customer'];
         partnerId = matchingPartner.partnerId;
         partnerBrandName = matchingPartner.brandName || matchingPartner.applicantName;
         serviceTier = matchingPartner.serviceTier;
       } else if (lower.startsWith('partner')) {
-        determinedRole = 'sales';
-        defaultTab = 'saas_sales';
-        approvedRoles = ['sales', 'technician', 'customer'];
+        determinedRole = 'partner';
+        defaultTab = 'saas_partner';
+        approvedRoles = ['partner', 'sales', 'technician', 'customer'];
         partnerId = 'partner_custom';
         partnerBrandName = 'Partner Fleet Network';
         serviceTier = 'all_inclusive';
       } else if (lower.startsWith('admin') || res.user.administrator) {
         determinedRole = 'super_admin';
         defaultTab = 'saas_admin';
-        approvedRoles = ['super_admin', 'sales', 'technician', 'support', 'rescue', 'customer'];
+        approvedRoles = ['super_admin', 'partner', 'sales', 'technician', 'support', 'rescue', 'customer'];
       } else if (lower.startsWith('sales')) {
         determinedRole = 'sales';
         defaultTab = 'saas_sales';
@@ -2415,6 +2415,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       if (!validCustomerTabs.includes(activeTab)) {
         setActiveTab('map');
       }
+    } else if (role === 'partner') {
+      setActiveTab('saas_partner');
     } else if (role === 'sales') {
       setActiveTab('saas_sales');
     } else if (role === 'technician') {
@@ -2424,7 +2426,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     } else if (role === 'rescue') {
       setActiveTab('saas_rescue');
     } else if (role === 'super_admin') {
-      const validAdminTabs: TabType[] = ['saas_admin', 'saas_sales', 'saas_technician', 'saas_support', 'saas_rescue', 'map', 'reports', 'playback', 'commands', 'surveillance', 'geofence', 'alerts', 'settings'];
+      const validAdminTabs: TabType[] = ['saas_admin', 'saas_partner', 'saas_sales', 'saas_technician', 'saas_support', 'saas_rescue', 'map', 'reports', 'playback', 'commands', 'surveillance', 'geofence', 'alerts', 'settings'];
       if (!validAdminTabs.includes(activeTab)) {
         setActiveTab('saas_admin');
       }

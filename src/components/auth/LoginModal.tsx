@@ -282,6 +282,34 @@ export const LoginModal: React.FC = () => {
               <ShieldCheck className="w-4 h-4" />
               <span>{loading ? (language === 'bn' ? 'যাচাই করা হচ্ছে...' : 'Verifying...') : (language === 'bn' ? 'লগইন করুন' : 'Sign In')}</span>
             </button>
+
+            {/* Role Quick-Fill Demo Chips */}
+            <div className="pt-2 border-t border-slate-800/80">
+              <div className="text-[10px] uppercase font-bold text-slate-400 mb-1.5 text-center">
+                {language === 'bn' ? '⚡ দ্রুত টেস্ট লগইন করুন:' : '⚡ Quick Test Logins:'}
+              </div>
+              <div className="grid grid-cols-5 gap-1 text-[10px] font-bold">
+                {[
+                  { role: 'admin', label: '👑 Admin', u: 'admin', p: 'admin123' },
+                  { role: 'partner', label: '🏢 Partner', u: 'partner', p: 'partner123' },
+                  { role: 'sales', label: '💼 Sales', u: 'sales', p: 'sales123' },
+                  { role: 'tech', label: '🔧 Tech', u: 'tech', p: 'tech123' },
+                  { role: 'user', label: '👤 User', u: 'user', p: 'user123' }
+                ].map(r => (
+                  <button
+                    key={r.role}
+                    type="button"
+                    onClick={() => {
+                      setEmailOrUser(r.u);
+                      setPassword(r.p);
+                    }}
+                    className="py-1 px-1 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700/60 hover:text-white transition active:scale-95 text-center truncate"
+                  >
+                    {r.label}
+                  </button>
+                ))}
+              </div>
+            </div>
           </form>
         ) : (
           /* Hidden Admin Backend Server Config (Only for Admin) */

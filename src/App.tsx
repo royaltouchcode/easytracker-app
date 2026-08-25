@@ -15,6 +15,7 @@ import { InitialPinSetupModal } from './components/auth/InitialPinSetupModal';
 
 // BUG #5 FIX: SaaS Portals lazy-loaded for code splitting (reduces initial bundle by ~40%)
 const AdminDashboardView = lazy(() => import('./components/saas/AdminDashboardView').then(m => ({ default: m.AdminDashboardView })));
+const PartnerPortalView = lazy(() => import('./components/saas/PartnerPortalView').then(m => ({ default: m.PartnerPortalView })));
 const SalesPortalView = lazy(() => import('./components/saas/SalesPortalView').then(m => ({ default: m.SalesPortalView })));
 const TechnicianPortalView = lazy(() => import('./components/saas/TechnicianPortalView').then(m => ({ default: m.TechnicianPortalView })));
 const SupportPortalView = lazy(() => import('./components/saas/SupportPortalView').then(m => ({ default: m.SupportPortalView })));
@@ -96,6 +97,31 @@ const MainAppContent: React.FC = () => {
       <main className="flex-1 relative overflow-hidden flex flex-col">
         <PortalErrorBoundary>
           <Suspense fallback={<PortalLoader />}>
+            {/* Partner Role: Dedicated Partner Portal + Multi-role switching */}
+            {currentRole === 'partner' && (
+              <>
+                {activeTab === 'saas_partner' && <PartnerPortalView />}
+                {activeTab === 'saas_sales' && <SalesPortalView />}
+                {activeTab === 'saas_technician' && <TechnicianPortalView />}
+                {activeTab === 'map' && (
+                  <>
+                    <LiveTrackingMap />
+                    <DeviceSlidingSheet />
+                  </>
+                )}
+                {activeTab === 'reports' && <ReportsHubView />}
+                {activeTab === 'playback' && <PlaybackView />}
+                {activeTab === 'commands' && <CommandCenterView />}
+                {activeTab === 'surveillance' && <SurveillanceView />}
+                {activeTab === 'geofence' && <GeofenceView />}
+                {activeTab === 'alerts' && <AlertHistoryView />}
+                {activeTab === 'settings' && <DeviceSettingsView />}
+                {!['saas_partner', 'saas_sales', 'saas_technician', 'map', 'reports', 'playback', 'commands', 'surveillance', 'geofence', 'alerts', 'settings'].includes(activeTab) && (
+                  <PartnerPortalView />
+                )}
+              </>
+            )}
+
             {/* Sales Role: STRICTLY Sales Portal Only */}
             {currentRole === 'sales' && <SalesPortalView />}
 
@@ -112,6 +138,7 @@ const MainAppContent: React.FC = () => {
             {currentRole === 'super_admin' && (
               <>
                 {activeTab === 'saas_admin' && <AdminDashboardView />}
+                {activeTab === 'saas_partner' && <PartnerPortalView />}
                 {activeTab === 'saas_sales' && <SalesPortalView />}
                 {activeTab === 'saas_technician' && <TechnicianPortalView />}
                 {activeTab === 'saas_support' && <SupportPortalView />}
@@ -130,7 +157,7 @@ const MainAppContent: React.FC = () => {
                 {activeTab === 'alerts' && <AlertHistoryView />}
                 {activeTab === 'settings' && <DeviceSettingsView />}
                 {/* Fallback if an unrecognized tab is active */}
-                {!['saas_admin', 'saas_sales', 'saas_technician', 'saas_support', 'saas_rescue', 'map', 'reports', 'playback', 'commands', 'surveillance', 'geofence', 'alerts', 'settings'].includes(activeTab) && (
+                {!['saas_admin', 'saas_partner', 'saas_sales', 'saas_technician', 'saas_support', 'saas_rescue', 'map', 'reports', 'playback', 'commands', 'surveillance', 'geofence', 'alerts', 'settings'].includes(activeTab) && (
                   <AdminDashboardView />
                 )}
               </>
@@ -163,7 +190,7 @@ const MainAppContent: React.FC = () => {
             )}
 
             {/* Global Fallback for unknown/transitional roles to guarantee no blank screen */}
-            {!['sales', 'technician', 'support', 'rescue', 'super_admin', 'customer'].includes(currentRole) && (
+            {!['partner', 'sales', 'technician', 'support', 'rescue', 'super_admin', 'customer'].includes(currentRole) && (
               <>
                 <LiveTrackingMap />
                 <DeviceSlidingSheet />
