@@ -34,7 +34,7 @@ interface UserProfileModalProps {
 }
 
 export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onClose }) => {
-  const { user, logout, devices, selectedDevice, language } = useApp();
+  const { user, logout, devices, selectedDevice, language, currentRole, approvedPartners } = useApp();
   const appConfig = getAppConfig();
   
   const [isRenewOpen, setIsRenewOpen] = useState(false);
@@ -50,10 +50,15 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
     return localStorage.getItem(`gps_subscription_cancelled_${selectedDevice?.id}`) === 'true';
   });
 
-  // Show subscription card ONLY if user also has 'customer' role in their approvedRoles
-  // (i.e. they are also a tracked GPS customer themselves, not just a staff member)
-  const isAdmin = user?.administrator || user?.role === 'super_admin';
-  const isCustomerUser = isAdmin || (user?.approvedRoles?.includes('customer') ?? false);
+  const isCustomerRole = currentRole === 'customer';
+  const isPartnerRole = currentRole === 'partner';
+  const isStaffRole = ['sales', 'technician', 'support', 'rescue', 'super_admin'].includes(currentRole);
+
+  const partnerProfile = approvedPartners.find(p => 
+    p.partnerId === user?.partnerId || 
+    p.assignedUsername?.toLowerCase() === user?.email?.toLowerCase() ||
+    p.phone === user?.email
+  );
 
   if (!isOpen) return null;
 
@@ -89,8 +94,44 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
         {/* Modal Body */}
         <div className="p-4 space-y-3.5 overflow-y-auto">
           
-          {/* Subscription & Billing Card — only for users who are also customers */}
-          {isCustomerUser && (
+          {/* 1. If Partner Role: Show B2B Franchise & Slot Quota Details (NO consumer subscription fee) */}
+          {isPartnerRole && (
+            <div className="bg-gradient-to-br from-indigo-950/70 via-slate-900 to-slate-900 border border-indigo-500/40 rounded-2xl p-3.5 shadow-xl space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-1.5 text-indigo-300">
+                  <Building2 className="w-4 h-4 text-indigo-400" />
+                  <span className="text-xs font-bold uppercase tracking-wider">
+                    {language === 'bn' ? 'ফ্র্যাঞ্চাইজি বিজনেস প্রোফাইল' : 'Franchise Partner Profile'}
+                  </span>
+                </div>
+                <span className="px-2 py-0.5 rounded-full bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 font-extrabold text-[9.5px]">
+                  {partnerProfile?.serviceTier === 'all_inclusive' ? '🌟 All-Inclusive' : '🏢 Dealer Network'}
+                </span>
+              </div>
+
+              <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-2.5 space-y-1.5 text-xs">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">পার্টনার আইডি:</span>
+                  <span className="font-mono font-bold text-white">{partnerProfile?.partnerId || user?.partnerId || 'PRT-8801'}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">৪,০৯৬ স্লট কোটা:</span>
+                  <span className="font-mono font-bold text-indigo-400">{partnerProfile?.maxSlotQuota || 50} টি স্লট</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">ফ্লোটিং ক্রেডিট লিমিট:</span>
+                  <span className="font-mono font-bold text-rose-400">৳ {(partnerProfile?.floatingCreditLimit || 10000).toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">দোকানের অবস্থান:</span>
+                  <span className="font-bold text-emerald-300 truncate max-w-[150px]">{partnerProfile?.district || 'ঢাকা'}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 2. If Customer Role: Show Consumer Subscription & Billing Card */}
+          {isCustomerRole && (
             <div className="bg-gradient-to-br from-indigo-950/70 via-slate-900 to-slate-900 border border-indigo-500/40 rounded-2xl p-3.5 shadow-xl space-y-2.5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-1.5 text-indigo-300">
@@ -152,6 +193,20 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
                     <span>{language === 'bn' ? 'সাবস্ক্রিপশন বাতিল করুন (Cancel)' : 'Cancel Subscription'}</span>
                   </button>
                 )}
+              </div>
+            </div>
+          )}
+
+          {/* 3. If Staff / Admin Role: Show Staff Profile */}
+          {isStaffRole && !isPartnerRole && !isCustomerRole && (
+            <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-3 space-y-2 text-xs">
+              <div className="flex justify-between items-center">
+                <span className="text-slate-400">অপারেটিং রোল:</span>
+                <span className="font-bold text-indigo-300 uppercase">{currentRole}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-400">অনুমোদিত রোলসমূহ:</span>
+                <span className="text-[10px] font-mono text-emerald-400">{user?.approvedRoles?.join(', ') || currentRole}</span>
               </div>
             </div>
           )}
