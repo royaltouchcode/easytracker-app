@@ -145,31 +145,79 @@ export function formatUssdByProtocol(rawUssdCode: string, rawProtocol: string = 
   };
 }
 
-export function getBangladeshUssdPresets(rawProtocol: string = '', pin: string = '123456'): ProtocolPresetCommand[] {
+export function detectOperatorFromPhone(phone?: string): 'gp' | 'robi' | 'banglalink' | 'teletalk' | 'unknown' {
+  if (!phone) return 'unknown';
+  // Strip all non-digit characters
+  let clean = phone.replace(/[^0-9]/g, '');
+
+  // Strip country code if present (880 or +880)
+  if (clean.startsWith('880')) {
+    clean = clean.slice(2); // '88018...' -> '018...'
+  } else if (clean.startsWith('88') && clean.length >= 13) {
+    clean = clean.slice(2);
+  }
+
+  // Prepend 0 if length is 10 and starts with 1
+  if (!clean.startsWith('0') && clean.length === 10 && clean.startsWith('1')) {
+    clean = '0' + clean;
+  }
+
+  const prefix3 = clean.slice(0, 3); // 3-digit operator prefix
+
+  // 1. Grameenphone: 017, 013
+  if (prefix3 === '017' || prefix3 === '013') return 'gp';
+
+  // 2. Robi & Airtel: 018 (Robi), 016 (Airtel)
+  if (prefix3 === '018' || prefix3 === '016') return 'robi';
+
+  // 3. Banglalink: 019, 014
+  if (prefix3 === '019' || prefix3 === '014') return 'banglalink';
+
+  // 4. Teletalk: 015
+  if (prefix3 === '015') return 'teletalk';
+
+  return 'unknown';
+}
+
+export function getOperatorLabelBn(operator: 'gp' | 'robi' | 'banglalink' | 'teletalk' | 'unknown'): string {
+  switch (operator) {
+    case 'gp': return '🟢 গ্রামীনফোন (GP - 017/013)';
+    case 'robi': return '🔴 রবি / এয়ারটেল (Robi/Airtel - 018/016)';
+    case 'banglalink': return '🟠 বাংলালিংক (Banglalink - 019/014)';
+    case 'teletalk': return '🔵 টেলিটক (Teletalk - 015)';
+    default: return '📶 সকল অপারেটর';
+  }
+}
+
+export function getBangladeshUssdPresets(rawProtocol: string = '', pin: string = '123456', operatorFilter?: 'gp' | 'robi' | 'banglalink' | 'teletalk' | 'all'): ProtocolPresetCommand[] {
   const items: { id: string; operator: 'gp' | 'robi' | 'banglalink' | 'teletalk'; ussdCode: string; title: string; titleBn: string; desc: string; descBn: string }[] = [
-    // Grameenphone (GP)
+    // Grameenphone (GP: 017, 013)
     { id: 'gp-bal', operator: 'gp', ussdCode: '*566#', title: 'GP: Main Balance (*566#)', titleBn: 'গ্রামীনফোন: মেইন ব্যালেন্স ও মেয়াদ (*566#)', desc: 'Check main account balance and validity date via remote USSD', descBn: 'ওটিপি ছাড়া ট্র্যাকারের সিমের মূল ব্যালেন্স ও মেয়াদ রিড করুন।' },
     { id: 'gp-data', operator: 'gp', ussdCode: '*121*1*4#', title: 'GP: Data MB Balance (*121*1*4#)', titleBn: 'গ্রামীনফোন: ডাটা/ইন্টারনেট ব্যালেন্স (*121*1*4#)', desc: 'Check active internet package remaining MB and expiry', descBn: 'সিমের অবশিষ্ট ইন্টারনেট ডাটা এবং মেয়াদ দেখুন।' },
     { id: 'gp-num', operator: 'gp', ussdCode: '*2#', title: 'GP: Query SIM Mobile No (*2#)', titleBn: 'গ্রামীনফোন: সিমের মোবাইল নম্বর চেক (*2#)', desc: 'Queries the actual MSISDN mobile phone number of tracker SIM', descBn: 'ট্র্যাকারে থাকা সিমের মোবাইল নম্বর জানুন।' },
     { id: 'gp-flexi', operator: 'gp', ussdCode: '*121*3#', title: 'GP: Flexiplan & Offers (*121*3#)', titleBn: 'গ্রামীনফোন: রিচার্জ ও ডাটা অফার (*121*3#)', desc: 'Fetch latest recharge pack and telemetry offers', descBn: 'ট্র্যাকার সিমের জন্য বিশেষ ইন্টারনেট অফার দেখুন।' },
 
-    // Robi / Airtel
+    // Robi & Airtel (018, 016)
     { id: 'robi-bal', operator: 'robi', ussdCode: '*222#', title: 'Robi: Main Balance (*222#)', titleBn: 'রবি / এয়ারটেল: মূল ব্যালেন্স ও মেয়াদ (*222#)', desc: 'Check Robi SIM balance and connection validity', descBn: 'রবি সিমের একাউন্ট ব্যালেন্স এবং সক্রিয় মেয়াদ জানুন।' },
     { id: 'robi-data', operator: 'robi', ussdCode: '*3#', title: 'Robi: Internet MB Check (*3#)', titleBn: 'রবি / এয়ারটেল: ডাটা প্যাক চেক (*3#)', desc: 'Check remaining telemetry data MB and duration', descBn: 'ট্র্যাকিং সিমের অবশিষ্ট ইন্টারনেট মেগাবাইট (MB) যাচাই।' },
     { id: 'robi-num', operator: 'robi', ussdCode: '*2#', title: 'Robi: Query SIM Mobile No (*2#)', titleBn: 'রবি / এয়ারটেল: সিম নম্বর চেক (*2#)', desc: 'Fetch tracker SIM mobile phone number', descBn: 'রবি সিমের ১১ ডিজিটের নম্বর দেখুন।' },
     { id: 'robi-loan', operator: 'robi', ussdCode: '*123*007#', title: 'Robi: Jhotpot Emergency Balance (*123*007#)', titleBn: 'রবি: ঝটপট জরুরি ব্যালেন্স লোন (*123*007#)', desc: 'Takes instant emergency airtime loan to prevent tracker disconnect', descBn: 'ব্যালেন্স শেষ হলে ট্র্যাকার সচল রাখতে জরুরি লোন নিন।' },
 
-    // Banglalink
+    // Banglalink (019, 014)
     { id: 'bl-bal', operator: 'banglalink', ussdCode: '*878#', title: 'Banglalink: Main Balance (*878#)', titleBn: 'বাংলালিংক: মেইন ব্যালেন্স ও মেয়াদ (*878#)', desc: 'Check Banglalink SIM balance and active status', descBn: 'বাংলালিংক সিমের বর্তমান ব্যালেন্স ও মেয়াদ চেক।' },
     { id: 'bl-data', operator: 'banglalink', ussdCode: '*5000*500#', title: 'Banglalink: Internet MB Balance (*5000*500#)', titleBn: 'বাংলালিংক: ডাটা ভলিউম চেক (*5000*500#)', desc: 'Check Banglalink remaining GPRS telemetry MB', descBn: 'ইন্টারনেট ডাটা প্যাকের অবশিষ্ট ভলিউম দেখুন।' },
     { id: 'bl-num', operator: 'banglalink', ussdCode: '*511#', title: 'Banglalink: Query SIM Mobile No (*511#)', titleBn: 'বাংলালিংক: সিম নম্বর চেক (*511#)', desc: 'Queries Banglalink SIM phone number', descBn: 'বাংলালিংক সিমের মোবাইল নম্বর জানুন।' },
 
-    // Teletalk
+    // Teletalk (015)
     { id: 'tt-bal', operator: 'teletalk', ussdCode: '*152#', title: 'Teletalk: Balance & Data (*152#)', titleBn: 'টেলিটক: ব্যালেন্স ও ইন্টারনেট প্যাক (*152#)', desc: 'Check Teletalk account balance and data validity', descBn: 'টেলিটক সিমের মূল ব্যালেন্স ও ইন্টারনেট ডাটা চেক।' },
     { id: 'tt-num', operator: 'teletalk', ussdCode: '*551#', title: 'Teletalk: Query SIM Number (*551#)', titleBn: 'টেলিটক: সিম নম্বর চেক (*551#)', desc: 'Queries Teletalk SIM phone number', descBn: 'টেলিটক সিমের ১১ ডিজিটের নম্বর দেখুন।' },
   ];
 
-  return items.map(item => {
+  const filtered = (operatorFilter && operatorFilter !== 'all') 
+    ? items.filter(item => item.operator === operatorFilter)
+    : items;
+
+  return filtered.map(item => {
     const cmds = formatUssdByProtocol(item.ussdCode, rawProtocol, pin);
     return {
       id: item.id,
@@ -190,7 +238,11 @@ export function getProtocolPresets(device?: Device, position?: Position): Protoc
   const rawProtocol = (position?.protocol || device?.attributes?.protocol || device?.model || '').toLowerCase();
   const pin = device?.attributes?.commandPin || '123456';
   const sosPhone = device?.attributes?.sos1 || '01700000000';
-  const ussdPresets = getBangladeshUssdPresets(rawProtocol, pin);
+  
+  // Auto-detect SIM operator from device phone attribute
+  const devicePhone = device?.phone || device?.attributes?.simNumber || device?.attributes?.phone || '';
+  const detectedOp = detectOperatorFromPhone(devicePhone);
+  const ussdPresets = getBangladeshUssdPresets(rawProtocol, pin, detectedOp !== 'unknown' ? detectedOp : 'all');
 
   // 1. SinoTrack Protocol Presets
   if (rawProtocol.includes('sinotrack') || rawProtocol.includes('h02') || rawProtocol.includes('st-901')) {

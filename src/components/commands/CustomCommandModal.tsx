@@ -20,7 +20,7 @@ import {
   Layers
 } from 'lucide-react';
 import { PinVerificationModal } from './PinVerificationModal';
-import { getProtocolPresets, resolveWakeupCommand, ProtocolPresetCommand } from '../../utils/protocolCommands';
+import { resolveWakeupCommand, getProtocolPresets, detectOperatorFromPhone, getOperatorLabelBn } from '../../utils/protocolCommands';
 
 interface CustomCommandModalProps {
   isOpen: boolean;
@@ -36,15 +36,28 @@ export const CustomCommandModal: React.FC<CustomCommandModalProps> = ({ isOpen, 
     language 
   } = useApp();
 
+  const serverSim = selectedDevice?.phone || selectedDevice?.attributes?.simNumber || selectedDevice?.attributes?.phone || '';
+  const detectedOp = detectOperatorFromPhone(serverSim);
+
   const [customText, setCustomText] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'ussd' | 'status' | 'security' | 'network' | 'engine'>('all');
-  const [selectedOperator, setSelectedOperator] = useState<'all' | 'gp' | 'robi' | 'banglalink' | 'teletalk'>('all');
+  const [selectedOperator, setSelectedOperator] = useState<'all' | 'gp' | 'robi' | 'banglalink' | 'teletalk'>(
+    detectedOp !== 'unknown' ? detectedOp : 'all'
+  );
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
   const [pendingCommand, setPendingCommand] = useState<string>('');
   const [isDangerousCommand, setIsDangerousCommand] = useState<boolean>(false);
   const [commandSuccess, setCommandSuccess] = useState<string | null>(null);
   const [ussdFlashResponse, setUssdFlashResponse] = useState<string | null>(null);
   const [sendMode, setSendMode] = useState<'gprs' | 'sms'>('gprs');
+
+  // Auto-sync operator filter whenever selectedDevice changes
+  React.useEffect(() => {
+    const op = detectOperatorFromPhone(serverSim);
+    if (op !== 'unknown') {
+      setSelectedOperator(op);
+    }
+  }, [serverSim]);
 
   if (!isOpen || !selectedDevice) return null;
 
@@ -60,9 +73,6 @@ export const CustomCommandModal: React.FC<CustomCommandModalProps> = ({ isOpen, 
     if (selectedCategory === 'ussd' && selectedOperator !== 'all' && p.operator !== selectedOperator) return false;
     return true;
   });
-
-  // Read actual SIM phone number from Traccar server
-  const serverSim = selectedDevice.phone || selectedDevice.attributes?.simNumber || selectedDevice.attributes?.phone || '';
 
   const handleInitiateCommand = (cmd: string, dangerous = false) => {
     setPendingCommand(cmd);
@@ -88,7 +98,7 @@ export const CustomCommandModal: React.FC<CustomCommandModalProps> = ({ isOpen, 
       if (res.success) {
         setCommandSuccess(language === 'bn' ? `কমান্ড '${pendingCommand}' সফলভাবে পাঠানো হয়েছে!` : `Command '${pendingCommand}' sent successfully!`);
         
-        // If USSD query, generate realistic USSD network response
+        // If USSD query, generate realistic USSD network response & save persistently
         if (pendingCommand.toLowerCase().includes('ussd') || pendingCommand.includes('*')) {
           let simulatedFlash = `[USSD Response]: Balance: ৳ 48.50. Validity: 15-Nov-2026. Telemetry Data: 420 MB.`;
           if (pendingCommand.includes('*2#') || pendingCommand.includes('*511#') || pendingCommand.includes('*551#')) {
@@ -97,6 +107,16 @@ export const CustomCommandModal: React.FC<CustomCommandModalProps> = ({ isOpen, 
             simulatedFlash = `[USSD Response]: Internet Data Pack: 512 MB (Remaining: 384 MB). Valid till 25-Sep-2026.`;
           }
           setUssdFlashResponse(simulatedFlash);
+
+          // Save to persistent storage for DeviceSlidingSheet and CommandCenter
+          try {
+            const record = {
+              text: simulatedFlash,
+              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              date: new Date().toLocaleDateString('en-GB')
+            };
+            localStorage.setItem(`gps_sim_balance_${selectedDevice.id}`, JSON.stringify(record));
+          } catch (e) {}
         }
       }
     }
@@ -201,28 +221,41 @@ export const CustomCommandModal: React.FC<CustomCommandModalProps> = ({ isOpen, 
 
           {/* USSD Sub-Category Operator Filter (Shown when category is ussd) */}
           {selectedCategory === 'ussd' && (
-            <div className="flex items-center space-x-1.5 px-4 py-1.5 bg-slate-950 border-b border-slate-800 text-[10px] overflow-x-auto shrink-0">
-              <span className="text-slate-400 font-bold shrink-0">{language === 'bn' ? 'অপারেটর:' : 'Operator:'}</span>
-              {[
-                { id: 'all', label: 'সকল অপারেটর' },
-                { id: 'gp', label: '🟢 গ্রামীনফোন (GP)' },
-                { id: 'robi', label: '🔴 রবি/এয়ারটেল' },
-                { id: 'banglalink', label: '🟠 বাংলালিংক' },
-                { id: 'teletalk', label: '🔵 টেলিটক' }
-              ].map(op => (
-                <button
-                  key={op.id}
-                  type="button"
-                  onClick={() => setSelectedOperator(op.id as any)}
-                  className={`px-2 py-0.5 rounded-lg font-bold transition shrink-0 ${
-                    selectedOperator === op.id 
-                      ? 'bg-indigo-600 text-white shadow-sm' 
-                      : 'bg-slate-900 text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  {op.label}
-                </button>
-              ))}
+            <div className="px-4 py-2 bg-slate-950 border-b border-slate-800 space-y-1.5 shrink-0">
+              {detectedOp !== 'unknown' && (
+                <div className="flex items-center justify-between text-[10px]">
+                  <span className="text-slate-400">
+                    {language === 'bn' ? 'সিম নম্বর প্রিফিক্স অনুযায়ী অটো ফিল্টার:' : 'Auto-filtered by SIM prefix:'}
+                  </span>
+                  <span className="font-bold font-mono px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">
+                    {getOperatorLabelBn(detectedOp)}
+                  </span>
+                </div>
+              )}
+              
+              <div className="flex items-center space-x-1.5 text-[10px] overflow-x-auto">
+                <span className="text-slate-400 font-bold shrink-0">{language === 'bn' ? 'ফিল্টার:' : 'Filter:'}</span>
+                {[
+                  { id: 'all', label: 'সকল অপারেটর' },
+                  { id: 'robi', label: '🔴 রবি/এয়ারটেল (018/016)' },
+                  { id: 'gp', label: '🟢 গ্রামীনফোন (017/013)' },
+                  { id: 'banglalink', label: '🟠 বাংলালিংক (019/014)' },
+                  { id: 'teletalk', label: '🔵 টেলিটক (015)' }
+                ].map(op => (
+                  <button
+                    key={op.id}
+                    type="button"
+                    onClick={() => setSelectedOperator(op.id as any)}
+                    className={`px-2.5 py-1 rounded-xl font-bold transition shrink-0 ${
+                      selectedOperator === op.id 
+                        ? 'bg-indigo-600 text-white shadow-md' 
+                        : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
+                    }`}
+                  >
+                    {op.label}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 

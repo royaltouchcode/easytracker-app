@@ -29,7 +29,7 @@ import {
 } from 'lucide-react';
 import { PinVerificationModal } from '../commands/PinVerificationModal';
 import { CustomCommandModal } from '../commands/CustomCommandModal';
-import { resolveWakeupCommand } from '../../utils/protocolCommands';
+import { resolveWakeupCommand, detectOperatorFromPhone, getOperatorLabelBn } from '../../utils/protocolCommands';
 import { resolveDeviceCapabilities } from '../../utils/deviceCapabilities';
 
 export const DeviceSlidingSheet: React.FC = () => {
@@ -93,6 +93,16 @@ export const DeviceSlidingSheet: React.FC = () => {
     return localStorage.getItem(`gps_relay_cut_${selectedDevice.id}`) === 'true';
   });
 
+  // Persistent SIM Telemetry & Balance Cache
+  const [simBalanceData, setSimBalanceData] = useState<{ text: string; timestamp: string; date?: string } | null>(() => {
+    if (!selectedDevice) return null;
+    const saved = localStorage.getItem(`gps_sim_balance_${selectedDevice.id}`);
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return null;
+  });
+
   // Sync state when device changes or when latestEngineLog updates
   useEffect(() => {
     if (selectedDevice) {
@@ -103,6 +113,14 @@ export const DeviceSlidingSheet: React.FC = () => {
         const saved = localStorage.getItem(`gps_relay_cut_${selectedDevice.id}`);
         const serverRelay = !!selectedPosition?.attributes?.relay || !!selectedPosition?.attributes?.blocked || !!selectedDevice?.attributes?.relay;
         setIsRelayCutState(saved === 'true' || serverRelay);
+      }
+
+      // Sync latest saved USSD SIM Balance
+      const savedBal = localStorage.getItem(`gps_sim_balance_${selectedDevice.id}`);
+      if (savedBal) {
+        try { setSimBalanceData(JSON.parse(savedBal)); } catch (e) { setSimBalanceData(null); }
+      } else {
+        setSimBalanceData(null);
       }
     }
   }, [selectedDevice?.id, selectedDevice?.name, latestEngineLog?.id, latestEngineLog?.action, selectedPosition?.attributes]);
@@ -430,6 +448,36 @@ export const DeviceSlidingSheet: React.FC = () => {
                 Last Known
               </span>
             )}
+          </div>
+
+          {/* SIM Telemetry & Live USSD Balance Strip */}
+          <div className="flex items-center justify-between bg-slate-900/90 border border-purple-500/30 rounded-xl px-2.5 py-1 mb-1 shadow-md">
+            <div className="flex items-center space-x-2 min-w-0">
+              <div className="w-5 h-5 rounded-lg bg-purple-600/20 border border-purple-500/40 flex items-center justify-center text-purple-300 shrink-0">
+                <Radio className="w-3 h-3 animate-pulse" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center space-x-1.5">
+                  <span className="text-[10px] font-bold text-white truncate">
+                    {simBalanceData ? simBalanceData.text.replace(/\[USSD Response\]:\s*/i, '') : (language === 'bn' ? 'সিম ব্যালেন্স ও ডাটা' : 'SIM Balance & Data')}
+                  </span>
+                  <span className="text-[8.5px] font-mono text-purple-300 font-bold bg-purple-950 px-1 rounded border border-purple-800 shrink-0">
+                    {getOperatorLabelBn(detectOperatorFromPhone(selectedDevice.phone || selectedDevice.attributes?.simNumber || '')).split(' ')[1] || 'SIM'}
+                  </span>
+                </div>
+                <span className="text-[8.5px] text-slate-400 block truncate">
+                  {simBalanceData ? `সর্বশেষ আপডেট: ${simBalanceData.timestamp}` : (language === 'bn' ? 'ব্যালেন্স ও ডাটা দেখতে চেক করুন' : 'Click to fetch remote balance')}
+                </span>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setIsCustomCommandOpen(true)}
+              className="px-2 py-0.5 rounded-lg bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/40 font-bold text-[9.5px] flex items-center space-x-1 transition active:scale-95 shrink-0 ml-1.5"
+            >
+              <RefreshCw className="w-2.5 h-2.5 text-purple-300" />
+              <span>{language === 'bn' ? 'চেক' : 'Query'}</span>
+            </button>
           </div>
 
           {/* On-Demand Wakeup Status Banner */}

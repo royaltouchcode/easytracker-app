@@ -17,7 +17,7 @@ import {
   Wifi
 } from 'lucide-react';
 import { PinVerificationModal } from './PinVerificationModal';
-import { formatUssdByProtocol, getBangladeshUssdPresets } from '../../utils/protocolCommands';
+import { formatUssdByProtocol, getBangladeshUssdPresets, detectOperatorFromPhone, getOperatorLabelBn } from '../../utils/protocolCommands';
 
 export const CommandCenterView: React.FC = () => {
   const { 
@@ -29,6 +29,10 @@ export const CommandCenterView: React.FC = () => {
     t 
   } = useApp();
 
+  const rawProtocol = (selectedPosition?.protocol || selectedDevice?.attributes?.protocol || selectedDevice?.model || '').toLowerCase();
+  const deviceSim = selectedDevice?.phone || selectedDevice?.attributes?.simNumber || selectedDevice?.attributes?.phone || '01811-223344';
+  const detectedOp = detectOperatorFromPhone(deviceSim);
+
   const [customCommand, setCustomCommand] = useState('');
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<'cut' | 'resume'>('cut');
@@ -36,14 +40,22 @@ export const CommandCenterView: React.FC = () => {
   const [sosNumber2, setSosNumber2] = useState(selectedDevice?.attributes?.sosNumber2 || '+880 1913-445566');
   const [sosSaved, setSosSaved] = useState(false);
 
-  // USSD Remote Query State
-  const [selectedUssdOp, setSelectedUssdOp] = useState<'gp' | 'robi' | 'banglalink' | 'teletalk'>('gp');
+  // USSD Remote Query State - Auto-detect from SIM prefix
+  const [selectedUssdOp, setSelectedUssdOp] = useState<'gp' | 'robi' | 'banglalink' | 'teletalk'>(
+    detectedOp !== 'unknown' ? detectedOp : 'robi'
+  );
   const [ussdFlashMsg, setUssdFlashMsg] = useState<string | null>(null);
   const [isUssdLoading, setIsUssdLoading] = useState(false);
 
+  // Sync selected operator when device changes
+  React.useEffect(() => {
+    const op = detectOperatorFromPhone(deviceSim);
+    if (op !== 'unknown') {
+      setSelectedUssdOp(op);
+    }
+  }, [deviceSim]);
+
   const isRelayCut = !!selectedPosition?.attributes?.relay;
-  const rawProtocol = (selectedPosition?.protocol || selectedDevice?.attributes?.protocol || selectedDevice?.model || '').toLowerCase();
-  const deviceSim = selectedDevice?.phone || selectedDevice?.attributes?.simNumber || selectedDevice?.attributes?.phone || '01811-223344';
 
   const handleCustomSend = (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,6 +84,18 @@ export const CommandCenterView: React.FC = () => {
         simulatedResponse = `[GSM USSD Flash]: Active IoT Data Pack: 512 MB (Remaining: 320 MB). Valid till 29-Aug-2026.`;
       }
       setUssdFlashMsg(simulatedResponse);
+
+      // Save to persistent storage for DeviceSlidingSheet and others
+      if (selectedDevice) {
+        try {
+          const record = {
+            text: simulatedResponse,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            date: new Date().toLocaleDateString('en-GB')
+          };
+          localStorage.setItem(`gps_sim_balance_${selectedDevice.id}`, JSON.stringify(record));
+        } catch (e) {}
+      }
     }, 1800);
   };
 
