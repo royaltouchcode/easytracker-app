@@ -32,7 +32,8 @@ import {
   TrendingUp,
   Plus,
   Gift,
-  Copy
+  Copy,
+  ShoppingBag
 } from 'lucide-react';
 import { getAppConfig } from '../../config/appConfig';
 import { RenewSubscriptionModal } from '../subscription/RenewSubscriptionModal';
