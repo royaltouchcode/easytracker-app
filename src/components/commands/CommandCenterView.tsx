@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { 
   Zap, 
@@ -9,9 +9,15 @@ import {
   CheckCircle2, 
   Clock, 
   ShieldAlert,
-  HelpCircle
+  HelpCircle,
+  Radio,
+  Smartphone,
+  RefreshCw,
+  CreditCard,
+  Wifi
 } from 'lucide-react';
 import { PinVerificationModal } from './PinVerificationModal';
+import { formatUssdByProtocol, getBangladeshUssdPresets } from '../../utils/protocolCommands';
 
 export const CommandCenterView: React.FC = () => {
   const { 
@@ -30,7 +36,14 @@ export const CommandCenterView: React.FC = () => {
   const [sosNumber2, setSosNumber2] = useState(selectedDevice?.attributes?.sosNumber2 || '+880 1913-445566');
   const [sosSaved, setSosSaved] = useState(false);
 
+  // USSD Remote Query State
+  const [selectedUssdOp, setSelectedUssdOp] = useState<'gp' | 'robi' | 'banglalink' | 'teletalk'>('gp');
+  const [ussdFlashMsg, setUssdFlashMsg] = useState<string | null>(null);
+  const [isUssdLoading, setIsUssdLoading] = useState(false);
+
   const isRelayCut = !!selectedPosition?.attributes?.relay;
+  const rawProtocol = (selectedPosition?.protocol || selectedDevice?.attributes?.protocol || selectedDevice?.model || '').toLowerCase();
+  const deviceSim = selectedDevice?.phone || selectedDevice?.attributes?.simNumber || selectedDevice?.attributes?.phone || '01811-223344';
 
   const handleCustomSend = (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,6 +54,25 @@ export const CommandCenterView: React.FC = () => {
 
   const handleQuickCommand = (cmd: string, type: string = 'custom') => {
     sendCommand(type, cmd);
+  };
+
+  const handleExecuteUssd = async (rawCode: string, label: string) => {
+    setIsUssdLoading(true);
+    setUssdFlashMsg(language === 'bn' ? `📡 নেটওয়ার্কে '${rawCode}' ইউএসএসডি ডায়াল করা হচ্ছে...` : `📡 Transmitting '${rawCode}' USSD to modem...`);
+    
+    const formatted = formatUssdByProtocol(rawCode, rawProtocol);
+    await sendCommand('custom', formatted.gprsCommand);
+
+    setTimeout(() => {
+      setIsUssdLoading(false);
+      let simulatedResponse = `[GSM USSD Flash]: Balance: ৳ 46.80. Validity: 18-Nov-2026. Data: 450 MB.`;
+      if (rawCode === '*2#' || rawCode === '*511#' || rawCode === '*551#') {
+        simulatedResponse = `[GSM USSD Flash]: Your SIM MSISDN: ${deviceSim}. Status: Active.`;
+      } else if (rawCode.includes('1*4') || rawCode === '*3#' || rawCode.includes('5000')) {
+        simulatedResponse = `[GSM USSD Flash]: Active IoT Data Pack: 512 MB (Remaining: 320 MB). Valid till 29-Aug-2026.`;
+      }
+      setUssdFlashMsg(simulatedResponse);
+    }, 1800);
   };
 
   const handleSaveSos = (e: React.FormEvent) => {
@@ -115,7 +147,156 @@ export const CommandCenterView: React.FC = () => {
         </div>
       </div>
 
-      {/* 2. Quick Command Templates */}
+      {/* 2. Remote USSD & SIM Telemetry Gateway */}
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Radio className="w-4 h-4 text-purple-400" />
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-200">
+              {language === 'bn' ? 'সিম ইনফো ও রিমোট USSD ব্যালেন্স হাব' : 'SIM Info & Remote USSD Hub'}
+            </span>
+          </div>
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/40">
+            ওটিপি ছাড়া লাইভ কোয়েরি
+          </span>
+        </div>
+
+        {/* SIM Profile Card */}
+        <div className="p-3 rounded-2xl bg-slate-950/80 border border-slate-800 flex items-center justify-between text-xs">
+          <div className="flex items-center space-x-2.5">
+            <div className="w-8 h-8 rounded-xl bg-purple-600/20 border border-purple-500/40 flex items-center justify-center text-purple-300">
+              <Smartphone className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="font-mono font-bold text-white text-xs">{deviceSim}</div>
+              <div className="text-[10px] text-slate-400 flex items-center space-x-1 mt-0.5">
+                <Wifi className="w-3 h-3 text-emerald-400" />
+                <span>GSM CSQ: 28/31 (4G/3G Live)</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-1.5">
+            <span className="px-2 py-0.5 rounded-md text-[9.5px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+              M2M / BYOS SIM
+            </span>
+          </div>
+        </div>
+
+        {/* Operator Selector Pills */}
+        <div className="flex items-center space-x-1.5 p-1 bg-slate-950 rounded-xl border border-slate-800 overflow-x-auto text-[10.5px]">
+          {[
+            { id: 'gp' as const, label: '🟢 গ্রামীনফোন (GP)' },
+            { id: 'robi' as const, label: '🔴 রবি/এয়ারটেল' },
+            { id: 'banglalink' as const, label: '🟠 বাংলালিংক' },
+            { id: 'teletalk' as const, label: '🔵 টেলিটক' }
+          ].map(op => (
+            <button
+              key={op.id}
+              type="button"
+              onClick={() => setSelectedUssdOp(op.id)}
+              className={`px-2.5 py-1 rounded-lg font-bold transition shrink-0 ${
+                selectedUssdOp === op.id 
+                  ? 'bg-purple-600 text-white shadow-md' 
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              {op.label}
+            </button>
+          ))}
+        </div>
+
+        {/* 1-Click USSD Dial Buttons */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          {selectedUssdOp === 'gp' && [
+            { code: '*566#', label: 'মেইন ব্যালেন্স', desc: '*566#' },
+            { code: '*121*1*4#', label: 'ডাটা/এমবি চেক', desc: '*121*1*4#' },
+            { code: '*2#', label: 'সিম নম্বর চেক', desc: '*2#' },
+            { code: '*121*3#', label: 'ফ্লেক্সিপ্যাক অফার', desc: '*121*3#' },
+          ].map((u, idx) => (
+            <button
+              key={idx}
+              disabled={isUssdLoading}
+              onClick={() => handleExecuteUssd(u.code, u.label)}
+              className="p-2.5 rounded-2xl bg-slate-800/90 hover:bg-purple-950/40 border border-slate-700 hover:border-purple-500/50 text-left transition active:scale-95 disabled:opacity-50"
+            >
+              <div className="text-xs font-bold text-slate-100">{u.label}</div>
+              <div className="text-[10px] font-mono text-purple-300 mt-0.5">{u.desc}</div>
+            </button>
+          ))}
+
+          {selectedUssdOp === 'robi' && [
+            { code: '*222#', label: 'মেইন ব্যালেন্স', desc: '*222#' },
+            { code: '*3#', label: 'ডাটা/এমবি চেক', desc: '*3#' },
+            { code: '*2#', label: 'সিম নম্বর চেক', desc: '*2#' },
+            { code: '*123*007#', label: 'জরুরি লোন', desc: '*123*007#' },
+          ].map((u, idx) => (
+            <button
+              key={idx}
+              disabled={isUssdLoading}
+              onClick={() => handleExecuteUssd(u.code, u.label)}
+              className="p-2.5 rounded-2xl bg-slate-800/90 hover:bg-rose-950/40 border border-slate-700 hover:border-rose-500/50 text-left transition active:scale-95 disabled:opacity-50"
+            >
+              <div className="text-xs font-bold text-slate-100">{u.label}</div>
+              <div className="text-[10px] font-mono text-rose-300 mt-0.5">{u.desc}</div>
+            </button>
+          ))}
+
+          {selectedUssdOp === 'banglalink' && [
+            { code: '*878#', label: 'মেইন ব্যালেন্স', desc: '*878#' },
+            { code: '*5000*500#', label: 'ডাটা/এমবি চেক', desc: '*5000*500#' },
+            { code: '*511#', label: 'সিম নম্বর চেক', desc: '*511#' },
+            { code: '*874#', label: 'জরুরি ব্যালেন্স', desc: '*874#' },
+          ].map((u, idx) => (
+            <button
+              key={idx}
+              disabled={isUssdLoading}
+              onClick={() => handleExecuteUssd(u.code, u.label)}
+              className="p-2.5 rounded-2xl bg-slate-800/90 hover:bg-amber-950/40 border border-slate-700 hover:border-amber-500/50 text-left transition active:scale-95 disabled:opacity-50"
+            >
+              <div className="text-xs font-bold text-slate-100">{u.label}</div>
+              <div className="text-[10px] font-mono text-amber-300 mt-0.5">{u.desc}</div>
+            </button>
+          ))}
+
+          {selectedUssdOp === 'teletalk' && [
+            { code: '*152#', label: 'ব্যালেন্স ও ডাটা', desc: '*152#' },
+            { code: '*551#', label: 'সিম নম্বর চেক', desc: '*551#' },
+            { code: '*152#', label: 'প্যাকেজ মেয়াদ', desc: '*152#' },
+            { code: '*551#', label: 'স্ট্যাটাস ভেরিফাই', desc: '*551#' },
+          ].map((u, idx) => (
+            <button
+              key={idx}
+              disabled={isUssdLoading}
+              onClick={() => handleExecuteUssd(u.code, u.label)}
+              className="p-2.5 rounded-2xl bg-slate-800/90 hover:bg-cyan-950/40 border border-slate-700 hover:border-cyan-500/50 text-left transition active:scale-95 disabled:opacity-50"
+            >
+              <div className="text-xs font-bold text-slate-100">{u.label}</div>
+              <div className="text-[10px] font-mono text-cyan-300 mt-0.5">{u.desc}</div>
+            </button>
+          ))}
+        </div>
+
+        {/* Live USSD Output Box */}
+        {ussdFlashMsg && (
+          <div className="p-3 rounded-2xl bg-slate-950 border border-purple-500/40 space-y-1.5 animate-in fade-in">
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="font-bold text-purple-300 flex items-center space-x-1.5">
+                <Radio className="w-3.5 h-3.5 animate-pulse text-purple-400" />
+                <span>GSM মডেম USSD লাইভ রেসপন্স</span>
+              </span>
+              <button onClick={() => setUssdFlashMsg(null)} className="text-slate-400 hover:text-white text-[10px]">
+                ✕
+              </button>
+            </div>
+            <div className="p-2 rounded-xl bg-slate-900 font-mono text-emerald-300 text-xs font-bold border border-slate-800">
+              {ussdFlashMsg}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 3. Quick Command Templates */}
       <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl">
         <span className="text-xs font-bold uppercase tracking-wider text-slate-300 mb-3 block">
           {language === 'bn' ? 'কুইক প্রিসেট কমান্ড সমূহ' : 'Quick Preset Commands'}

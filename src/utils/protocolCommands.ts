@@ -23,7 +23,8 @@ export interface ProtocolPresetCommand {
   id: string;
   title: string;
   titleBn: string;
-  category: 'status' | 'security' | 'network' | 'engine';
+  category: 'status' | 'security' | 'network' | 'engine' | 'ussd';
+  operator?: 'gp' | 'robi' | 'banglalink' | 'teletalk' | 'all';
   gprsCommand: string;
   smsCommand: string;
   traccarType: string;
@@ -105,14 +106,96 @@ export function resolveWakeupCommand(device: Device, position?: Position): Proto
   };
 }
 
+export function formatUssdByProtocol(rawUssdCode: string, rawProtocol: string = '', pin: string = '123456'): { gprsCommand: string; smsCommand: string } {
+  const cleanUssd = rawUssdCode.trim();
+  const p = rawProtocol.toLowerCase();
+
+  if (p.includes('teltonika')) {
+    return {
+      gprsCommand: `readussd ${cleanUssd}`,
+      smsCommand: `  readussd ${cleanUssd}`
+    };
+  }
+
+  if (p.includes('gps103') || p.includes('tk103') || p.includes('coban')) {
+    return {
+      gprsCommand: `ussd${pin}${cleanUssd}`,
+      smsCommand: `ussd${pin}${cleanUssd}`
+    };
+  }
+
+  if (p.includes('sinotrack') || p.includes('h02') || p.includes('st-901')) {
+    return {
+      gprsCommand: `USSD,${cleanUssd}`,
+      smsCommand: `USSD,${cleanUssd}`
+    };
+  }
+
+  if (p.includes('micodus') || p.includes('tk905') || p.includes('lkgps')) {
+    return {
+      gprsCommand: `USSD,${cleanUssd}#`,
+      smsCommand: `USSD,${cleanUssd}#`
+    };
+  }
+
+  // Default: Concox / Jimi / GT06 / Universal: USSD,1,*566##
+  return {
+    gprsCommand: `USSD,1,${cleanUssd}#`,
+    smsCommand: `USSD,1,${cleanUssd}#`
+  };
+}
+
+export function getBangladeshUssdPresets(rawProtocol: string = '', pin: string = '123456'): ProtocolPresetCommand[] {
+  const items: { id: string; operator: 'gp' | 'robi' | 'banglalink' | 'teletalk'; ussdCode: string; title: string; titleBn: string; desc: string; descBn: string }[] = [
+    // Grameenphone (GP)
+    { id: 'gp-bal', operator: 'gp', ussdCode: '*566#', title: 'GP: Main Balance (*566#)', titleBn: 'গ্রামীনফোন: মেইন ব্যালেন্স ও মেয়াদ (*566#)', desc: 'Check main account balance and validity date via remote USSD', descBn: 'ওটিপি ছাড়া ট্র্যাকারের সিমের মূল ব্যালেন্স ও মেয়াদ রিড করুন।' },
+    { id: 'gp-data', operator: 'gp', ussdCode: '*121*1*4#', title: 'GP: Data MB Balance (*121*1*4#)', titleBn: 'গ্রামীনফোন: ডাটা/ইন্টারনেট ব্যালেন্স (*121*1*4#)', desc: 'Check active internet package remaining MB and expiry', descBn: 'সিমের অবশিষ্ট ইন্টারনেট ডাটা এবং মেয়াদ দেখুন।' },
+    { id: 'gp-num', operator: 'gp', ussdCode: '*2#', title: 'GP: Query SIM Mobile No (*2#)', titleBn: 'গ্রামীনফোন: সিমের মোবাইল নম্বর চেক (*2#)', desc: 'Queries the actual MSISDN mobile phone number of tracker SIM', descBn: 'ট্র্যাকারে থাকা সিমের মোবাইল নম্বর জানুন।' },
+    { id: 'gp-flexi', operator: 'gp', ussdCode: '*121*3#', title: 'GP: Flexiplan & Offers (*121*3#)', titleBn: 'গ্রামীনফোন: রিচার্জ ও ডাটা অফার (*121*3#)', desc: 'Fetch latest recharge pack and telemetry offers', descBn: 'ট্র্যাকার সিমের জন্য বিশেষ ইন্টারনেট অফার দেখুন।' },
+
+    // Robi / Airtel
+    { id: 'robi-bal', operator: 'robi', ussdCode: '*222#', title: 'Robi: Main Balance (*222#)', titleBn: 'রবি / এয়ারটেল: মূল ব্যালেন্স ও মেয়াদ (*222#)', desc: 'Check Robi SIM balance and connection validity', descBn: 'রবি সিমের একাউন্ট ব্যালেন্স এবং সক্রিয় মেয়াদ জানুন।' },
+    { id: 'robi-data', operator: 'robi', ussdCode: '*3#', title: 'Robi: Internet MB Check (*3#)', titleBn: 'রবি / এয়ারটেল: ডাটা প্যাক চেক (*3#)', desc: 'Check remaining telemetry data MB and duration', descBn: 'ট্র্যাকিং সিমের অবশিষ্ট ইন্টারনেট মেগাবাইট (MB) যাচাই।' },
+    { id: 'robi-num', operator: 'robi', ussdCode: '*2#', title: 'Robi: Query SIM Mobile No (*2#)', titleBn: 'রবি / এয়ারটেল: সিম নম্বর চেক (*2#)', desc: 'Fetch tracker SIM mobile phone number', descBn: 'রবি সিমের ১১ ডিজিটের নম্বর দেখুন।' },
+    { id: 'robi-loan', operator: 'robi', ussdCode: '*123*007#', title: 'Robi: Jhotpot Emergency Balance (*123*007#)', titleBn: 'রবি: ঝটপট জরুরি ব্যালেন্স লোন (*123*007#)', desc: 'Takes instant emergency airtime loan to prevent tracker disconnect', descBn: 'ব্যালেন্স শেষ হলে ট্র্যাকার সচল রাখতে জরুরি লোন নিন।' },
+
+    // Banglalink
+    { id: 'bl-bal', operator: 'banglalink', ussdCode: '*878#', title: 'Banglalink: Main Balance (*878#)', titleBn: 'বাংলালিংক: মেইন ব্যালেন্স ও মেয়াদ (*878#)', desc: 'Check Banglalink SIM balance and active status', descBn: 'বাংলালিংক সিমের বর্তমান ব্যালেন্স ও মেয়াদ চেক।' },
+    { id: 'bl-data', operator: 'banglalink', ussdCode: '*5000*500#', title: 'Banglalink: Internet MB Balance (*5000*500#)', titleBn: 'বাংলালিংক: ডাটা ভলিউম চেক (*5000*500#)', desc: 'Check Banglalink remaining GPRS telemetry MB', descBn: 'ইন্টারনেট ডাটা প্যাকের অবশিষ্ট ভলিউম দেখুন।' },
+    { id: 'bl-num', operator: 'banglalink', ussdCode: '*511#', title: 'Banglalink: Query SIM Mobile No (*511#)', titleBn: 'বাংলালিংক: সিম নম্বর চেক (*511#)', desc: 'Queries Banglalink SIM phone number', descBn: 'বাংলালিংক সিমের মোবাইল নম্বর জানুন।' },
+
+    // Teletalk
+    { id: 'tt-bal', operator: 'teletalk', ussdCode: '*152#', title: 'Teletalk: Balance & Data (*152#)', titleBn: 'টেলিটক: ব্যালেন্স ও ইন্টারনেট প্যাক (*152#)', desc: 'Check Teletalk account balance and data validity', descBn: 'টেলিটক সিমের মূল ব্যালেন্স ও ইন্টারনেট ডাটা চেক।' },
+    { id: 'tt-num', operator: 'teletalk', ussdCode: '*551#', title: 'Teletalk: Query SIM Number (*551#)', titleBn: 'টেলিটক: সিম নম্বর চেক (*551#)', desc: 'Queries Teletalk SIM phone number', descBn: 'টেলিটক সিমের ১১ ডিজিটের নম্বর দেখুন।' },
+  ];
+
+  return items.map(item => {
+    const cmds = formatUssdByProtocol(item.ussdCode, rawProtocol, pin);
+    return {
+      id: item.id,
+      title: item.title,
+      titleBn: item.titleBn,
+      category: 'ussd',
+      operator: item.operator,
+      gprsCommand: cmds.gprsCommand,
+      smsCommand: cmds.smsCommand,
+      traccarType: 'custom',
+      description: item.desc,
+      descriptionBn: item.descBn
+    };
+  });
+}
+
 export function getProtocolPresets(device?: Device, position?: Position): ProtocolPresetCommand[] {
   const rawProtocol = (position?.protocol || device?.attributes?.protocol || device?.model || '').toLowerCase();
   const pin = device?.attributes?.commandPin || '123456';
   const sosPhone = device?.attributes?.sos1 || '01700000000';
+  const ussdPresets = getBangladeshUssdPresets(rawProtocol, pin);
 
   // 1. SinoTrack Protocol Presets
   if (rawProtocol.includes('sinotrack') || rawProtocol.includes('h02') || rawProtocol.includes('st-901')) {
     return [
+      ...ussdPresets,
       {
         id: 'st-status',
         title: 'Query System Status (CXZT)',
@@ -208,6 +291,7 @@ export function getProtocolPresets(device?: Device, position?: Position): Protoc
   // 2. Coban / TK103 Protocol Presets
   if (rawProtocol.includes('gps103') || rawProtocol.includes('tk103') || rawProtocol.includes('coban')) {
     return [
+      ...ussdPresets,
       {
         id: 'cb-check',
         title: `Check Status (check${pin})`,
@@ -292,6 +376,7 @@ export function getProtocolPresets(device?: Device, position?: Position): Protoc
   // 3. Teltonika Protocol Presets
   if (rawProtocol.includes('teltonika')) {
     return [
+      ...ussdPresets,
       {
         id: 'tel-status',
         title: 'Get Status (getstatus)',
@@ -364,6 +449,7 @@ export function getProtocolPresets(device?: Device, position?: Position): Protoc
 
   // 4. Default: Concox / Jimi / GT06 / Universal Protocols
   return [
+    ...ussdPresets,
     {
       id: 'gt-status',
       title: 'Query System Status (STATUS#)',
