@@ -24,6 +24,7 @@ import {
 import { VehicleIcon } from '../../utils/vehicleIcons';
 import { UserProfileModal } from '../auth/UserProfileModal';
 import { RoleSwitcherModal } from '../saas/RoleSwitcherModal';
+import { UniversalEarnModal } from '../rewards/UniversalEarnModal';
 import { AppTheme } from '../../types/traccar';
 
 export const Header: React.FC = () => {
@@ -52,6 +53,7 @@ export const Header: React.FC = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
+  const [isEarnModalOpen, setIsEarnModalOpen] = useState(false);
 
   const displayDevices = user?.partnerId ? (tenantDevices.length > 0 ? tenantDevices : devices) : devices;
 
@@ -345,7 +347,7 @@ export const Header: React.FC = () => {
 
           {/* Highlighted Universal Earn / Rewards Button */}
           <button
-            onClick={() => setIsProfileModalOpen(true)}
+            onClick={() => setIsEarnModalOpen(true)}
             className="px-2.5 py-1 rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-extrabold text-[10.5px] flex items-center space-x-1 shadow-md shadow-purple-600/30 transition active:scale-95 border border-purple-400/50"
             title={currentRole === 'customer' ? 'বন্ধুকে রেফার করুন ও ক্যাশব্যাক পান (Earn Hub)' : 'আপনার সেলস ও কমিশন ওয়ালেট'}
           >
@@ -482,6 +484,12 @@ export const Header: React.FC = () => {
       <UserProfileModal
         isOpen={isProfileModalOpen}
         onClose={() => setIsProfileModalOpen(false)}
+      />
+
+      {/* Universal Earn & Referral / Commission Ledger Hub Modal */}
+      <UniversalEarnModal
+        isOpen={isEarnModalOpen}
+        onClose={() => setIsEarnModalOpen(false)}
       />
 
       {/* SaaS Multi-Role Switcher Modal (Only Super Admin can switch) */}
