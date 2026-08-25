@@ -182,16 +182,18 @@ export const SupportPortalView: React.FC = () => {
     return parseFloat((R * c).toFixed(1));
   };
 
-  // Step 1: Assign Nearest Technician (App Push Notification sent for free)
+  // Step 1: Assign Nearest Technician (App Push Notification sent to Tech ONLY)
   const handleAssignTechToOrder = (orderId: string, techId: string) => {
     const tech = AVAILABLE_TECHNICIANS.find(t => t.id === techId) || AVAILABLE_TECHNICIANS[0];
     const updated = deviceOrders.map(o => {
       if (o.orderId === orderId) {
         return {
           ...o,
-          orderStatus: 'TECHNICIAN_ASSIGNED',
-          installationStatus: 'TECH_DISPATCHED',
+          orderStatus: 'TECHNICIAN_ASSIGNED_PENDING_RESPONSE',
+          installationStatus: 'PENDING_TECH_CONFIRMATION',
           assignedTech: tech,
+          techAccepted: false,
+          customerNotified: false,
           dispatchStep: 1,
           assignedTime: 'এখনই (⏱️ ২ ঘন্টা সময়সীমা)',
           smsSent: false,
@@ -203,7 +205,7 @@ export const SupportPortalView: React.FC = () => {
       return o;
     });
     saveOrders(updated);
-    alert(`✅ টেকনিশিয়ান "${tech.name}"-কে সফলভাবে অ্যাসাইন করা হয়েছে! টেকনিশিয়ানের ফোনে ফ্রি অ্যাপ পুশ নোটিফিকেশন পাঠানো হয়েছে (০ টাকা এসএমএস খরচ)।`);
+    alert(`✅ টেকনিশিয়ান "${tech.name}"-কে সফলভাবে অ্যাসাইন করা হয়েছে! টেকনিশিয়ানের অ্যাপে পুশ নোটিফিকেশন পাঠানো হয়েছে। টেকনিশিয়ান কাজ গ্রহণ ও নিশ্চিত করলেই কেবল গ্রাহককে তার বিবরণ পাঠানো হবে।`);
   };
 
   // Step 2: Trigger Delayed SMS (after 1 hour if no app response)
@@ -248,23 +250,31 @@ export const SupportPortalView: React.FC = () => {
     saveOrders(updated);
   };
 
-  // Step 4: Phone Call Confirmation by Support Desk
+  // Step 4: Phone Call Confirmation by Support Desk -> Triggers Final Customer Notification
   const handleConfirmPhoneCall = (orderId: string) => {
+    const order = deviceOrders.find(o => o.orderId === orderId);
+    const techName = order?.assignedTech?.name || 'আব্দুল করিম';
+    const techPhone = order?.assignedTech?.phone || '+880 1812-345678';
+
     const updated = deviceOrders.map(o => {
       if (o.orderId === orderId) {
         return {
           ...o,
           phoneCallConfirmed: true,
-          installationStatus: 'TECH_EN_ROUTE'
+          techAccepted: true,
+          customerNotified: true,
+          customerNotificationSentAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          installationStatus: 'TECH_EN_ROUTE',
+          orderStatus: 'CONFIRMED_DISPATCH'
         };
       }
       return o;
     });
     saveOrders(updated);
-    alert('✅ টেকনিশিয়ান ফোনে কনফার্ম করেছেন! টেকনিশিয়ান গ্রাহকের ঠিকানায় রওনা দিয়েছেন।');
+    alert(`✅ টেকনিশিয়ান "${techName}" কাজ কনফার্ম করেছেন! গ্রাহকের ফোনে টেকনিশিয়ানের নাম (${techName}), মোবাইল নম্বর (${techPhone}) ও পৌঁছানোর সময় সফলভাবে নোটিফাই করা হয়েছে।`);
   };
 
-  // Step 5: Cascade Fallback to Next Nearest Technician
+  // Step 5: Cascade Fallback to Next Nearest Technician (Silent for customer)
   const handleCascadeFallback = (orderId: string) => {
     const order = deviceOrders.find(o => o.orderId === orderId);
     const currentTechId = order?.assignedTech?.id;
@@ -275,18 +285,22 @@ export const SupportPortalView: React.FC = () => {
         return {
           ...o,
           assignedTech: nextTech,
+          techAccepted: false,
+          phoneCallConfirmed: false,
+          customerNotified: false,
+          orderStatus: 'TECHNICIAN_ASSIGNED_PENDING_RESPONSE',
+          installationStatus: 'PENDING_TECH_CONFIRMATION',
           dispatchStep: 1,
           assignedTime: 'ক্যাসকেড ডিসপ্যাচ (⏱️ নতুন ২ ঘন্টা)',
           smsSent: false,
           whatsappSent: false,
-          followupCallNeeded: false,
-          phoneCallConfirmed: false
+          followupCallNeeded: false
         };
       }
       return o;
     });
     saveOrders(updated);
-    alert(`🔄 পূর্বের টেকনিশিয়ান রেসপন্স না করায় অর্ডারটি স্বয়ংক্রিয়ভাবে পরবর্তী নিকটতম টেকনিশিয়ান "${nextTech.name}"-এর কাছে ক্যাসকেড করা হয়েছে!`);
+    alert(`🔄 পূর্বের টেকনিশিয়ান রেসপন্স না করায় গ্রাহককে না জানিয়ে স্বয়ংক্রিয়ভাবে পরবর্তী টেকনিশিয়ান "${nextTech.name}"-এর কাছে ক্যাসকেড করা হয়েছে!`);
   };
 
   // Step 6: 2-Way Customer Escrow Handshake Confirmation
@@ -718,8 +732,12 @@ export const SupportPortalView: React.FC = () => {
                           <span>অ্যাসাইন করুন (App Push)</span>
                         </button>
                       ) : (
-                        <span className="text-[9.5px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded-full font-mono">
-                          DISPATCHED
+                        <span className={`text-[9.5px] font-bold px-2.5 py-1 rounded-full font-mono border flex items-center space-x-1 ${
+                          order.phoneCallConfirmed || order.techAccepted
+                            ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                            : 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                        }`}>
+                          <span>{order.phoneCallConfirmed || order.techAccepted ? '✅ কনফার্মড ও কাস্টমার নোটিফাইড' : '⏳ রেসপন্স মুলতুবি (কাস্টমার হোল্ড)'}</span>
                         </span>
                       )}
                     </div>
@@ -823,7 +841,7 @@ export const SupportPortalView: React.FC = () => {
 
                         {/* 📞 Instant Omnichannel Calling Buttons & Cascade Fallback */}
                         <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-                          <div className="flex items-center space-x-1.5">
+                          <div className="flex items-center space-x-1.5 flex-wrap gap-1">
                             <a
                               href={`tel:${currentAssignedTech.phone}`}
                               className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-750 text-blue-300 border border-slate-700 text-[11px] font-bold flex items-center space-x-1"
@@ -849,14 +867,19 @@ export const SupportPortalView: React.FC = () => {
                               <span>💬 হোয়াটসঅ্যাপ জব কার্ড</span>
                             </button>
 
-                            {!order.phoneCallConfirmed && (
+                            {!order.phoneCallConfirmed ? (
                               <button
                                 type="button"
                                 onClick={() => handleConfirmPhoneCall(order.orderId)}
-                                className="px-2.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-bold"
+                                className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 text-white text-[11px] font-extrabold shadow-md shadow-blue-600/30 transition active:scale-95 flex items-center space-x-1"
                               >
-                                ✓ ফোনে কনফার্মড মার্ক করুন
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                <span>✓ ফোনে কনফার্মড ও কাস্টমার নোটিফাই</span>
                               </button>
+                            ) : (
+                              <span className="px-2.5 py-1 rounded-xl bg-emerald-950 text-emerald-300 border border-emerald-700/80 text-[10px] font-mono font-bold">
+                                📲 গ্রাহকের কাছে টেকনিশিয়ান বিবরণ প্রেরিত
+                              </span>
                             )}
                           </div>
 

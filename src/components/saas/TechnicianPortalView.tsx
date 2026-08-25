@@ -94,6 +94,87 @@ export const TechnicianPortalView: React.FC = () => {
     return active ? active.id : '';
   });
 
+  // Pending Dispatched Orders awaiting this technician's acceptance
+  const [deviceOrders, setDeviceOrders] = useState<any[]>(() => {
+    try {
+      const saved = localStorage.getItem('gps_device_orders');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [];
+  });
+
+  const pendingDispatches = deviceOrders.filter(o => 
+    o.assignedTech && !o.techAccepted && !o.phoneCallConfirmed && o.installationStatus !== 'VERIFIED_COMPLETED'
+  );
+
+  const handleTechAcceptOrder = (orderId: string) => {
+    const order = deviceOrders.find(o => o.orderId === orderId);
+    if (!order) return;
+
+    const techName = order.assignedTech?.name || user?.name || 'আব্দুল করিম';
+    const techPhone = order.assignedTech?.phone || user?.phone || '+880 1812-345678';
+
+    // 1. Update gps_device_orders -> marks confirmed and customer notified!
+    const updatedOrders = deviceOrders.map(o => {
+      if (o.orderId === orderId) {
+        return {
+          ...o,
+          techAccepted: true,
+          phoneCallConfirmed: true,
+          customerNotified: true,
+          customerNotificationSentAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          installationStatus: 'TECH_EN_ROUTE',
+          orderStatus: 'CONFIRMED_DISPATCH'
+        };
+      }
+      return o;
+    });
+    setDeviceOrders(updatedOrders);
+    localStorage.setItem('gps_device_orders', JSON.stringify(updatedOrders));
+
+    // 2. Create/add active work order
+    const newWorkOrder: TechWorkOrder = {
+      id: order.orderId,
+      type: 'new_installation',
+      customerName: order.customerName,
+      customerPhone: order.customerPhone,
+      vehicleName: order.device?.titleBn || 'নতুন ভেহিকেল ট্র্যাকার',
+      plateNumber: order.fatherName ? `পিতা: ${order.fatherName}` : 'নতুন রেজিস্ট্রেশন',
+      trackerImei: '864720058291' + Math.floor(100 + Math.random() * 899),
+      simNumber: '+880 17' + Math.floor(10000000 + Math.random() * 89999999),
+      feeBdt: 500,
+      status: 'in_progress',
+      assignedDate: 'আজ'
+    };
+
+    const updatedWorkOrders = [newWorkOrder, ...workOrders.filter(w => w.id !== order.orderId)];
+    setWorkOrders(updatedWorkOrders);
+    localStorage.setItem('gps_tech_work_orders', JSON.stringify(updatedWorkOrders));
+    setActiveJobId(order.orderId);
+
+    alert(`✅ আপনি কাজটি সফলভাবে গ্রহণ করেছেন!\nগ্রাহকের (${order.customerName}) ফোনে আপনার নাম (${techName}) ও মোবাইল নম্বর (${techPhone}) পাঠিয়ে দেওয়া হয়েছে।`);
+  };
+
+  const handleTechDeclineOrder = (orderId: string) => {
+    const updatedOrders = deviceOrders.map(o => {
+      if (o.orderId === orderId) {
+        return {
+          ...o,
+          assignedTech: null,
+          techAccepted: false,
+          phoneCallConfirmed: false,
+          customerNotified: false,
+          orderStatus: 'PENDING_TECHNICIAN_DISPATCH',
+          installationStatus: 'UNASSIGNED'
+        };
+      }
+      return o;
+    });
+    setDeviceOrders(updatedOrders);
+    localStorage.setItem('gps_device_orders', JSON.stringify(updatedOrders));
+    alert('❌ জবটি বাতিল করা হয়েছে। কাস্টমারকে বিরক্ত না করে সাপোর্ট ডেস্কে ক্যাসকেডের জন্য ফেরত পাঠানো হয়েছে।');
+  };
+
   // Diagnostic Test States for Active Job
   const [powerVoltage, setPowerVoltage] = useState(12.8);
   const [isAccOn, setIsAccOn] = useState(true);
@@ -436,6 +517,87 @@ export const TechnicianPortalView: React.FC = () => {
               </div>
             );
           })()}
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 🔔 PENDING DISPATCH ASSIGNMENTS AWAITING TECHNICIAN CONFIRMATION          */}
+      {/* ========================================================================= */}
+      {activeTabMode === 'install_diagnostic' && pendingDispatches.length > 0 && (
+        <div className="bg-gradient-to-r from-amber-950/60 via-slate-900 to-indigo-950/50 border-2 border-amber-500/80 rounded-3xl p-4 shadow-2xl space-y-3 animate-in slide-in-from-top-4">
+          <div className="flex items-center justify-between border-b border-amber-500/30 pb-2">
+            <div className="flex items-center space-x-2">
+              <div className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping" />
+              <span className="font-black text-xs text-amber-300 uppercase tracking-wider">
+                🚨 নতুন ইনস্টলেশন অ্যাসাইনমেন্ট ({pendingDispatches.length})
+              </span>
+            </div>
+            <span className="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded-full font-bold">
+              ⏱️ রেসপন্স রিকোয়ার্ড
+            </span>
+          </div>
+
+          <div className="space-y-2.5">
+            {pendingDispatches.map(order => (
+              <div key={order.orderId} className="bg-slate-950 p-3.5 rounded-2xl border border-slate-800 space-y-2.5 text-xs shadow-md">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <span className="font-mono text-xs font-black text-amber-400 bg-amber-950 px-2.5 py-0.5 rounded-lg border border-amber-800">
+                      {order.orderId}
+                    </span>
+                    <span className="font-extrabold text-white text-xs">{order.customerName}</span>
+                    <span className="text-slate-400 font-mono text-[11px]">({order.customerPhone})</span>
+                  </div>
+                  <span className="font-mono font-black text-emerald-400 bg-emerald-950/90 px-2.5 py-0.5 rounded-lg border border-emerald-700 text-xs">
+                    ৳ ৫০০ কমিশন
+                  </span>
+                </div>
+
+                <div className="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800/80 grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+                  <div>
+                    <span className="text-slate-400 block text-[10px]">🚗 ডিভাইস ও প্যাকেজ:</span>
+                    <span className="font-bold text-blue-300 block">{order.device?.titleBn}</span>
+                    <span className="text-amber-300 block font-mono text-[10px]">{order.subscriptionPlan?.titleBn}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[10px]">📍 ইনস্টলেশন লোকেশন:</span>
+                    <span className="text-slate-200 block truncate">{order.deliveryAddress}</span>
+                    {order.locationCoordinates?.mapsUrl && (
+                      <a href={order.locationCoordinates.mapsUrl} target="_blank" rel="noreferrer" className="text-emerald-400 underline font-bold text-[10px] block mt-0.5">
+                        🗺️ গুগল ম্যাপ রুট দেখুন
+                      </a>
+                    )}
+                  </div>
+                </div>
+
+                <div className="p-2 rounded-xl bg-blue-950/40 border border-blue-500/30 text-[10.5px] text-blue-200 flex items-center space-x-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                  <span>
+                    🔒 <strong>প্রাইভেসি পলিসি:</strong> আপনি কাজ গ্রহণ (Accept) করলে তবেই গ্রাহকের কাছে আপনার নাম ও মোবাইল পাঠানো হবে।
+                  </span>
+                </div>
+
+                <div className="flex space-x-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => handleTechDeclineOrder(order.orderId)}
+                    className="py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-300 font-bold text-xs border border-slate-700 transition active:scale-95"
+                  >
+                    ❌ এখন পারব না
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleTechAcceptOrder(order.orderId)}
+                    className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 text-white font-extrabold text-xs shadow-lg shadow-emerald-600/30 flex items-center justify-center space-x-1.5 transition active:scale-95"
+                  >
+                    <Check className="w-4 h-4" />
+                    <span>✅ কাজ গ্রহণ ও গ্রাহককে আমার বিবরণ পাঠান</span>
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
