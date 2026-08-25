@@ -25,10 +25,12 @@ import {
   Fuel,
   Lock,
   BarChart3,
-  AlertTriangle
+  AlertTriangle,
+  Flame
 } from 'lucide-react';
 import { PinVerificationModal } from '../commands/PinVerificationModal';
 import { CustomCommandModal } from '../commands/CustomCommandModal';
+import { EmergencyRescueModal } from '../emergency/EmergencyRescueModal';
 import { resolveWakeupCommand, detectOperatorFromPhone, getOperatorLabelBn } from '../../utils/protocolCommands';
 import { resolveDeviceCapabilities } from '../../utils/deviceCapabilities';
 
@@ -51,6 +53,7 @@ export const DeviceSlidingSheet: React.FC = () => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
   const [isCustomCmdModalOpen, setIsCustomCmdModalOpen] = useState(false);
+  const [isEmergencyRescueModalOpen, setIsEmergencyRescueModalOpen] = useState(false);
   const [pinAction, setPinAction] = useState<'cut' | 'resume'>('cut');
 
   // Command Pending / Interlock State (Prevents duplicate/opposite commands until acknowledged)
@@ -297,10 +300,27 @@ export const DeviceSlidingSheet: React.FC = () => {
             )}
           </div>
 
-          {/* Highlighted Menu Indicator */}
-          <div className="flex items-center space-x-1 bg-blue-600/25 border border-blue-500/40 px-2 py-0.5 rounded-full text-[8.5px] font-bold text-blue-300">
-            <Sparkles className="w-2 h-2 text-amber-400" />
-            <span>{isExpanded ? (language === 'bn' ? 'সংক্ষেপ ▼' : 'Less ▼') : (language === 'bn' ? 'কন্ট্রোল ও মেনু ▲' : 'Controls ▲')}</span>
+          {/* Header Action Buttons */}
+          <div className="flex items-center space-x-1.5">
+            {/* 🚨 1-Tap Dedicated Red Emergency Rescue Button */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsEmergencyRescueModalOpen(true);
+              }}
+              className="flex items-center space-x-1 bg-rose-600/30 hover:bg-rose-600 border border-rose-500/60 px-2 py-0.5 rounded-full text-[8.5px] font-black text-rose-300 hover:text-white transition active:scale-95 shadow-md shadow-rose-950/80 animate-pulse"
+              title="জরুরি রেসকিউ ও ছিনতাই সহায়তা"
+            >
+              <Flame className="w-2.5 h-2.5 text-rose-400" />
+              <span>{language === 'bn' ? '🚨 রেসকিউ' : '🚨 Rescue'}</span>
+            </button>
+
+            {/* Highlighted Menu Indicator */}
+            <div className="flex items-center space-x-1 bg-blue-600/25 border border-blue-500/40 px-2 py-0.5 rounded-full text-[8.5px] font-bold text-blue-300">
+              <Sparkles className="w-2 h-2 text-amber-400" />
+              <span>{isExpanded ? (language === 'bn' ? 'সংক্ষেপ ▼' : 'Less ▼') : (language === 'bn' ? 'কন্ট্রোল ও মেনু ▲' : 'Controls ▲')}</span>
+            </div>
           </div>
         </div>
 
@@ -807,6 +827,12 @@ export const DeviceSlidingSheet: React.FC = () => {
       <CustomCommandModal
         isOpen={isCustomCmdModalOpen}
         onClose={() => setIsCustomCmdModalOpen(false)}
+      />
+
+      {/* Dedicated Emergency Rescue & Hijack Response Modal */}
+      <EmergencyRescueModal
+        isOpen={isEmergencyRescueModalOpen}
+        onClose={() => setIsEmergencyRescueModalOpen(false)}
       />
     </>
   );

@@ -16,18 +16,118 @@ import {
   Search,
   Sliders,
   Filter,
-  DollarSign
+  DollarSign,
+  UserCheck,
+  ShieldCheck,
+  FileCheck2,
+  Lock,
+  Eye,
+  AlertTriangle,
+  Send,
+  Building2,
+  FileText,
+  User,
+  Users
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { UniversalSaleModal } from './UniversalSaleModal';
 
+export interface RescueMissionRecord {
+  id: string;
+  deviceId: number;
+  vehicleName: string;
+  plate: string;
+  customerName: string;
+  customerPhone: string;
+  fatherName: string;
+  motherName: string;
+  sosNumbers: string[];
+  verificationMethod: 'APP_IN_SESSION' | 'HOTLINE_KYC' | 'SOS_ALTERNATE' | 'POLICE_999';
+  verifiedBy: string;
+  verifierRole: 'Customer Care' | 'Super Admin';
+  startTime: string;
+  sessionDurationMins: number;
+  status: 'ACTIVE_SESSION' | 'SUCCESS' | 'PARTIAL_SUCCESS' | 'NOT_SUCCESS';
+  caseNotes: string;
+  policeGdNo?: string;
+  policeStation?: string;
+  policeBadgeId?: string;
+}
+
 export const RescuePortalView: React.FC = () => {
-  const { language, setActiveTab, setCurrentRole, devices, positions, sendCommand } = useApp();
+  const { language, setActiveTab, setCurrentRole, devices, positions, sendCommand, triggerManualAlert } = useApp();
 
   const [activeDistressId, setActiveDistressId] = useState<number>(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'sos' | 'moving' | 'parked'>('all');
   const [engineCutSuccess, setEngineCutSuccess] = useState(false);
+  const [isSaleModalOpen, setIsSaleModalOpen] = useState(false);
+
+  // Verification Modal State
+  const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
+  const [selectedMethod, setSelectedMethod] = useState<'HOTLINE_KYC' | 'SOS_ALTERNATE' | 'POLICE_999' | 'APP_IN_SESSION'>('HOTLINE_KYC');
+  
+  // KYC Verification Form Fields
+  const [kycPhone, setKycPhone] = useState('01711-223344');
+  const [kycName, setKycName] = useState('Md. Rafiqul Islam');
+  const [kycFather, setKycFather] = useState('Late Abdul Karim');
+  const [kycMother, setKycMother] = useState('Begum Rokeya');
+  const [selectedSosCaller, setSelectedSosCaller] = useState('SOS 1: +880 1812-998877 (Spouse)');
+  
+  // Police 999 Fields
+  const [policeStation, setPoliceStation] = useState('Gulshan Police Station, DMP');
+  const [policeGdNo, setPoliceGdNo] = useState('GD-2026/08/9842');
+  const [policeBadgeId, setPoliceBadgeId] = useState('DMP-SI-4482');
+
+  // Mission Resolution Modal State
+  const [isResolveModalOpen, setIsResolveModalOpen] = useState(false);
+  const [resolutionStatus, setResolutionStatus] = useState<'SUCCESS' | 'PARTIAL_SUCCESS' | 'NOT_SUCCESS'>('SUCCESS');
+  const [resolutionNotes, setResolutionNotes] = useState('');
+
+  // Active Missions State
+  const [activeMission, setActiveMission] = useState<RescueMissionRecord | null>({
+    id: 'RESCUE-2026-0824',
+    deviceId: 1,
+    vehicleName: 'Yamaha FZS V3 (Dhaka Metro-LA 28-9798)',
+    plate: 'DHAKA METRO-LA 28-9798',
+    customerName: 'Md. Rafiqul Islam',
+    customerPhone: '01711-223344',
+    fatherName: 'Late Abdul Karim',
+    motherName: 'Begum Rokeya',
+    sosNumbers: ['+880 1812-998877', '+880 1913-445566', '+880 1711-223344'],
+    verificationMethod: 'HOTLINE_KYC',
+    verifiedBy: 'Agent Tanvir (CC-102)',
+    verifierRole: 'Customer Care',
+    startTime: 'আজ রাত ১১:১৫',
+    sessionDurationMins: 30,
+    status: 'ACTIVE_SESSION',
+    caseNotes: 'হাইজ্যাকের সংকেত পেয়ে হটলাইন KYC ভেরিফিকেশন সম্পন্ন করে ইঞ্জিন রিমোট কাট-অফ করা হয়েছে।'
+  });
+
+  // Historical Past Missions
+  const [pastMissions, setPastMissions] = useState<RescueMissionRecord[]>([
+    {
+      id: 'RESCUE-2026-0818',
+      deviceId: 3,
+      vehicleName: 'Toyota HiAce Microbus',
+      plate: 'DHAKA METRO-CHA 54-1122',
+      customerName: 'Kazi Farhan',
+      customerPhone: '01812-998877',
+      fatherName: 'Kazi Nuruddin',
+      motherName: 'Suraiya Begum',
+      sosNumbers: ['+880 1711-000000'],
+      verificationMethod: 'POLICE_999',
+      verifiedBy: 'Admin Shakil',
+      verifierRole: 'Super Admin',
+      startTime: '18 Aug 2026, 04:30 PM',
+      sessionDurationMins: 45,
+      status: 'SUCCESS',
+      caseNotes: 'হাইওয়ে পুলিশ ও ফিল্ড রেসকিউ টিম কুড়িল ফ্লাইওভার থেকে অক্ষত অবস্থায় গাড়ি ও যাত্রী উদ্ধার করেছে।',
+      policeStation: 'Airport Thana',
+      policeGdNo: 'GD-88741',
+      policeBadgeId: 'SI-7741'
+    }
+  ]);
 
   const distressDevice = devices.find(d => d.id === activeDistressId) || devices[0];
   const distressPos = positions[distressDevice?.id] || Object.values(positions)[0];
@@ -36,6 +136,58 @@ export const RescuePortalView: React.FC = () => {
     await sendCommand('engineStop');
     setEngineCutSuccess(true);
     setTimeout(() => setEngineCutSuccess(false), 3000);
+  };
+
+  // Handle Authorizing a New Rescue Session
+  const handleAuthorizeRescueSession = (e: React.FormEvent) => {
+    e.preventDefault();
+    const newMission: RescueMissionRecord = {
+      id: `RESCUE-${Date.now().toString().slice(-6)}`,
+      deviceId: distressDevice.id,
+      vehicleName: distressDevice.name,
+      plate: distressDevice.attributes?.plateNumber || 'DHAKA METRO-LA 28-9798',
+      customerName: kycName,
+      customerPhone: kycPhone,
+      fatherName: kycFather,
+      motherName: kycMother,
+      sosNumbers: [
+        distressDevice.attributes?.sos1 || '+880 1812-998877',
+        distressDevice.attributes?.sos2 || '+880 1913-445566',
+        distressDevice.attributes?.sos3 || '+880 1711-223344'
+      ],
+      verificationMethod: selectedMethod,
+      verifiedBy: 'Active Support Specialist (CC-404)',
+      verifierRole: 'Customer Care',
+      startTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      sessionDurationMins: 30,
+      status: 'ACTIVE_SESSION',
+      caseNotes: `মেথড: ${selectedMethod} দিয়ে ভেরিফিকেশন সফল। জরুরি রেসকিউ সেশন উন্মুক্ত করা হয়েছে।`,
+      policeStation: selectedMethod === 'POLICE_999' ? policeStation : undefined,
+      policeGdNo: selectedMethod === 'POLICE_999' ? policeGdNo : undefined,
+      policeBadgeId: selectedMethod === 'POLICE_999' ? policeBadgeId : undefined
+    };
+
+    setActiveMission(newMission);
+    setIsVerificationModalOpen(false);
+    triggerManualAlert('RESCUE_SESSION_ACTIVATED', `🚨 ${newMission.vehicleName} এর জন্য রেসকিউ সেশন সক্রিয় করা হয়েছে (${selectedMethod})`);
+  };
+
+  // Handle Closing and Resolving Mission
+  const handleCloseAndResolveMission = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeMission) return;
+
+    const resolved: RescueMissionRecord = {
+      ...activeMission,
+      status: resolutionStatus,
+      caseNotes: `${activeMission.caseNotes} | রেজাল্ট: ${resolutionStatus}. ${resolutionNotes}`
+    };
+
+    setPastMissions([resolved, ...pastMissions]);
+    setActiveMission(null);
+    setIsResolveModalOpen(false);
+    setResolutionNotes('');
+    alert(`মিশন সফলভাবে ক্লোজ করা হয়েছে! স্ট্যাটাস: ${resolutionStatus}। গ্রাহকের কাছে অডিট রিপোর্ট পাঠানো হয়েছে।`);
   };
 
   // Search and Filter Vehicles
@@ -61,12 +213,10 @@ export const RescuePortalView: React.FC = () => {
     );
   });
 
-  const [isSaleModalOpen, setIsSaleModalOpen] = useState(false);
-
   return (
     <div className="w-full h-full flex flex-col bg-slate-950 text-slate-100 overflow-y-auto p-4 space-y-4 pb-24 select-none">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-slate-900/90 border border-slate-800 p-3 rounded-2xl shadow-md gap-3">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-slate-900/90 border border-slate-800 p-3.5 rounded-3xl shadow-md gap-3">
         <div className="flex items-center space-x-2.5">
           <button
             onClick={() => {
@@ -83,35 +233,117 @@ export const RescuePortalView: React.FC = () => {
               <Flame className="w-4 h-4 text-rose-500 animate-pulse" />
               <span>{language === 'bn' ? 'ইমার্জেন্সি রেসকিউ ও রিকভারি টিম পোর্টাল' : 'Emergency Rescue & Recovery Force'}</span>
             </h2>
-            <p className="text-[10px] text-slate-400">
-              {language === 'bn' ? 'চুরি হওয়া গাড়ি রিকভারি, এসওএস ইন্টারসেপ্ট ও দূর থেকে ইঞ্জিন লক' : 'Anti-theft intercept, rapid pursuit & engine kill'}
+            <p className="text-[10.5px] text-slate-400">
+              {language === 'bn' ? '৪-চ্যানেল ভেরিফিকেশন ডেস্ক • লাইভ সেশন ও মিশন রেজাল্ট ক্লোজিং' : '4-Channel Verification Desk • Live Session & Incident Closing'}
             </p>
           </div>
         </div>
 
         <div className="flex items-center space-x-2 w-full sm:w-auto justify-between sm:justify-end">
           <button
-            onClick={() => setIsSaleModalOpen(true)}
-            className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs shadow-md shadow-emerald-600/30 flex items-center space-x-1.5 transition active:scale-95"
+            onClick={() => setIsVerificationModalOpen(true)}
+            className="px-3.5 py-2 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-xs shadow-lg shadow-rose-600/30 flex items-center space-x-1.5 transition active:scale-95 animate-pulse"
           >
-            <DollarSign className="w-3.5 h-3.5" />
-            <span>ডিভাইস সেল করুন (৳৫০০ আয়)</span>
+            <UserCheck className="w-4 h-4" />
+            <span>নতুন রেসকিউ ভেরিফাই ও আনলক</span>
           </button>
 
-          <span className="text-[9px] bg-rose-500/20 text-rose-300 font-extrabold px-2 py-0.5 rounded-full border border-rose-500/40 animate-pulse">
-            SOS Active
-          </span>
+          <button
+            onClick={() => setIsSaleModalOpen(true)}
+            className="px-3 py-2 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold text-xs shadow-md flex items-center space-x-1"
+          >
+            <DollarSign className="w-3.5 h-3.5" />
+            <span>সেলস</span>
+          </button>
         </div>
       </div>
 
-      {/* Instant Search Bar & Filter Chips */}
+      {/* 🚨 Active Emergency Rescue Session Banner */}
+      {activeMission && (
+        <div className="bg-gradient-to-br from-rose-950 via-slate-900 to-slate-900 border-2 border-rose-500 rounded-3xl p-4 shadow-2xl shadow-rose-950/60 space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-rose-500/30 pb-2.5">
+            <div className="flex items-center space-x-2.5">
+              <span className="w-3 h-3 rounded-full bg-rose-500 animate-ping" />
+              <div className="font-black text-sm text-white flex items-center space-x-2">
+                <span>🚨 সক্রিয় লাইভ রেসকিউ সেশন ({activeMission.id})</span>
+                <span className="text-[9.5px] font-mono bg-rose-600 text-white px-2 py-0.5 rounded-full font-bold">
+                  {activeMission.sessionDurationMins} MINS REMAINING
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <span className="text-[10.5px] text-slate-300 font-mono">
+                ভেরিফাই করেছে: <strong className="text-amber-300">{activeMission.verifiedBy}</strong> ({activeMission.verifierRole})
+              </span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+            {/* 1. Vehicle & Customer KYC Box */}
+            <div className="bg-slate-950/90 p-3 rounded-2xl border border-rose-500/40 space-y-1">
+              <div className="text-[10px] text-slate-400 uppercase font-bold">গাড়ি ও গ্রাহকের KYC তথ্য</div>
+              <div className="font-bold text-white text-sm">{activeMission.vehicleName}</div>
+              <div className="text-[11px] text-slate-300 font-mono">গ্রাহক: {activeMission.customerName} ({activeMission.customerPhone})</div>
+              <div className="text-[10px] text-slate-400">
+                👨 পিতা: {activeMission.fatherName} • 👩 মাতা: {activeMission.motherName}
+              </div>
+            </div>
+
+            {/* 2. Highlighted SOS Numbers Box */}
+            <div className="bg-slate-950/90 p-3 rounded-2xl border border-amber-500/50 space-y-1 shadow-md">
+              <div className="text-[10px] text-amber-300 uppercase font-bold flex items-center space-x-1">
+                <Users className="w-3 h-3" />
+                <span>নিবন্ধিত SOS অল্টারনেট নম্বরসমূহ</span>
+              </div>
+              <div className="space-y-0.5 text-[10.5px] font-mono text-slate-200">
+                {activeMission.sosNumbers.map((s, idx) => (
+                  <div key={idx} className="flex justify-between bg-slate-900 px-2 py-0.5 rounded border border-amber-500/20">
+                    <span className="text-slate-400">SOS {idx + 1}:</span>
+                    <span className="text-amber-300 font-bold">{s}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 3. Real-Time Telemetry & Action */}
+            <div className="bg-slate-950/90 p-3 rounded-2xl border border-slate-800 flex flex-col justify-between space-y-2">
+              <div>
+                <div className="text-[10px] text-slate-400 uppercase font-bold">লাইভ অবস্থান ও স্পিড</div>
+                <div className="text-sm font-black text-rose-400">{distressPos?.speed ? `${Math.round(distressPos.speed)} km/h` : '০ কিমি/ঘণ্টা'}</div>
+                <div className="text-[10.5px] text-slate-300 truncate">{distressPos?.address || 'Gulshan-2, Dhaka'}</div>
+              </div>
+
+              <div className="flex items-center space-x-2 pt-1">
+                <button
+                  onClick={handleExecuteEmergencyCutoff}
+                  className="flex-1 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs flex items-center justify-center space-x-1 transition active:scale-95"
+                >
+                  <Power className="w-3.5 h-3.5" />
+                  <span>{engineCutSuccess ? 'ইঞ্জিন লকড!' : 'ইঞ্জিন লক'}</span>
+                </button>
+
+                <button
+                  onClick={() => setIsResolveModalOpen(true)}
+                  className="flex-1 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center space-x-1 transition active:scale-95 shadow-md shadow-emerald-600/30"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>মিশন ক্লোজিং</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Instant Search Bar & Fleet Selector */}
       <div className="space-y-2">
         <div className="relative">
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="🔍 কাস্টমার মোবাইল নম্বর, গাড়ি, বা ডিভাইস IMEI দিয়ে খুঁজুন..."
+            placeholder="🔍 কাস্টমার মোবাইল নম্বর, গাড়ির নম্বর, বা ডিভাইস IMEI দিয়ে খুঁজুন..."
             className="w-full bg-slate-900 border border-slate-800 rounded-2xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:border-rose-500 focus:outline-none shadow-md"
           />
         </div>
@@ -119,16 +351,16 @@ export const RescuePortalView: React.FC = () => {
         <div className="flex items-center space-x-1.5 overflow-x-auto no-scrollbar pb-1 text-[10.5px]">
           <button
             onClick={() => setFilterType('all')}
-            className={`px-3 py-1 rounded-xl font-bold transition whitespace-nowrap ${
-              filterType === 'all' ? 'bg-rose-600 text-white shadow-md' : 'bg-slate-900 text-slate-400 border border-slate-800'
+            className={`px-3 py-1.5 rounded-xl font-bold transition shrink-0 ${
+              filterType === 'all' ? 'bg-slate-700 text-white' : 'bg-slate-900 text-slate-400 hover:text-slate-200'
             }`}
           >
-            সব গাড়ি ({devices.length})
+            সকল যানবাহন ({devices.length})
           </button>
 
           <button
             onClick={() => setFilterType('sos')}
-            className={`px-3 py-1 rounded-xl font-bold transition whitespace-nowrap flex items-center space-x-1 ${
+            className={`px-3 py-1.5 rounded-xl font-bold transition whitespace-nowrap flex items-center space-x-1 ${
               filterType === 'sos' ? 'bg-rose-600 text-white shadow-md' : 'bg-slate-900 text-rose-400 border border-slate-800'
             }`}
           >

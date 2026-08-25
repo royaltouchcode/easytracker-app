@@ -24,7 +24,8 @@ import {
   Calendar, 
   AlertTriangle,
   DollarSign,
-  ExternalLink
+  ExternalLink,
+  Flame
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { APP_CONFIG } from '../../config/appConfig';
@@ -303,12 +304,21 @@ export const SupportPortalView: React.FC = () => {
         </div>
 
         <div className="flex items-center space-x-2 w-full sm:w-auto justify-between sm:justify-end">
+          {/* 🚨 Emergency Rescue Red-Alert Queue Switcher */}
+          <button
+            onClick={() => setCurrentRole('rescue')}
+            className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-black text-xs flex items-center space-x-1.5 shadow-md shadow-rose-600/30 transition active:scale-95 animate-pulse"
+          >
+            <Flame className="w-3.5 h-3.5" />
+            <span>🚨 রেসকিউ ডেস্ক</span>
+          </button>
+
           <button
             onClick={() => setIsSaleModalOpen(true)}
             className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs shadow-md shadow-emerald-600/30 flex items-center space-x-1.5 transition active:scale-95"
           >
             <DollarSign className="w-3.5 h-3.5" />
-            <span>ডিভাইস সেল করুন (৳৫০০ আয়)</span>
+            <span>ডিভাইস সেল</span>
           </button>
 
           <a
