@@ -235,6 +235,16 @@ export const ServiceRateCardManager: React.FC = () => {
 
   // Search
   const [searchQuery, setSearchQuery] = useState('');
+  const [commissionSaved, setCommissionSaved] = useState(false);
+
+  // Save Quick Top Commission
+  const handleSaveCommission = (e: React.FormEvent) => {
+    e.preventDefault();
+    setPlatformCommissionPercent(commissionInput);
+    localStorage.setItem('gps_platform_commission_percent', String(commissionInput));
+    setCommissionSaved(true);
+    setTimeout(() => setCommissionSaved(false), 2000);
+  };
 
   // Save All Fee Settings
   const handleSaveAllFees = (e: React.FormEvent) => {
@@ -292,7 +302,7 @@ export const ServiceRateCardManager: React.FC = () => {
 
     if (qcCondition === 'good_restock') {
       // 1. If spare part, restock into active inventory
-      const matchingPart = sparePartsCatalog.find(p => p.code === returnItem.itemCodeOrImei || p.nameBn.includes(returnItem.itemName));
+      const matchingPart = sparePartsCatalog.find(p => p.partCode === returnItem.itemCodeOrImei || p.nameBn.includes(returnItem.itemName));
       if (matchingPart) {
         updateSparePart(matchingPart.id, {
           stockCount: matchingPart.stockCount + Number(returnItem.quantity)
