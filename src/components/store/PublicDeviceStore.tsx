@@ -4,7 +4,6 @@ import {
   Bike, 
   Car, 
   Truck, 
-  Bus, 
   ShieldCheck, 
   Zap, 
   Sparkles, 
@@ -15,6 +14,7 @@ import {
   CreditCard, 
   DollarSign, 
   ArrowRight, 
+  ArrowLeft,
   X, 
   Flame, 
   Gift, 
@@ -24,7 +24,8 @@ import {
   Sliders,
   Radio,
   Lock,
-  ChevronRight
+  ChevronRight,
+  ShieldAlert
 } from 'lucide-react';
 import { VehicleType } from '../../types/traccar';
 import { VehicleIcon, getVehicleMarkerSvg } from '../../utils/vehicleIcons';
@@ -167,7 +168,7 @@ export const TELCO_SUBSCRIPTION_PLANS: TelcoSubscriptionPlan[] = [
     monthlyEquivalentBdt: 266,
     savingsBn: '২ মাস সম্পূর্ণ ফ্রি (৳ ১,০০০ সাশ্রয়)',
     badgeBn: 'বেস্ট ভ্যালু প্যাক',
-    featuresBn: ['২ মাস সম্পূর্ণ ফ্রি সার্ভিস', '১ বছর আনলিমিটেড রিপ্লেসমেন্ট ওয়ারেন্টি', '২৪/৭ ডেডিকেটেড রেড-লাইন রেসকিউ টিম সাপোর্ট']
+    featuresBn: ['২ মাস সম্পূর্ণ ফ্রি সার্ভিস', '১ বছর রিপ্লেসমেন্ট ওয়ারেন্টি', '২৪/৭ রেড-লাইন রেসকিউ টিম সাপোর্ট']
   }
 ];
 
@@ -178,6 +179,9 @@ export interface PublicDeviceStoreProps {
 }
 
 export const PublicDeviceStore: React.FC<PublicDeviceStoreProps> = ({ isOpen, onClose, onOrderSuccess }) => {
+  // Step Wizard: 1 = Device, 2 = Accessories & Plans, 3 = KYC & Address, 4 = Payment & Confirm, 5 = Success
+  const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4 | 5>(1);
+
   const [selectedCategory, setSelectedCategory] = useState<VehicleType>('motorcycle');
   const [selectedPlanId, setSelectedPlanId] = useState<string>('sub_annual_ultra');
   const [selectedAccessories, setSelectedAccessories] = useState<string[]>(['acc_relay']);
@@ -194,7 +198,6 @@ export const PublicDeviceStore: React.FC<PublicDeviceStoreProps> = ({ isOpen, on
   const [referralCode, setReferralCode] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'advance_online' | 'after_install_online' | 'cash_on_install'>('advance_online');
 
-  const [orderStep, setOrderStep] = useState<'browse' | 'checkout' | 'success'>('browse');
   const [createdOrder, setCreatedOrder] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -225,13 +228,16 @@ export const PublicDeviceStore: React.FC<PublicDeviceStoreProps> = ({ isOpen, on
     );
   };
 
-  const handlePlaceOrder = (e: React.FormEvent) => {
+  const handleProceedToPayment = (e: React.FormEvent) => {
     e.preventDefault();
     if (!customerName.trim() || !customerPhone.trim() || !fatherName.trim() || !motherName.trim() || !deliveryAddress.trim()) {
       alert('দয়া করে আপনার নাম, মোবাইল নম্বর, পিতার নাম, মাতার নাম এবং ঠিকানা পূরণ করুন।');
       return;
     }
+    setCurrentStep(4);
+  };
 
+  const handleConfirmOrder = () => {
     setIsSubmitting(true);
     const newOrder = {
       orderId: `ORD-${Date.now().toString().slice(-5)}`,
@@ -265,180 +271,216 @@ export const PublicDeviceStore: React.FC<PublicDeviceStoreProps> = ({ isOpen, on
     setTimeout(() => {
       setIsSubmitting(false);
       setCreatedOrder(newOrder);
-      setOrderStep('success');
+      setCurrentStep(5);
       if (onOrderSuccess) onOrderSuccess(newOrder);
     }, 1000);
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-3 sm:p-4 animate-in fade-in select-none overflow-y-auto">
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-4xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-2 sm:p-4 animate-in fade-in select-none overflow-y-auto">
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-3xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[94vh]">
         
-        {/* Top Header */}
-        <div className="bg-gradient-to-r from-slate-950 via-slate-900 to-blue-950 p-4 border-b border-slate-800 flex items-center justify-between shrink-0">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-2xl bg-blue-600/30 text-blue-400 border border-blue-500/50 flex items-center justify-center shadow-lg">
-              <ShoppingBag className="w-5 h-5 text-blue-400" />
+        {/* Top Header & Close */}
+        <div className="bg-gradient-to-r from-slate-950 via-slate-900 to-blue-950 px-4 py-3 border-b border-slate-800 flex items-center justify-between shrink-0">
+          <div className="flex items-center space-x-2.5">
+            <div className="w-8 h-8 rounded-xl bg-blue-600/30 text-blue-400 border border-blue-500/50 flex items-center justify-center shadow-lg">
+              <ShoppingBag className="w-4 h-4 text-blue-400" />
             </div>
             <div>
               <div className="flex items-center space-x-2">
-                <h3 className="font-extrabold text-base text-white">
-                  🛒 ডিভাইস স্টোর ও টেলকো সাবস্ক্রিপশন বুকিং
+                <h3 className="font-extrabold text-xs sm:text-sm text-white">
+                  🛒 ডিভাইস স্টোর ও সাবস্ক্রিপশন বুকিং
                 </h3>
-                <span className="text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded-full font-mono">
+                <span className="text-[8.5px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded-full font-mono">
                   DOORSTEP SETUP
                 </span>
               </div>
-              <p className="text-[10.5px] text-slate-400">
-                লগইন ছাড়াই সহজে নিজের গাড়ির জন্য ডিভাইস অর্ডার করুন ও টেকনিশিয়ান ইনস্টলেশন নিন
+              <p className="text-[10px] text-slate-400">
+                লগইন ছাড়াই সহজে নিজের গাড়ির জন্য ডিভাইস অর্ডার ও ইনস্টলেশন নিন
               </p>
             </div>
           </div>
 
           <button
             onClick={onClose}
-            className="p-1.5 rounded-full hover:bg-slate-800 text-slate-400 hover:text-white transition"
+            className="p-1 rounded-full hover:bg-slate-800 text-slate-400 hover:text-white transition"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Modal Body */}
-        <div className="p-4 overflow-y-auto space-y-4">
-          
-          {orderStep === 'browse' && (
-            <div className="space-y-4">
-              
-              {/* Step 1: Vehicle Category Selector */}
-              <div>
-                <label className="text-xs font-black uppercase tracking-wider text-slate-300 flex items-center justify-between mb-2">
-                  <span className="flex items-center space-x-1.5">
-                    <span className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px]">১</span>
-                    <span>আপনার গাড়ির ধরন নির্বাচন করুন (Select Vehicle Type)</span>
-                  </span>
-                  <span className="text-[10px] text-blue-400 font-mono">৪টি ক্যাটাগরি</span>
-                </label>
+        {/* 🌟 4-Step Visual Progress Bar */}
+        {currentStep !== 5 && (
+          <div className="bg-slate-950 px-4 py-2 border-b border-slate-800/80 shrink-0">
+            <div className="grid grid-cols-4 gap-1.5 text-center text-[10px] font-extrabold">
+              <button
+                type="button"
+                onClick={() => setCurrentStep(1)}
+                className={`py-1.5 px-1 rounded-xl transition flex items-center justify-center space-x-1 ${
+                  currentStep === 1 
+                    ? 'bg-blue-600 text-white shadow-md' 
+                    : currentStep > 1 ? 'bg-blue-950/60 text-blue-300' : 'text-slate-500 bg-slate-900/60'
+                }`}
+              >
+                <span>১. গাড়ি ও ডিভাইস</span>
+              </button>
 
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  {DEVICE_CATALOG.map((item) => {
-                    const isSelected = selectedCategory === item.category;
-                    return (
-                      <button
-                        key={item.category}
-                        type="button"
-                        onClick={() => setSelectedCategory(item.category)}
-                        className={`p-3 rounded-2xl border text-left flex items-center space-x-3 transition active:scale-95 ${
-                          isSelected
-                            ? 'bg-blue-950/80 border-2 border-blue-400 shadow-lg shadow-blue-950/80 ring-1 ring-blue-500/40'
-                            : 'bg-slate-950/70 border-slate-800 hover:bg-slate-850 hover:border-slate-700'
-                        }`}
-                      >
-                        <div className={`w-11 h-11 rounded-xl flex items-center justify-center p-1 shrink-0 ${isSelected ? 'bg-slate-900 border border-blue-400/60' : 'bg-slate-900'}`}>
-                          <div dangerouslySetInnerHTML={{ __html: getVehicleMarkerSvg(item.category, isSelected ? '#3b82f6' : '#94a3b8') }} className="w-full h-full" />
-                        </div>
-                        <div className="min-w-0">
-                          <span className={`text-xs font-black block truncate ${isSelected ? 'text-white' : 'text-slate-200'}`}>
-                            {item.category === 'motorcycle' ? 'বাইক / স্কুটার' : item.category === 'car' ? 'প্রাইভেট কার / SUV' : item.category === 'cng' ? 'সিএনজি / অটো' : 'ট্রাক / বাস'}
-                          </span>
-                          <span className="text-[10.5px] font-mono font-bold text-emerald-400 block mt-0.5">
-                            ৳ {item.priceBdt.toLocaleString()}
-                          </span>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
+              <button
+                type="button"
+                onClick={() => setCurrentStep(2)}
+                className={`py-1.5 px-1 rounded-xl transition flex items-center justify-center space-x-1 ${
+                  currentStep === 2 
+                    ? 'bg-blue-600 text-white shadow-md' 
+                    : currentStep > 2 ? 'bg-blue-950/60 text-blue-300' : 'text-slate-500 bg-slate-900/60'
+                }`}
+              >
+                <span>২. প্ল্যান ও এক্সেসরিজ</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setCurrentStep(3)}
+                className={`py-1.5 px-1 rounded-xl transition flex items-center justify-center space-x-1 ${
+                  currentStep === 3 
+                    ? 'bg-blue-600 text-white shadow-md' 
+                    : currentStep > 3 ? 'bg-blue-950/60 text-blue-300' : 'text-slate-500 bg-slate-900/60'
+                }`}
+              >
+                <span>৩. ডেলিভারি ও KYC</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (customerName && customerPhone && fatherName && motherName && deliveryAddress) {
+                    setCurrentStep(4);
+                  }
+                }}
+                className={`py-1.5 px-1 rounded-xl transition flex items-center justify-center space-x-1 ${
+                  currentStep === 4 
+                    ? 'bg-emerald-600 text-white shadow-md' 
+                    : 'text-slate-500 bg-slate-900/60'
+                }`}
+              >
+                <span>৪. পেমেন্ট ও কনফার্ম</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Scrollable Wizard Body */}
+        <div className="p-3.5 sm:p-4 overflow-y-auto space-y-3.5 flex-1">
+          
+          {/* ========================================================================= */}
+          {/* STEP 1: VEHICLE & RECOMMENDED DEVICE SELECTION                            */}
+          {/* ========================================================================= */}
+          {currentStep === 1 && (
+            <div className="space-y-3 animate-in fade-in">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black uppercase text-slate-300">
+                  ১. আপনার গাড়ির ধরন নির্বাচন করুন:
+                </span>
+                <span className="text-[10px] text-blue-400 font-mono">৪টি ক্যাটাগরি</span>
               </div>
 
-              {/* Selected Device Showcase Card */}
+              {/* 4 Category Pill Buttons */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {DEVICE_CATALOG.map((item) => {
+                  const isSelected = selectedCategory === item.category;
+                  return (
+                    <button
+                      key={item.category}
+                      type="button"
+                      onClick={() => setSelectedCategory(item.category)}
+                      className={`p-2.5 rounded-2xl border text-left flex items-center space-x-2.5 transition active:scale-95 ${
+                        isSelected
+                          ? 'bg-blue-950/80 border-2 border-blue-400 shadow-md shadow-blue-950/80 ring-1 ring-blue-500/40'
+                          : 'bg-slate-950/70 border-slate-800 hover:bg-slate-850 hover:border-slate-700'
+                      }`}
+                    >
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center p-1 shrink-0 ${isSelected ? 'bg-slate-900 border border-blue-400/60' : 'bg-slate-900'}`}>
+                        <div dangerouslySetInnerHTML={{ __html: getVehicleMarkerSvg(item.category, isSelected ? '#3b82f6' : '#94a3b8') }} className="w-full h-full" />
+                      </div>
+                      <div className="min-w-0">
+                        <span className={`text-[11px] font-black block truncate ${isSelected ? 'text-white' : 'text-slate-300'}`}>
+                          {item.category === 'motorcycle' ? 'বাইক / স্কুটার' : item.category === 'car' ? 'প্রাইভেট কার' : item.category === 'cng' ? 'সিএনজি / অটো' : 'ট্রাক / বাস'}
+                        </span>
+                        <span className="text-[10px] font-mono font-bold text-emerald-400 block">
+                          ৳ {item.priceBdt.toLocaleString()}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Highlighted Selected Device Card */}
               <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl space-y-3">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
                   <div>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-[9.5px] font-black bg-blue-500/20 text-blue-300 border border-blue-500/40 px-2 py-0.5 rounded-full uppercase">
-                        {activeDevice.badgeBn}
-                      </span>
-                      <span className="text-xs text-slate-400 font-mono">ID: {activeDevice.id}</span>
-                    </div>
+                    <span className="text-[9px] font-black bg-blue-500/20 text-blue-300 border border-blue-500/40 px-2 py-0.5 rounded-full uppercase">
+                      {activeDevice.badgeBn}
+                    </span>
                     <h4 className="text-sm sm:text-base font-black text-white mt-1">
                       {activeDevice.titleBn}
                     </h4>
-                    <p className="text-[11px] text-slate-400 mt-0.5">
+                    <p className="text-[10.5px] text-slate-400 mt-0.5">
                       {activeDevice.descriptionBn}
                     </p>
                   </div>
 
                   <div className="text-left sm:text-right shrink-0 bg-slate-950 p-2.5 rounded-2xl border border-slate-800/80">
                     <span className="text-[10px] text-slate-400 line-through block font-mono">
-                      মার্কেট প্রাইস ৳ {activeDevice.marketPriceBdt.toLocaleString()}
+                      মার্কেট ৳ {activeDevice.marketPriceBdt.toLocaleString()}
                     </span>
-                    <span className="text-lg sm:text-xl font-mono font-black text-emerald-400 block">
+                    <span className="text-lg font-mono font-black text-emerald-400 block">
                       ৳ {activeDevice.priceBdt.toLocaleString()}
                     </span>
-                    <span className="text-[9px] text-emerald-400 font-bold bg-emerald-950/60 px-1.5 py-0.2 rounded border border-emerald-800">
+                    <span className="text-[8.5px] text-emerald-400 font-bold bg-emerald-950/60 px-1.5 py-0.2 rounded border border-emerald-800">
                       ইনস্টলেশন সহ
                     </span>
                   </div>
                 </div>
 
-                {/* Device Features Grid */}
+                {/* Features List */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
                   {activeDevice.featuresBn.map((feat, idx) => (
-                    <div key={idx} className="flex items-center space-x-2 text-xs text-slate-200 bg-slate-950/60 p-2 rounded-xl border border-slate-800/60">
-                      <CheckCircle2 className="w-4 h-4 text-blue-400 shrink-0" />
+                    <div key={idx} className="flex items-center space-x-2 text-[11px] text-slate-200 bg-slate-950/60 p-2 rounded-xl border border-slate-800/60">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-blue-400 shrink-0" />
                       <span>{feat}</span>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Step 2: Custom Accessories Picker */}
-              <div>
-                <label className="text-xs font-black uppercase tracking-wider text-slate-300 flex items-center justify-between mb-2">
-                  <span className="flex items-center space-x-1.5">
-                    <span className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px]">২</span>
-                    <span>প্রয়োজনীয় এক্সেসরিজ নির্বাচন করুন (Optional Accessories)</span>
-                  </span>
-                  <span className="text-[10px] text-amber-400">কাস্টমাইজ করুন</span>
-                </label>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {ACCESSORIES_CATALOG.map((acc) => {
-                    const isChecked = selectedAccessories.includes(acc.id);
-                    return (
-                      <button
-                        key={acc.id}
-                        type="button"
-                        onClick={() => toggleAccessory(acc.id)}
-                        className={`p-3 rounded-2xl border text-left flex items-start space-x-3 transition active:scale-95 ${
-                          isChecked
-                            ? 'bg-blue-950/40 border-blue-500/70 text-white'
-                            : 'bg-slate-950/60 border-slate-800 text-slate-300 hover:bg-slate-900'
-                        }`}
-                      >
-                        <span className="text-xl p-1.5 rounded-xl bg-slate-900 border border-slate-800 shrink-0">{acc.icon}</span>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between">
-                            <span className="font-extrabold text-xs text-slate-100">{acc.nameBn}</span>
-                            <span className="font-mono font-bold text-xs text-emerald-400">+ ৳{acc.priceBdt}</span>
-                          </div>
-                          <p className="text-[10px] text-slate-400 mt-0.5 leading-tight">{acc.descBn}</p>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
+              {/* Next Step Button */}
+              <div className="pt-2 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setCurrentStep(2)}
+                  className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold text-xs shadow-xl shadow-blue-600/30 flex items-center justify-center space-x-2 transition active:scale-95"
+                >
+                  <span>পরবর্তী: প্ল্যান ও এক্সেসরিজ নির্বাচন করুন</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
               </div>
+            </div>
+          )}
 
-              {/* Step 3: Telco-Style Subscription Model */}
+          {/* ========================================================================= */}
+          {/* STEP 2: TELCO PLANS & ACCESSORIES                                         */}
+          {/* ========================================================================= */}
+          {currentStep === 2 && (
+            <div className="space-y-4 animate-in fade-in">
+              
+              {/* Telco-Style Subscription Plans */}
               <div>
-                <label className="text-xs font-black uppercase tracking-wider text-slate-300 flex items-center justify-between mb-2">
-                  <span className="flex items-center space-x-1.5">
-                    <span className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px]">৩</span>
-                    <span>টেলকো সাবস্ক্রিপশন প্ল্যান বাছাই করুন (Subscription Model)</span>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-black uppercase text-slate-300">
+                    ২.১ টেলকো সাবস্ক্রিপশন প্ল্যান বাছাই করুন:
                   </span>
-                  <span className="text-[10px] text-emerald-400 font-bold">রোমিং সিম ডেটা সহ</span>
-                </label>
+                  <span className="text-[10px] text-emerald-400 font-bold">রোমিং ডেটা সিম সহ</span>
+                </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                   {TELCO_SUBSCRIPTION_PLANS.map((plan) => {
@@ -448,38 +490,39 @@ export const PublicDeviceStore: React.FC<PublicDeviceStoreProps> = ({ isOpen, on
                         key={plan.id}
                         type="button"
                         onClick={() => setSelectedPlanId(plan.id)}
-                        className={`p-3.5 rounded-3xl border text-left flex flex-col justify-between transition active:scale-95 relative overflow-hidden ${
+                        className={`p-3 rounded-2xl border text-left flex flex-col justify-between transition active:scale-95 relative overflow-hidden ${
                           isPlanSelected
                             ? 'bg-gradient-to-b from-blue-900/60 via-slate-900 to-slate-900 border-2 border-blue-400 shadow-xl ring-1 ring-blue-500/40'
                             : 'bg-slate-950/70 border-slate-800 hover:bg-slate-900'
                         }`}
                       >
-                        {plan.badgeBn && (
-                          <div className="absolute top-2 right-2">
-                            <span className="text-[8.5px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded-full font-mono uppercase">
-                              {plan.badgeBn}
-                            </span>
-                          </div>
-                        )}
-
-                        <div>
-                          <span className={`text-xs font-black block ${isPlanSelected ? 'text-white' : 'text-slate-200'}`}>
+                        {/* Non-overlapping Top Badge */}
+                        <div className="flex items-start justify-between w-full mb-1">
+                          <span className={`text-xs font-black block pr-2 leading-tight ${isPlanSelected ? 'text-white' : 'text-slate-200'}`}>
                             {plan.titleBn}
                           </span>
-                          <div className="flex items-baseline space-x-1 mt-1">
-                            <span className="text-lg font-mono font-black text-emerald-400">৳ {plan.priceBdt}</span>
+                          {plan.badgeBn && (
+                            <span className="text-[8px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-1.5 py-0.5 rounded-full font-mono uppercase shrink-0">
+                              {plan.badgeBn}
+                            </span>
+                          )}
+                        </div>
+
+                        <div>
+                          <div className="flex items-baseline space-x-1 mt-0.5">
+                            <span className="text-base sm:text-lg font-mono font-black text-emerald-400">৳ {plan.priceBdt}</span>
                             <span className="text-[10px] text-slate-400">/ {plan.durationMonths} মাস</span>
                           </div>
                           {plan.savingsBn && (
-                            <span className="text-[9.5px] font-bold text-amber-300 block mt-0.5">
+                            <span className="text-[9px] font-bold text-amber-300 block mt-0.5">
                               ✨ {plan.savingsBn}
                             </span>
                           )}
                         </div>
 
-                        <div className="mt-3 pt-2 border-t border-slate-800/80 space-y-1">
+                        <div className="mt-2.5 pt-2 border-t border-slate-800/80 space-y-1">
                           {plan.featuresBn.map((f, i) => (
-                            <div key={i} className="text-[10px] text-slate-300 flex items-center space-x-1">
+                            <div key={i} className="text-[9.5px] text-slate-300 flex items-center space-x-1">
                               <Check className="w-3 h-3 text-blue-400 shrink-0" />
                               <span className="truncate">{f}</span>
                             </div>
@@ -491,21 +534,60 @@ export const PublicDeviceStore: React.FC<PublicDeviceStoreProps> = ({ isOpen, on
                 </div>
               </div>
 
-              {/* Price Calculation Summary & Proceed Button */}
-              <div className="bg-slate-950 border border-blue-500/40 rounded-3xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xl">
-                <div>
-                  <div className="text-xs text-slate-400">সর্বমোট প্রাক্কলিত মূল্য (Device + Plan + Setup):</div>
-                  <div className="text-xl sm:text-2xl font-mono font-black text-emerald-400">
-                    ৳ {subTotal.toLocaleString()}
-                  </div>
+              {/* Optional Accessories */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-black uppercase text-slate-300">
+                    ২.২ প্রয়োজনীয় এক্সেসরিজ নির্বাচন করুন (ঐচ্ছিক):
+                  </span>
+                  <span className="text-[10px] text-amber-400">কাস্টমাইজেশন</span>
                 </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {ACCESSORIES_CATALOG.map((acc) => {
+                    const isChecked = selectedAccessories.includes(acc.id);
+                    return (
+                      <button
+                        key={acc.id}
+                        type="button"
+                        onClick={() => toggleAccessory(acc.id)}
+                        className={`p-2.5 rounded-2xl border text-left flex items-start space-x-2.5 transition active:scale-95 ${
+                          isChecked
+                            ? 'bg-blue-950/40 border-blue-500/70 text-white'
+                            : 'bg-slate-950/60 border-slate-800 text-slate-300 hover:bg-slate-900'
+                        }`}
+                      >
+                        <span className="text-lg p-1 rounded-lg bg-slate-900 border border-slate-800 shrink-0">{acc.icon}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <span className="font-extrabold text-xs text-slate-100">{acc.nameBn}</span>
+                            <span className="font-mono font-bold text-xs text-emerald-400">+ ৳{acc.priceBdt}</span>
+                          </div>
+                          <p className="text-[9.5px] text-slate-400 mt-0.5 leading-tight">{acc.descBn}</p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Navigation Buttons */}
+              <div className="pt-2 flex items-center justify-between border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setCurrentStep(1)}
+                  className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs flex items-center space-x-1 transition active:scale-95"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span>আগের ধাপ</span>
+                </button>
 
                 <button
                   type="button"
-                  onClick={() => setOrderStep('checkout')}
-                  className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold text-sm shadow-xl shadow-blue-600/30 flex items-center justify-center space-x-2 transition active:scale-95"
+                  onClick={() => setCurrentStep(3)}
+                  className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 text-white font-extrabold text-xs shadow-lg flex items-center space-x-1.5 transition active:scale-95"
                 >
-                  <span>ইনস্টলেশন তথ্য পূরণ ও অর্ডার করুন</span>
+                  <span>পরবর্তী: ডেলিভারি ও KYC</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
@@ -513,36 +595,29 @@ export const PublicDeviceStore: React.FC<PublicDeviceStoreProps> = ({ isOpen, on
             </div>
           )}
 
-          {/* Step 2: Checkout & Mandatory KYC Details Form */}
-          {orderStep === 'checkout' && (
-            <form onSubmit={handlePlaceOrder} className="space-y-4">
+          {/* ========================================================================= */}
+          {/* STEP 3: CUSTOMER & MANDATORY FAMILY KYC FORM                              */}
+          {/* ========================================================================= */}
+          {currentStep === 3 && (
+            <form onSubmit={handleProceedToPayment} className="space-y-3.5 animate-in fade-in">
               
-              {/* Back to Catalog */}
-              <button
-                type="button"
-                onClick={() => setOrderStep('browse')}
-                className="text-xs font-bold text-blue-400 hover:underline flex items-center space-x-1"
-              >
-                <span>⬅️ প্যাকেজ পরিবর্তনে ফিরে যান</span>
-              </button>
-
               {/* Mandatory Family KYC Box */}
-              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl space-y-3">
+              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-3.5 shadow-xl space-y-3">
                 <div className="flex items-center justify-between border-b border-slate-800 pb-2">
                   <div className="flex items-center space-x-2">
                     <User className="w-4 h-4 text-blue-400" />
-                    <span className="text-xs font-black uppercase tracking-wider text-slate-200">
+                    <span className="text-xs font-black uppercase text-slate-200">
                       গ্রাহক ও পারিবারিক পরিচিতি (Mandatory Family KYC)
                     </span>
                   </div>
-                  <span className="text-[9px] font-mono bg-blue-500/20 text-blue-300 border border-blue-500/40 px-2 py-0.5 rounded-full font-bold">
-                    SECURE KYC
+                  <span className="text-[8.5px] font-mono bg-blue-500/20 text-blue-300 border border-blue-500/40 px-2 py-0.5 rounded-full font-bold">
+                    RESCUE SECURED
                   </span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   <div>
-                    <label className="text-xs text-slate-300 block mb-1">
+                    <label className="text-[11px] text-slate-300 block mb-1">
                       আপনার পুরো নাম (Customer Full Name) *
                     </label>
                     <input
@@ -556,7 +631,7 @@ export const PublicDeviceStore: React.FC<PublicDeviceStoreProps> = ({ isOpen, on
                   </div>
 
                   <div>
-                    <label className="text-xs text-slate-300 block mb-1">
+                    <label className="text-[11px] text-slate-300 block mb-1">
                       মোবাইল নম্বর (Customer Phone) *
                     </label>
                     <input
@@ -570,12 +645,12 @@ export const PublicDeviceStore: React.FC<PublicDeviceStoreProps> = ({ isOpen, on
                   </div>
                 </div>
 
-                {/* Mandatory Father & Mother Name for Rescue Hotline & Police Verification */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-slate-800">
+                {/* Mandatory Father & Mother Name for Rescue Verification */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1 border-t border-slate-800">
                   <div className="bg-slate-950 p-2.5 rounded-2xl border border-blue-500/30 space-y-1">
                     <label className="text-[11px] font-extrabold text-blue-300 flex items-center justify-between">
                       <span>👤 পিতার নাম (Father's Name) *</span>
-                      <span className="text-[9px] text-amber-400 font-bold uppercase">বাধ্যতামূলক</span>
+                      <span className="text-[8.5px] text-amber-400 font-bold uppercase">বাধ্যতামূলক</span>
                     </label>
                     <input
                       type="text"
@@ -585,13 +660,13 @@ export const PublicDeviceStore: React.FC<PublicDeviceStoreProps> = ({ isOpen, on
                       placeholder="পিতার পুরো নাম লিখুন"
                       className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-blue-400"
                     />
-                    <span className="text-[9px] text-slate-400 block">রেসকিউ হটলাইন ও পুলিশ জিডি ভেরিফিকেশনে ব্যবহৃত হবে</span>
+                    <span className="text-[8.5px] text-slate-400 block">রেসকিউ হটলাইন ও পুলিশ জিডি ভেরিফিকেশনে ব্যবহৃত হবে</span>
                   </div>
 
                   <div className="bg-slate-950 p-2.5 rounded-2xl border border-blue-500/30 space-y-1">
                     <label className="text-[11px] font-extrabold text-blue-300 flex items-center justify-between">
                       <span>👤 মাতার নাম (Mother's Name) *</span>
-                      <span className="text-[9px] text-amber-400 font-bold uppercase">বাধ্যতামূলক</span>
+                      <span className="text-[8.5px] text-amber-400 font-bold uppercase">বাধ্যতামূলক</span>
                     </label>
                     <input
                       type="text"
@@ -601,18 +676,18 @@ export const PublicDeviceStore: React.FC<PublicDeviceStoreProps> = ({ isOpen, on
                       placeholder="মাতার পুরো নাম লিখুন"
                       className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-blue-400"
                     />
-                    <span className="text-[9px] text-slate-400 block">জরুরি মালিকানা ও রেসকিউ বাইপাসে প্রয়োজনীয়</span>
+                    <span className="text-[8.5px] text-slate-400 block">জরুরি মালিকানা ও রেসকিউ বাইপাসে প্রয়োজনীয়</span>
                   </div>
                 </div>
 
                 {/* Optional Highlighted SOS Numbers Card */}
-                <div className="bg-gradient-to-br from-amber-950/40 via-slate-950 to-slate-950 border border-amber-500/40 rounded-2xl p-3 space-y-2">
+                <div className="bg-gradient-to-br from-amber-950/30 via-slate-950 to-slate-950 border border-amber-500/40 rounded-2xl p-2.5 space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-amber-300 flex items-center space-x-1.5">
+                    <span className="text-[11px] font-bold text-amber-300 flex items-center space-x-1.5">
                       <PhoneCall className="w-3.5 h-3.5 text-amber-400" />
-                      <span>🚨 জরুরি ক্র্যাশ এলার্ট ও ব্যাকআপ নম্বর (SOS ২ ও ৩ - ঐচ্ছিক কিন্তু গুরুত্বপূর্ণ)</span>
+                      <span>🚨 জরুরি ক্র্যাশ এলার্ট ও ব্যাকআপ নম্বর (SOS ২ ও ৩ - ঐচ্ছিক)</span>
                     </span>
-                    <span className="text-[9px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full border border-amber-500/40">
+                    <span className="text-[8.5px] bg-amber-500/20 text-amber-300 px-1.5 py-0.2 rounded border border-amber-500/40">
                       হাইলাইটেড
                     </span>
                   </div>
@@ -622,45 +697,45 @@ export const PublicDeviceStore: React.FC<PublicDeviceStoreProps> = ({ isOpen, on
                       value={sos2}
                       onChange={(e) => setSos2(e.target.value)}
                       placeholder="SOS 2: +880 18XXXXXXXX (পিতা/মাতা/স্ত্রী)"
-                      className="w-full bg-slate-900 border border-amber-500/40 rounded-xl px-3 py-2 text-xs text-amber-100 font-mono focus:outline-none"
+                      className="w-full bg-slate-900 border border-amber-500/40 rounded-xl px-3 py-1.5 text-xs text-amber-100 font-mono focus:outline-none"
                     />
                     <input
                       type="tel"
                       value={sos3}
                       onChange={(e) => setSos3(e.target.value)}
                       placeholder="SOS 3: +880 19XXXXXXXX (ভাই/অভিভাবক)"
-                      className="w-full bg-slate-900 border border-amber-500/40 rounded-xl px-3 py-2 text-xs text-amber-100 font-mono focus:outline-none"
+                      className="w-full bg-slate-900 border border-amber-500/40 rounded-xl px-3 py-1.5 text-xs text-amber-100 font-mono focus:outline-none"
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Delivery Address & Referral Code */}
-              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl space-y-3">
+              {/* Delivery Address & Referral */}
+              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-3.5 shadow-xl space-y-2.5">
                 <div className="flex items-center space-x-2">
                   <MapPin className="w-4 h-4 text-emerald-400" />
-                  <span className="text-xs font-black uppercase tracking-wider text-slate-200">
-                    ইনস্টলেশন ঠিকানা ও রেফারেল (Doorstep Location)
+                  <span className="text-xs font-black uppercase text-slate-200">
+                    ইনস্টলেশন ঠিকানা ও জেলা (Doorstep Location)
                   </span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                   <div className="sm:col-span-2">
-                    <label className="text-xs text-slate-300 block mb-1">
-                      ইনস্টলেশন ঠিকানা (বাসা/অফিস/গ্যারেজ ঠিকানা) *
+                    <label className="text-[11px] text-slate-300 block mb-1">
+                      ইনস্টলেশন ঠিকানা (বাসা/অফিস ঠিকানা) *
                     </label>
                     <input
                       type="text"
                       required
                       value={deliveryAddress}
                       onChange={(e) => setDeliveryAddress(e.target.value)}
-                      placeholder="যেমন: বাড়ি ১২, রোড ৪, ব্লক-সি, বনশ্রী, রামপুরা, ঢাকা"
+                      placeholder="যেমন: বাড়ি ১২, রোড ৪, ব্লক-সি, বনশ্রী, ঢাকা"
                       className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-blue-500"
                     />
                   </div>
 
                   <div>
-                    <label className="text-xs text-slate-300 block mb-1">জেলা (District) *</label>
+                    <label className="text-[11px] text-slate-300 block mb-1">জেলা *</label>
                     <select
                       value={district}
                       onChange={(e) => setDistrict(e.target.value)}
@@ -679,204 +754,244 @@ export const PublicDeviceStore: React.FC<PublicDeviceStoreProps> = ({ isOpen, on
                     </select>
                   </div>
                 </div>
-
-                {/* Referral Promo Code */}
-                <div className="pt-1">
-                  <label className="text-xs text-slate-400 block mb-1">রেফারেল কোড (Referral Code - যদি থাকে)</label>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="text"
-                      value={referralCode}
-                      onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
-                      placeholder="যেমন: FRIEND100"
-                      className="w-full sm:w-64 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-100 font-mono uppercase focus:outline-none focus:border-emerald-400"
-                    />
-                    {referralCode.trim().length >= 4 && (
-                      <span className="text-xs text-emerald-400 font-bold flex items-center space-x-1">
-                        <CheckCircle2 className="w-4 h-4" />
-                        <span>৳ ১০০ ডিসকাউন্ট প্রযোজ্য!</span>
-                      </span>
-                    )}
-                  </div>
-                </div>
               </div>
 
-              {/* Payment Method Selection with Cashless Incentive */}
-              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <CreditCard className="w-4 h-4 text-emerald-400" />
-                    <span className="text-xs font-black uppercase tracking-wider text-slate-200">
-                      পেমেন্ট পদ্ধতি বাছাই করুন (Payment Method)
-                    </span>
-                  </div>
-                  <span className="text-[10px] text-amber-300 font-bold">ক্যাশলেস বোনাস অফার</span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMethod('advance_online')}
-                    className={`p-3.5 rounded-2xl border text-left flex flex-col justify-between transition active:scale-95 ${
-                      paymentMethod === 'advance_online'
-                        ? 'bg-emerald-950/60 border-2 border-emerald-400 shadow-lg ring-1 ring-emerald-500/40'
-                        : 'bg-slate-950/70 border-slate-800 hover:bg-slate-850'
-                    }`}
-                  >
-                    <div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-black text-emerald-300">অ্যাডভান্স অনলাইন পে</span>
-                        <span className="text-[9px] bg-emerald-500/30 text-emerald-200 border border-emerald-500/50 px-1.5 py-0.2 rounded font-bold">
-                          - ৳ ২০০ ছাড়
-                        </span>
-                      </div>
-                      <p className="text-[10px] text-slate-300 mt-1">বিকাশ / নগদ / কার্ড / বাংলা কিউআর</p>
-                    </div>
-                    <span className="text-[9.5px] font-bold text-amber-300 mt-2 block">🎁 + ১ মাস এক্সট্রা ফ্রি সার্ভিস!</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMethod('after_install_online')}
-                    className={`p-3.5 rounded-2xl border text-left flex flex-col justify-between transition active:scale-95 ${
-                      paymentMethod === 'after_install_online'
-                        ? 'bg-blue-950/60 border-2 border-blue-400 shadow-lg ring-1 ring-blue-500/40'
-                        : 'bg-slate-950/70 border-slate-800 hover:bg-slate-850'
-                    }`}
-                  >
-                    <div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-black text-blue-300">ইনস্টলেশনের পর অনলাইন পে</span>
-                        <span className="text-[9px] bg-blue-500/30 text-blue-200 border border-blue-500/50 px-1.5 py-0.2 rounded font-bold">
-                          - ৳ ১০০ ছাড়
-                        </span>
-                      </div>
-                      <p className="text-[10px] text-slate-300 mt-1">টেকনিশিয়ান কাজ শেষ করলে কিউআর কোডে পে করবেন</p>
-                    </div>
-                    <span className="text-[9.5px] font-bold text-emerald-400 mt-2 block">✨ ক্যাশলেস সহজ ও নিরাপদ</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMethod('cash_on_install')}
-                    className={`p-3.5 rounded-2xl border text-left flex flex-col justify-between transition active:scale-95 ${
-                      paymentMethod === 'cash_on_install'
-                        ? 'bg-slate-800 border-2 border-slate-500 text-white'
-                        : 'bg-slate-950/70 border-slate-800 text-slate-300 hover:bg-slate-850'
-                    }`}
-                  >
-                    <div>
-                      <span className="text-xs font-black text-slate-200">ক্যাশ অন ইনস্টলেশন</span>
-                      <p className="text-[10px] text-slate-400 mt-1">টেকনিশিয়ান কাজ শেষ করলে নগদ টাকায় পে করবেন</p>
-                    </div>
-                    <span className="text-[9.5px] font-mono text-slate-400 mt-2 block">নিয়মিত মূল্য</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Escrow Guarantee Notice */}
-              <div className="p-3 rounded-2xl bg-slate-950 border border-emerald-500/30 text-[11px] text-slate-300 flex items-start space-x-2">
-                <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                <span>
-                  <strong>২-ওয়ে ভেরিফাইড ইনস্টলেশন গ্যারান্টি:</strong> টেকনিশিয়ান এসে সফলভাবে ডিভাইস ইনস্টল করে আপনাকে টেস্ট করিয়ে দেওয়া পর্যন্ত আপনার বুকিং ও পেমেন্ট ১০০% সিকিউরড থাকবে। আপনি নিজে অ্যাপে কনফার্মেশন চাপলেই কেবল টেকনিশিয়ানের কাজ চূড়ান্ত সম্পন্ন হবে।
-                </span>
-              </div>
-
-              {/* Final Total & Submit Button */}
-              <div className="p-4 bg-slate-950 rounded-3xl border border-blue-500/40 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xl">
-                <div>
-                  <div className="flex items-center space-x-2 text-xs text-slate-400">
-                    <span>মূল মূল্য: ৳{subTotal.toLocaleString()}</span>
-                    {discountAmount > 0 && <span className="text-emerald-400 font-bold">(-৳{discountAmount} ডিসকাউন্ট)</span>}
-                  </div>
-                  <div className="text-2xl font-mono font-black text-emerald-400">
-                    পরিশোধযোগ্য: ৳ {totalAmount.toLocaleString()}
-                  </div>
-                </div>
+              {/* Navigation Buttons */}
+              <div className="pt-2 flex items-center justify-between border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setCurrentStep(2)}
+                  className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs flex items-center space-x-1 transition active:scale-95"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span>আগের ধাপ</span>
+                </button>
 
                 <button
                   type="submit"
-                  disabled={isSubmitting}
-                  className="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-sm shadow-xl shadow-emerald-600/30 flex items-center justify-center space-x-2 transition active:scale-95"
+                  className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 text-white font-extrabold text-xs shadow-lg flex items-center space-x-1.5 transition active:scale-95"
                 >
-                  {isSubmitting ? (
-                    <span>অর্ডার প্রসেস হচ্ছে...</span>
-                  ) : (
-                    <>
-                      <CheckCircle2 className="w-5 h-5" />
-                      <span>অর্ডার প্লেস করুন (Confirm Order)</span>
-                    </>
-                  )}
+                  <span>পরবর্তী: পেমেন্ট ও কনফার্ম</span>
+                  <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
 
             </form>
           )}
 
-          {/* Step 3: Order Success & 2-Way Handshake Status */}
-          {orderStep === 'success' && createdOrder && (
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 text-center space-y-4 shadow-2xl animate-in zoom-in-95">
-              <div className="w-16 h-16 rounded-3xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center mx-auto shadow-xl">
-                <CheckCircle2 className="w-10 h-10" />
+          {/* ========================================================================= */}
+          {/* STEP 4: PAYMENT SELECTION & ESCROW CONFIRMATION                           */}
+          {/* ========================================================================= */}
+          {currentStep === 4 && (
+            <div className="space-y-3.5 animate-in fade-in">
+              
+              {/* Order Breakdown Card */}
+              <div className="bg-slate-950 border border-slate-800 rounded-3xl p-3.5 space-y-2 text-xs">
+                <div className="font-extrabold text-slate-200 border-b border-slate-800 pb-1.5 flex justify-between">
+                  <span>অর্ডার সারাংশ (Order Summary)</span>
+                  <span className="text-blue-400 font-mono">{activeDevice.titleBn}</span>
+                </div>
+                <div className="flex justify-between text-slate-400">
+                  <span>ডিভাইস মূল্য:</span>
+                  <span className="font-mono text-slate-200">৳ {activeDevice.priceBdt.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-slate-400">
+                  <span>সাবস্ক্রিপশন ({activePlan.titleBn}):</span>
+                  <span className="font-mono text-slate-200">৳ {activePlan.priceBdt.toLocaleString()}</span>
+                </div>
+                {accessoriesTotal > 0 && (
+                  <div className="flex justify-between text-slate-400">
+                    <span>এক্সেসরিজ ({selectedAccessories.length}টি):</span>
+                    <span className="font-mono text-slate-200">৳ {accessoriesTotal.toLocaleString()}</span>
+                  </div>
+                )}
+                {discountAmount > 0 && (
+                  <div className="flex justify-between text-emerald-400 font-bold border-t border-slate-800/80 pt-1">
+                    <span>ক্যাশলেস / প্রোমো ডিসকাউন্ট:</span>
+                    <span className="font-mono">- ৳ {discountAmount}</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-sm font-black text-emerald-400 border-t border-slate-800 pt-1.5">
+                  <span>পরিশোধযোগ্য মোট:</span>
+                  <span className="font-mono text-base">৳ {totalAmount.toLocaleString()}</span>
+                </div>
+              </div>
+
+              {/* Payment Methods */}
+              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-3.5 shadow-xl space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black uppercase text-slate-200">
+                    পেমেন্ট পদ্ধতি বাছাই করুন:
+                  </span>
+                  <span className="text-[9.5px] text-amber-300 font-bold">ক্যাশলেস বোনাস</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod('advance_online')}
+                    className={`p-3 rounded-2xl border text-left flex flex-col justify-between transition active:scale-95 ${
+                      paymentMethod === 'advance_online'
+                        ? 'bg-emerald-950/60 border-2 border-emerald-400 shadow-md ring-1 ring-emerald-500/40'
+                        : 'bg-slate-950/70 border-slate-800 hover:bg-slate-850'
+                    }`}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-black text-emerald-300">অ্যাডভান্স অনলাইন</span>
+                        <span className="text-[8.5px] bg-emerald-500/30 text-emerald-200 border border-emerald-500/50 px-1 py-0.2 rounded font-bold">
+                          -৳২০০ ছাড়
+                        </span>
+                      </div>
+                      <p className="text-[9.5px] text-slate-300 mt-1">বিকাশ / নগদ / কার্ড / কিউআর</p>
+                    </div>
+                    <span className="text-[8.5px] font-bold text-amber-300 mt-1.5 block">🎁 +১ মাস ফ্রি!</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod('after_install_online')}
+                    className={`p-3 rounded-2xl border text-left flex flex-col justify-between transition active:scale-95 ${
+                      paymentMethod === 'after_install_online'
+                        ? 'bg-blue-950/60 border-2 border-blue-400 shadow-md ring-1 ring-blue-500/40'
+                        : 'bg-slate-950/70 border-slate-800 hover:bg-slate-850'
+                    }`}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-black text-blue-300">ইনস্টলেশন শেষে অনলাইন</span>
+                        <span className="text-[8.5px] bg-blue-500/30 text-blue-200 border border-blue-500/50 px-1 py-0.2 rounded font-bold">
+                          -৳১০০ ছাড়
+                        </span>
+                      </div>
+                      <p className="text-[9.5px] text-slate-300 mt-1">টেকনিশিয়ান কাজ শেষ করলে কিউআর পে</p>
+                    </div>
+                    <span className="text-[8.5px] font-bold text-emerald-400 mt-1.5 block">✨ ক্যাশলেস সহজ</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod('cash_on_install')}
+                    className={`p-3 rounded-2xl border text-left flex flex-col justify-between transition active:scale-95 ${
+                      paymentMethod === 'cash_on_install'
+                        ? 'bg-slate-800 border-2 border-slate-500 text-white'
+                        : 'bg-slate-950/70 border-slate-800 text-slate-300 hover:bg-slate-850'
+                    }`}
+                  >
+                    <div>
+                      <span className="text-[11px] font-black text-slate-200">ক্যাশ অন ইনস্টলেশন</span>
+                      <p className="text-[9.5px] text-slate-400 mt-1">টেকনিশিয়ানকে নগদ প্রদান</p>
+                    </div>
+                    <span className="text-[8.5px] font-mono text-slate-400 mt-1.5 block">নিয়মিত মূল্য</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Escrow Handshake Safety Guarantee */}
+              <div className="p-3 rounded-2xl bg-slate-950 border border-emerald-500/30 text-[10.5px] text-slate-300 flex items-start space-x-2">
+                <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                <span>
+                  <strong>২-ওয়ে ভেরিফাইড ইনস্টলেশন গ্যারান্টি:</strong> টেকনিশিয়ান এসে ডিভাইস ইনস্টল ও টেস্ট করিয়ে দেওয়া পর্যন্ত আপনার পেমেন্ট ১০০% সিকিউরড থাকবে। আপনি নিজে অ্যাপে <strong>"✅ ইনস্টলেশন সম্পন্ন ও সন্তুষ্ট"</strong> কনফার্ম করার পরই কেবল টেকনিশিয়ানের লেজারে টাকা ট্রান্সফার হবে।
+                </span>
+              </div>
+
+              {/* Navigation & Final Order Submit */}
+              <div className="pt-2 flex items-center justify-between border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setCurrentStep(3)}
+                  className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs flex items-center space-x-1 transition active:scale-95"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span>আগের ধাপ</span>
+                </button>
+
+                <button
+                  type="button"
+                  disabled={isSubmitting}
+                  onClick={handleConfirmOrder}
+                  className="px-6 py-3 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 text-white font-extrabold text-xs shadow-xl shadow-emerald-600/30 flex items-center space-x-2 transition active:scale-95"
+                >
+                  {isSubmitting ? (
+                    <span>অর্ডার প্রক্রিয়াকরণ হচ্ছে...</span>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>অর্ডার প্লেস করুন (৳ {totalAmount.toLocaleString()})</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* STEP 5: SUCCESS RECEIPT & 2-WAY HANDSHAKE PIPELINE                         */}
+          {/* ========================================================================= */}
+          {currentStep === 5 && createdOrder && (
+            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 text-center space-y-3.5 shadow-2xl animate-in zoom-in-95">
+              <div className="w-14 h-14 rounded-3xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center mx-auto shadow-xl">
+                <CheckCircle2 className="w-8 h-8" />
               </div>
 
               <div>
-                <span className="text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-3 py-1 rounded-full uppercase">
+                <span className="text-[9.5px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-3 py-0.5 rounded-full uppercase">
                   অর্ডার সফলভাবে গৃহীত হয়েছে
                 </span>
-                <h3 className="text-xl font-black text-white mt-2">
+                <h3 className="text-lg font-black text-white mt-1.5">
                   ধন্যবাদ, {createdOrder.customerName}!
                 </h3>
-                <p className="text-xs text-slate-400 mt-1 font-mono">
-                  বুকিং রেফারেন্স নম্বর: <strong className="text-blue-400">{createdOrder.orderId}</strong>
+                <p className="text-xs text-slate-400 font-mono">
+                  বুকিং রেফারেন্স: <strong className="text-blue-400">{createdOrder.orderId}</strong>
                 </p>
               </div>
 
               {/* Order Receipt Details */}
-              <div className="bg-slate-950 border border-slate-800 rounded-2xl p-4 text-xs text-left space-y-2 max-w-lg mx-auto">
-                <div className="flex justify-between border-b border-slate-800 pb-1.5">
-                  <span className="text-slate-400">ডিভাইস ও প্যাকেজ:</span>
+              <div className="bg-slate-950 border border-slate-800 rounded-2xl p-3 text-xs text-left space-y-1.5 max-w-md mx-auto">
+                <div className="flex justify-between border-b border-slate-800/80 pb-1">
+                  <span className="text-slate-400">ডিভাইস:</span>
                   <span className="font-bold text-slate-100">{createdOrder.device.titleBn}</span>
                 </div>
-                <div className="flex justify-between border-b border-slate-800 pb-1.5">
-                  <span className="text-slate-400">সাবস্ক্রিপশন প্ল্যান:</span>
+                <div className="flex justify-between border-b border-slate-800/80 pb-1">
+                  <span className="text-slate-400">প্ল্যান:</span>
                   <span className="font-bold text-amber-300">{createdOrder.subscriptionPlan.titleBn}</span>
                 </div>
-                <div className="flex justify-between border-b border-slate-800 pb-1.5">
-                  <span className="text-slate-400">ইনস্টলেশন ঠিকানা:</span>
-                  <span className="font-bold text-slate-200">{createdOrder.deliveryAddress}, {createdOrder.district}</span>
+                <div className="flex justify-between border-b border-slate-800/80 pb-1">
+                  <span className="text-slate-400">ঠিকানা:</span>
+                  <span className="font-bold text-slate-200 truncate max-w-[200px]">{createdOrder.deliveryAddress}, {createdOrder.district}</span>
                 </div>
-                <div className="flex justify-between border-b border-slate-800 pb-1.5">
-                  <span className="text-slate-400">পেমেন্ট মেথড:</span>
+                <div className="flex justify-between border-b border-slate-800/80 pb-1">
+                  <span className="text-slate-400">পেমেন্ট:</span>
                   <span className="font-bold text-emerald-400">
                     {createdOrder.paymentMethod === 'advance_online' ? 'অ্যাডভান্স অনলাইন পে (ভেরিফাইড)' :
                      createdOrder.paymentMethod === 'after_install_online' ? 'ইনস্টলেশন শেষে অনলাইন পে' : 'ক্যাশ অন ইনস্টলেশন'}
                   </span>
                 </div>
                 <div className="flex justify-between pt-1 text-sm">
-                  <span className="font-bold text-slate-300">মোট পরিশোধযোগ্য:</span>
+                  <span className="font-bold text-slate-300">মোট মূল্য:</span>
                   <span className="font-mono font-black text-emerald-400">৳ {createdOrder.totalAmount.toLocaleString()}</span>
                 </div>
               </div>
 
-              {/* Live Technician Dispatch Pipeline */}
-              <div className="bg-slate-950 border border-blue-500/30 rounded-2xl p-4 max-w-lg mx-auto text-left space-y-2">
-                <div className="text-xs font-bold text-blue-300 flex items-center space-x-1.5">
-                  <Clock className="w-4 h-4 text-blue-400 animate-spin" />
-                  <span>পরবর্তী পদক্ষেপ (Next Steps):</span>
+              {/* Next Steps Notice */}
+              <div className="bg-slate-950 border border-blue-500/30 rounded-2xl p-3 max-w-md mx-auto text-left space-y-1.5">
+                <div className="text-[11px] font-bold text-blue-300 flex items-center space-x-1.5">
+                  <Clock className="w-3.5 h-3.5 text-blue-400 animate-spin" />
+                  <span>পরবর্তী পদক্ষেপ:</span>
                 </div>
-                <ul className="text-[11px] text-slate-300 space-y-1.5">
-                  <li>১. সাপোর্ট টিম থেকে আপনার ঠিকানায় নিকটস্থ ফিল্ড টেকনিশিয়ান অ্যাসাইন করা হবে।</li>
-                  <li>২. টেকনিশিয়ান আপনার ঠিকানায় গিয়ে ডিভাইস ইনস্টলেশন ও ট্র্যাকার অ্যাক্টিভেশন সম্পন্ন করবে।</li>
-                  <li>৩. আপনি অ্যাপে লাইভ গাড়ি দেখে <strong>"✅ ইনস্টলেশন সম্পন্ন ও সন্তুষ্ট"</strong> কনফার্ম করবেন।</li>
+                <ul className="text-[10px] text-slate-300 space-y-1">
+                  <li>১. সাপোর্ট টিম থেকে আপনার ঠিকানায় টেকনিশিয়ান পাঠানো হবে।</li>
+                  <li>২. টেকনিশিয়ান আপনার গাড়িতে ডিভাইস ইনস্টল ও টেস্ট করে দেবে।</li>
+                  <li>৩. আপনি সন্তুষ্ট হয়ে কনফার্ম করলেই ইনস্টলেশন শেষ হবে।</li>
                 </ul>
               </div>
 
-              <div className="pt-2">
+              <div className="pt-1">
                 <button
                   type="button"
                   onClick={onClose}
-                  className="px-8 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg transition active:scale-95"
+                  className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg transition active:scale-95"
                 >
                   ঠিক আছে, বন্ধ করুন
                 </button>
