@@ -33,7 +33,9 @@ import {
   Flame,
   Users,
   ShoppingBag,
-  Gift
+  Gift,
+  Copy,
+  X
 } from 'lucide-react';
 import { VehicleType, Geofence, AlertFeedbackMode } from '../../types/traccar';
 import { GeofenceModal } from '../geofence/GeofenceModal';
@@ -124,6 +126,9 @@ export const DeviceSettingsView: React.FC = () => {
 
   // Direct Device Store Modal State
   const [isDeviceStoreOpen, setIsDeviceStoreOpen] = useState(false);
+
+  // Referral Program Modal State
+  const [isReferralModalOpen, setIsReferralModalOpen] = useState(false);
 
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [sosSyncing, setSosSyncing] = useState(false);
@@ -269,12 +274,7 @@ export const DeviceSettingsView: React.FC = () => {
 
         <button
           type="button"
-          onClick={() => {
-            if (typeof navigator !== 'undefined' && navigator.clipboard) {
-              navigator.clipboard.writeText(`ইজিট্র্যাকারে রেফারেল কোড FRIEND100 ব্যবহার করে ট্র্যাকার কিনলে পাবেন ৳১০০ ডিসকাউন্ট! ডাউনলোড করুন: ${APP_CONFIG.website}`);
-              alert('🎁 আপনার রেফারেল লিংক কপি হয়েছে! বন্ধুদের সাথে শেয়ার করুন।');
-            }
-          }}
+          onClick={() => setIsReferralModalOpen(true)}
           className="p-3.5 rounded-2xl bg-gradient-to-r from-purple-950/80 via-slate-900 to-slate-900 border-2 border-purple-500/60 hover:border-purple-400 text-left flex items-center justify-between transition active:scale-95 shadow-lg group"
         >
           <div className="flex items-center space-x-2.5">
@@ -283,7 +283,7 @@ export const DeviceSettingsView: React.FC = () => {
             </div>
             <div>
               <span className="text-xs font-black text-white block">🎁 বন্ধুকে রেফার করুন ও ক্যাশব্যাক পান</span>
-              <span className="text-[10px] text-purple-300/80">প্রতি সফল অর্ডারে ১ মাস ফ্রি সার্ভিস!</span>
+              <span className="text-[10px] text-purple-300/80">প্রতি সফল অর্ডারে ১ মাস ফ্রি সার্ভিস বা ৳১০০!</span>
             </div>
           </div>
           <span className="text-[9.5px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/40 px-2 py-0.5 rounded-full font-mono shrink-0 ml-2">
@@ -1098,6 +1098,131 @@ export const DeviceSettingsView: React.FC = () => {
         isOpen={isDeviceStoreOpen}
         onClose={() => setIsDeviceStoreOpen(false)}
       />
+
+      {/* 🎁 Customer Referral & Cashback Hub Modal */}
+      {isReferralModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-3 animate-in fade-in select-none">
+          <div className="bg-slate-900 border border-purple-500/50 rounded-3xl max-w-md w-full p-4 md:p-5 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto">
+            
+            {/* Top Header */}
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center space-x-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-purple-600/30 text-purple-300 border border-purple-500/50 flex items-center justify-center shadow-lg">
+                  <Gift className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-sm text-white">
+                    🎁 বন্ধুকে রেফার করুন ও ক্যাশব্যাক পান
+                  </h3>
+                  <p className="text-[10px] text-purple-300 font-mono">
+                    EasyTracker Referral & Loyalty Rewards
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsReferralModalOpen(false)}
+                className="text-slate-400 hover:text-white p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* 2-Way Reward Explain Banner */}
+            <div className="grid grid-cols-2 gap-2">
+              <div className="bg-purple-950/70 border border-purple-500/40 p-3 rounded-2xl space-y-1">
+                <span className="text-[9px] bg-purple-500/20 text-purple-300 font-bold px-1.5 py-0.2 rounded font-mono">
+                  আপনি পাচ্ছেন
+                </span>
+                <div className="text-base font-black text-white">৳১০০ / ১ মাস</div>
+                <p className="text-[10px] text-slate-300 leading-tight">
+                  প্রতি সফল ইনস্টলেশনে ৳১০০ ক্যাশব্যাক বা ১ মাস ফ্রি সাবস্ক্রিপশন
+                </p>
+              </div>
+
+              <div className="bg-emerald-950/70 border border-emerald-500/40 p-3 rounded-2xl space-y-1">
+                <span className="text-[9px] bg-emerald-500/20 text-emerald-300 font-bold px-1.5 py-0.2 rounded font-mono">
+                  আপনার বন্ধু পাচ্ছে
+                </span>
+                <div className="text-base font-black text-emerald-300">৳১০০ ছাড়</div>
+                <p className="text-[10px] text-slate-300 leading-tight">
+                  রেফারেল কোড বসিয়ে অর্ডার করলেই পাচ্ছেন ইনস্ট্যান্ট ৳১০০ ডিসকাউন্ট
+                </p>
+              </div>
+            </div>
+
+            {/* Customer's Referral Code Card */}
+            <div className="bg-slate-950 p-3.5 rounded-2xl border border-slate-800 space-y-2">
+              <div className="text-[11px] font-bold text-slate-300 flex items-center justify-between">
+                <span>আপনার ইউনিক রেফারেল কোড:</span>
+                <span className="text-[10px] text-purple-400 font-mono">লাইফটাইম সক্রিয়</span>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <div className="flex-1 bg-slate-900 border border-purple-500/50 rounded-xl py-2 px-3 text-center font-mono font-black text-base text-purple-300 tracking-wider">
+                  {`EASY-${selectedDevice.id.toString().padStart(4, '0')}`}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const code = `EASY-${selectedDevice.id.toString().padStart(4, '0')}`;
+                    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+                      navigator.clipboard.writeText(code);
+                      alert(`✅ রেফারেল কোড "${code}" কপি হয়েছে!`);
+                    }
+                  }}
+                  className="px-3.5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs flex items-center space-x-1 transition active:scale-95 shadow-md"
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                  <span>কপি</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Live Stats Counter */}
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div className="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+                <span className="text-[9.5px] text-slate-400 block">মোট রেফারেল</span>
+                <span className="text-base font-mono font-black text-white mt-0.5 block">৩ জন</span>
+              </div>
+              <div className="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+                <span className="text-[9.5px] text-slate-400 block">অর্জিত ক্যাশব্যাক</span>
+                <span className="text-base font-mono font-black text-emerald-400 mt-0.5 block">৳৩০০</span>
+              </div>
+              <div className="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+                <span className="text-[9.5px] text-slate-400 block">ফ্রি সাবস্ক্রিপশন</span>
+                <span className="text-base font-mono font-black text-purple-400 mt-0.5 block">৩ মাস</span>
+              </div>
+            </div>
+
+            {/* 1-Click WhatsApp & Social Share */}
+            <div className="space-y-2 pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  const code = `EASY-${selectedDevice.id.toString().padStart(4, '0')}`;
+                  const msg = `*🚗 EasyTracker GPS Tracker Special Offer!*\n\nআমার রেফারেল কোড *${code}* ব্যবহার করে নতুন ট্র্যাকার বা সাবস্ক্রিপশন কিনলেই পাচ্ছেন ৳১০০ নগদ ছাড় ও ফ্রি ডোরস্টেপ ইনস্টলেশন!\n\nভিজিট করুন: ${APP_CONFIG.website}`;
+                  const waUrl = `https://wa.me/?text=${encodeURIComponent(msg)}`;
+                  if (typeof window !== 'undefined') window.open(waUrl, '_blank');
+                }}
+                className="w-full py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center justify-center space-x-2 shadow-lg shadow-emerald-600/30 transition active:scale-95"
+              >
+                <span>💬 হোয়াটসঅ্যাপে বন্ধুদের শেয়ার করুন</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsReferralModalOpen(false)}
+                className="w-full py-2 rounded-2xl bg-slate-800 text-slate-300 font-bold text-xs"
+              >
+                বন্ধ করুন
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
     </div>
   );
 };
