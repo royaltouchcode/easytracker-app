@@ -68,6 +68,7 @@ export const LiveTrackingMap: React.FC = () => {
     tenantDevices,
     selectedDeviceId, 
     setSelectedDeviceId,
+    selectedDevice,
     selectedPosition, 
     positions, 
     userLocation,
@@ -408,7 +409,7 @@ export const LiveTrackingMap: React.FC = () => {
         duration: 0.5
       });
     }
-  }, [displayDevices, positions, selectedDeviceId, followVehicle]);
+  }, [displayDevices, positions, selectedDeviceId, selectedDevice, selectedPosition, followVehicle]);
 
   // Center on Vehicle GPS
   const handleCenterVehicle = () => {
