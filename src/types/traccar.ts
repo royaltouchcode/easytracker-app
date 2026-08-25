@@ -1,3 +1,5 @@
+export type AppTheme = 'cyber_midnight' | 'emerald_luxe' | 'royal_amethyst';
+
 export type VehicleType = 
   | 'car' 
   | 'motorcycle' 

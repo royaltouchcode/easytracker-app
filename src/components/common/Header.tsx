@@ -17,11 +17,13 @@ import {
   Sparkles,
   Home,
   ShieldCheck,
-  Building2
+  Building2,
+  Palette
 } from 'lucide-react';
 import { VehicleIcon } from '../../utils/vehicleIcons';
 import { UserProfileModal } from '../auth/UserProfileModal';
 import { RoleSwitcherModal } from '../saas/RoleSwitcherModal';
+import { AppTheme } from '../../types/traccar';
 
 export const Header: React.FC = () => {
   const { 
@@ -38,6 +40,8 @@ export const Header: React.FC = () => {
     currentRole,
     isRoleSwitcherOpen,
     setIsRoleSwitcherOpen,
+    appTheme,
+    setAppTheme,
     language, 
     setLanguage, 
     audioAlertsEnabled,
@@ -46,6 +50,7 @@ export const Header: React.FC = () => {
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
 
   const displayDevices = user?.partnerId ? (tenantDevices.length > 0 ? tenantDevices : devices) : devices;
 
@@ -310,6 +315,24 @@ export const Header: React.FC = () => {
             </>
           )}
 
+          {/* Modern Theme Switcher Button */}
+          <button
+            onClick={() => setIsThemeModalOpen(true)}
+            className={`p-1.5 rounded-lg border transition active:scale-95 shadow-sm flex items-center space-x-1 text-[10px] font-bold ${
+              appTheme === 'emerald_luxe' 
+                ? 'bg-emerald-600/30 hover:bg-emerald-600/45 border-emerald-500/40 text-emerald-300' 
+                : appTheme === 'royal_amethyst' 
+                ? 'bg-purple-600/30 hover:bg-purple-600/45 border-purple-500/40 text-purple-300' 
+                : 'bg-indigo-600/30 hover:bg-indigo-600/45 border-indigo-500/40 text-indigo-300'
+            }`}
+            title="থিম পরিবর্তন করুন (Color Themes)"
+          >
+            <Palette className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">
+              {appTheme === 'emerald_luxe' ? 'এমেরাল্ড' : appTheme === 'royal_amethyst' ? 'অমেথিস্ট' : 'মিডনাইট'}
+            </span>
+          </button>
+
           {/* Universal Language Toggle */}
           <button
             onClick={() => setLanguage(language === 'bn' ? 'en' : 'bn')}
@@ -329,6 +352,118 @@ export const Header: React.FC = () => {
           </button>
         </div>
       </header>
+
+      {/* Modern Theme Switcher Modal */}
+      {isThemeModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="bg-slate-900 border border-slate-700 rounded-3xl p-5 max-w-md w-full shadow-2xl space-y-4 animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center space-x-2.5">
+                <div className="w-9 h-9 rounded-2xl bg-indigo-600/30 border border-indigo-500/50 flex items-center justify-center text-indigo-300 shadow-md">
+                  <Palette className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-sm text-white">
+                    {language === 'bn' ? '🎨 আধুনিক কালার থিম নির্বাচন করুন' : '🎨 Select Modern Color Theme'}
+                  </h3>
+                  <p className="text-[10.5px] text-slate-400">
+                    {language === 'bn' ? 'আপনার পছন্দ অনুযায়ী ড্যাশবোর্ডের লুক ও কালার প্যালেট সেট করুন।' : 'Choose your preferred dashboard look & feel.'}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsThemeModalOpen(false)}
+                className="p-1.5 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white transition"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-2.5">
+              {[
+                {
+                  id: 'cyber_midnight' as AppTheme,
+                  nameBn: '🌌 সাইবার মিডনাইট (Cyber Midnight)',
+                  nameEn: 'Cyber Midnight',
+                  descBn: 'ডার্ক স্পেস ব্ল্যাক, ইলেকট্রিক স্লেট ব্লু ও নিওন গ্লো (ডিফল্ট প্রফেশনাল)',
+                  colors: ['#020617', '#1e293b', '#3b82f6', '#6366f1']
+                },
+                {
+                  id: 'emerald_luxe' as AppTheme,
+                  nameBn: '💎 এমেরাল্ড লাক্স (Emerald Luxe)',
+                  nameEn: 'Emerald Luxe',
+                  descBn: 'ডিপ ফরেস্ট এমারেল্ড, প্রিমিয়াম জেড গ্রিন ও গোল্ডেন এক্সেন্ট',
+                  colors: ['#021a12', '#052e1f', '#10b981', '#f59e0b']
+                },
+                {
+                  id: 'royal_amethyst' as AppTheme,
+                  nameBn: '🔮 রয়্যাল অমেথিস্ট (Royal Amethyst)',
+                  nameEn: 'Royal Amethyst',
+                  descBn: 'কসমিক ডিপ নেবুলা ভায়োলেট, সাইবার পার্পল ও ফিউশিয়া গ্লো',
+                  colors: ['#090514', '#130a2a', '#a855f7', '#06b6d4']
+                }
+              ].map((theme) => {
+                const isSelected = appTheme === theme.id;
+                return (
+                  <div
+                    key={theme.id}
+                    onClick={() => {
+                      setAppTheme(theme.id);
+                    }}
+                    className={`p-3.5 rounded-2xl border transition cursor-pointer flex items-center justify-between ${
+                      isSelected 
+                        ? 'bg-slate-800/90 border-indigo-500 ring-2 ring-indigo-500/30 shadow-lg' 
+                        : 'bg-slate-950/60 border-slate-800 hover:border-slate-700 hover:bg-slate-850'
+                    }`}
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center space-x-2">
+                        <span className="font-extrabold text-xs text-white">
+                          {language === 'bn' ? theme.nameBn : theme.nameEn}
+                        </span>
+                        {isSelected && (
+                          <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                            সক্রিয়
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[10.5px] text-slate-400 max-w-xs">{theme.descBn}</p>
+                      
+                      {/* Color Palette Preview Swatches */}
+                      <div className="flex items-center space-x-1.5 pt-1">
+                        {theme.colors.map((c, i) => (
+                          <div 
+                            key={i} 
+                            className="w-4 h-4 rounded-full border border-white/20 shadow-inner" 
+                            style={{ backgroundColor: c }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="pl-3">
+                      <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${
+                        isSelected ? 'bg-indigo-600 border-indigo-500 text-white' : 'border-slate-700'
+                      }`}>
+                        {isSelected && <CheckCircle2 className="w-4 h-4" />}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="pt-2 flex justify-end">
+              <button
+                onClick={() => setIsThemeModalOpen(false)}
+                className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md transition active:scale-95"
+              >
+                {language === 'bn' ? 'সম্পন্ন (Apply & Close)' : 'Done'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* User Profile & Subscription Modal */}
       <UserProfileModal

@@ -100,7 +100,7 @@ class PortalErrorBoundary extends React.Component<PortalErrorBoundaryProps, { ha
 }
 
 const MainAppContent: React.FC = () => {
-  const { user, activeTab, setActiveTab, currentRole, setCurrentRole } = useApp();
+  const { user, activeTab, setActiveTab, currentRole, setCurrentRole, appTheme } = useApp();
   const [isInitialPinModalOpen, setIsInitialPinModalOpen] = useState(false);
 
   useEffect(() => {
@@ -118,7 +118,13 @@ const MainAppContent: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col h-[100dvh] w-screen bg-slate-950 text-slate-100 overflow-hidden font-sans select-none">
+    <div className={`flex flex-col h-[100dvh] w-screen overflow-hidden font-sans select-none theme-${appTheme.replace('_', '-')} ${
+      appTheme === 'emerald_luxe' 
+        ? 'bg-[#021a12] text-emerald-50' 
+        : appTheme === 'royal_amethyst' 
+        ? 'bg-[#090514] text-purple-50' 
+        : 'bg-slate-950 text-slate-100'
+    }`}>
       {/* Top Header with Role-Tailored Controls */}
       <Header />
 

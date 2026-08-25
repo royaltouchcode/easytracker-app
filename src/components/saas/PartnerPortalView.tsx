@@ -39,7 +39,8 @@ import {
   FileSpreadsheet,
   Receipt,
   Tag,
-  Boxes
+  Boxes,
+  Radio
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Device, PartnerRegistrationEntry, SaasRole } from '../../types/traccar';
@@ -48,7 +49,9 @@ import { EnterpriseInventoryManager } from './EnterpriseInventoryManager';
 type PartnerSectionType = 
   | 'overview'
   | 'inventory'
-  | 'inventory_erp'
+  | 'device_inventory'
+  | 'sim_inventory'
+  | 'sales_log'
   | 'pricing_plans'
   | 'finance'
   | 'staff'
@@ -267,8 +270,10 @@ export const PartnerPortalView: React.FC = () => {
   // Navigation Items
   const SIDEBAR_ITEMS: { id: PartnerSectionType; labelBn: string; labelEn: string; icon: any; badge?: string; badgeColor?: string }[] = [
     { id: 'overview', labelBn: 'ওভারভিউ ও মেট্রিক্স', labelEn: 'Overview & Metrics', icon: Building2 },
-    { id: 'inventory', labelBn: 'স্লট ও কাস্টমার ভেহিক্যালস', labelEn: 'Device Inventory', icon: Layers, badge: `${usedSlots}/${totalAllocatedSlots}`, badgeColor: 'bg-indigo-500/20 text-indigo-300' },
-    { id: 'inventory_erp', labelBn: 'হার্ডওয়্যার ও সিম ইনভেন্টরি', labelEn: 'Hardware & SIM ERP', icon: Cpu, badge: 'ERP', badgeColor: 'bg-cyan-500/20 text-cyan-300' },
+    { id: 'inventory', labelBn: 'স্লট ও কাস্টমার ভেহিক্যালস', labelEn: 'Active Vehicles', icon: Layers, badge: `${usedSlots}/${totalAllocatedSlots}`, badgeColor: 'bg-indigo-500/20 text-indigo-300' },
+    { id: 'device_inventory', labelBn: 'ট্র্যাকার ডিভাইস ইনভেন্টরি', labelEn: 'Device Inventory', icon: Cpu, badge: 'Hardware', badgeColor: 'bg-cyan-500/20 text-cyan-300' },
+    { id: 'sim_inventory', labelBn: 'টেলিমেটিক্স সিম ইনভেন্টরি', labelEn: 'SIM Inventory', icon: Radio, badge: 'M2M SIM', badgeColor: 'bg-purple-500/20 text-purple-300' },
+    { id: 'sales_log', labelBn: 'সেলস ও ইনস্টলেশন হিস্ট্রি', labelEn: 'Sales & Dispatch Log', icon: FileSpreadsheet, badge: 'BRTA', badgeColor: 'bg-emerald-500/20 text-emerald-300' },
     { id: 'pricing_plans', labelBn: 'সাবস্ক্রিপশন প্যাকেজ ও প্রাইসিং', labelEn: 'Subscription Plans', icon: Tag, badge: 'Config', badgeColor: 'bg-emerald-500/20 text-emerald-300' },
     { id: 'finance', labelBn: 'ফ্লোটিং লেজার ও পে-আউট', labelEn: 'Finance & Ledger', icon: CreditCard, badge: `৳${floatingDue}`, badgeColor: 'bg-rose-500/20 text-rose-300' },
     { id: 'staff', labelBn: 'স্টাফ ও টেকনিশিয়ান টিম', labelEn: 'Staff & Team', icon: Users, badge: '৩ জন', badgeColor: 'bg-purple-500/20 text-purple-300' },
@@ -718,47 +723,60 @@ export const PartnerPortalView: React.FC = () => {
                 </div>
               </div>
 
-              {/* Quick Action Navigation Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {/* Quick Action Navigation Cards (4 Cards) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 <div 
                   onClick={() => {
                     setCurrentRole('sales');
                     setActiveTab('saas_sales');
                   }}
-                  className="p-4 rounded-3xl bg-gradient-to-br from-indigo-950/60 to-slate-900 border border-indigo-500/30 hover:border-indigo-500/60 cursor-pointer transition active:scale-[0.98] shadow-lg flex items-center space-x-3.5"
+                  className="p-4 rounded-3xl bg-gradient-to-br from-indigo-950/60 to-slate-900 border border-indigo-500/30 hover:border-indigo-500/60 cursor-pointer transition active:scale-[0.98] shadow-lg flex items-center space-x-3"
                 >
-                  <div className="w-10 h-10 rounded-2xl bg-indigo-600/30 border border-indigo-500/50 flex items-center justify-center text-indigo-300 shrink-0">
-                    <Plus className="w-5 h-5" />
+                  <div className="w-9 h-9 rounded-2xl bg-indigo-600/30 border border-indigo-500/50 flex items-center justify-center text-indigo-300 shrink-0">
+                    <Plus className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className="font-extrabold text-xs text-white">নতুন কাস্টমার অনবোর্ডিং</h4>
-                    <p className="text-[10px] text-slate-400 mt-0.5">নতুন বাইক বা গাড়িতে ডিভাইস ইনস্টল ও বিক্রি করুন</p>
+                    <h4 className="font-extrabold text-xs text-white">নতুন অনবোর্ডিং</h4>
+                    <p className="text-[9.5px] text-slate-400 mt-0.5">নতুন বাইকে ডিভাইস ইনস্টল ও সেলস</p>
                   </div>
                 </div>
 
                 <div 
-                  onClick={() => setActiveSection('inventory_erp')}
-                  className="p-4 rounded-3xl bg-gradient-to-br from-cyan-950/60 to-slate-900 border border-cyan-500/30 hover:border-cyan-500/60 cursor-pointer transition active:scale-[0.98] shadow-lg flex items-center space-x-3.5"
+                  onClick={() => setActiveSection('device_inventory')}
+                  className="p-4 rounded-3xl bg-gradient-to-br from-cyan-950/60 to-slate-900 border border-cyan-500/30 hover:border-cyan-500/60 cursor-pointer transition active:scale-[0.98] shadow-lg flex items-center space-x-3"
                 >
-                  <div className="w-10 h-10 rounded-2xl bg-cyan-600/30 border border-cyan-500/50 flex items-center justify-center text-cyan-300 shrink-0">
-                    <Boxes className="w-5 h-5" />
+                  <div className="w-9 h-9 rounded-2xl bg-cyan-600/30 border border-cyan-500/50 flex items-center justify-center text-cyan-300 shrink-0">
+                    <Cpu className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className="font-extrabold text-xs text-white">হার্ডওয়্যার ও সিম ERP</h4>
-                    <p className="text-[10px] text-slate-400 mt-0.5">বারকোড স্ক্যানার, আইএমইআই ও সিম স্টক ম্যানেজমেন্ট</p>
+                    <h4 className="font-extrabold text-xs text-white">ট্র্যাকার ডিভাইস হাব</h4>
+                    <p className="text-[9.5px] text-slate-400 mt-0.5">IMEI, বারকোড ও হার্ডওয়্যার স্টক</p>
+                  </div>
+                </div>
+
+                <div 
+                  onClick={() => setActiveSection('sim_inventory')}
+                  className="p-4 rounded-3xl bg-gradient-to-br from-purple-950/60 to-slate-900 border border-purple-500/30 hover:border-purple-500/60 cursor-pointer transition active:scale-[0.98] shadow-lg flex items-center space-x-3"
+                >
+                  <div className="w-9 h-9 rounded-2xl bg-purple-600/30 border border-purple-500/50 flex items-center justify-center text-purple-300 shrink-0">
+                    <Radio className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="font-extrabold text-xs text-white">টেলিমেটিক্স সিম হাব</h4>
+                    <p className="text-[9.5px] text-slate-400 mt-0.5">M2M সিম, PUK ও ICCID ম্যানেজমেন্ট</p>
                   </div>
                 </div>
 
                 <div 
                   onClick={() => setActiveSection('pricing_plans')}
-                  className="p-4 rounded-3xl bg-gradient-to-br from-emerald-950/60 to-slate-900 border border-emerald-500/30 hover:border-emerald-500/60 cursor-pointer transition active:scale-[0.98] shadow-lg flex items-center space-x-3.5"
+                  className="p-4 rounded-3xl bg-gradient-to-br from-emerald-950/60 to-slate-900 border border-emerald-500/30 hover:border-emerald-500/60 cursor-pointer transition active:scale-[0.98] shadow-lg flex items-center space-x-3"
                 >
-                  <div className="w-10 h-10 rounded-2xl bg-emerald-600/30 border border-emerald-500/50 flex items-center justify-center text-emerald-300 shrink-0">
-                    <Tag className="w-5 h-5" />
+                  <div className="w-9 h-9 rounded-2xl bg-emerald-600/30 border border-emerald-500/50 flex items-center justify-center text-emerald-300 shrink-0">
+                    <Tag className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className="font-extrabold text-xs text-white">সাবস্ক্রিপশন প্যাকেজ ও প্রাইসিং</h4>
-                    <p className="text-[10px] text-slate-400 mt-0.5">১, ৩, ৬ ও ১২ মাসের নিজস্ব খুচরা রেট ও প্রফিট মার্জিন</p>
+                    <h4 className="font-extrabold text-xs text-white">প্যাকেজ ও প্রাইসিং</h4>
+                    <p className="text-[9.5px] text-slate-400 mt-0.5">১, ৩, ৬, ১২ মাস রেট ও প্রফিট মার্জিন</p>
                   </div>
                 </div>
               </div>
@@ -956,30 +974,101 @@ export const PartnerPortalView: React.FC = () => {
             </div>
           )}
 
-          {/* INVENTORY ERP TAB: HARDWARE & SIM ERP WITH BARCODE */}
-          {activeSection === 'inventory_erp' && (
+          {/* ========================================================================= */}
+          {/* 📦 TAB 3: DEDICATED TRACKER DEVICE INVENTORY ERP                          */}
+          {/* ========================================================================= */}
+          {activeSection === 'device_inventory' && (
             <div className="space-y-4 animate-in fade-in duration-150">
               <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 sm:p-5 shadow-xl">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3 mb-4">
                   <div className="flex items-center space-x-2.5">
-                    <div className="w-9 h-9 rounded-2xl bg-cyan-600/30 border border-cyan-500/50 flex items-center justify-center text-cyan-300 shadow-md">
+                    <div className="w-9 h-9 rounded-2xl bg-indigo-600/30 border border-indigo-500/50 flex items-center justify-center text-indigo-300 shadow-md">
                       <Cpu className="w-5 h-5" />
                     </div>
                     <div>
                       <h3 className="font-extrabold text-sm text-white">
-                        ফ্র্যাঞ্চাইজি হার্ডওয়্যার ও সিম ইনভেন্টরি ইআরপি (ERP)
+                        📦 ট্র্যাকার হার্ডওয়্যার ডিভাইস ইনভেন্টরি হাব
                       </h3>
                       <p className="text-[10.5px] text-slate-400">
-                        বারকোড স্ক্যানার, আইএমইআই (IMEI), ম্যানুফ্যাকচারার সিরিয়াল ও সিম লাইফসাইকেল অটোমেশন।
+                        ১৫ ডিজিট IMEI, বারকোড স্ক্যানার, মডেল/প্রোটোকল নির্বাচন ও হার্ডওয়্যার স্টক হিস্ট্রি।
                       </p>
                     </div>
                   </div>
-                  <span className="px-3 py-1 rounded-full bg-cyan-500/20 text-cyan-300 font-extrabold text-xs border border-cyan-500/40 shrink-0 self-start sm:self-auto">
-                    ইআরপি মডিউল সক্রিয়
+                  <span className="px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 font-extrabold text-xs border border-indigo-500/40 shrink-0 self-start sm:self-auto">
+                    হার্ডওয়্যার মডিউল
                   </span>
                 </div>
 
                 <EnterpriseInventoryManager 
+                  standaloneMode="devices"
+                  partnerIdFilter={partnerProfile.partnerId || user?.partnerId} 
+                  isPartnerPortal={true} 
+                />
+              </div>
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* 📶 TAB 4: DEDICATED TELEMATICS SIM INVENTORY ERP                           */}
+          {/* ========================================================================= */}
+          {activeSection === 'sim_inventory' && (
+            <div className="space-y-4 animate-in fade-in duration-150">
+              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 sm:p-5 shadow-xl">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3 mb-4">
+                  <div className="flex items-center space-x-2.5">
+                    <div className="w-9 h-9 rounded-2xl bg-purple-600/30 border border-purple-500/50 flex items-center justify-center text-purple-300 shadow-md">
+                      <Radio className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-extrabold text-sm text-white">
+                        📶 টেলিমেটিক্স এম২এম (M2M) সিম ইনভেন্টরি হাব
+                      </h3>
+                      <p className="text-[10.5px] text-slate-400">
+                        মোবাইল নম্বর, সিম ICCID, PUK-1/PUK-2 ও টেলকো অপারেটর (Robi/GP/BL/Teletalk) ম্যানেজমেন্ট।
+                      </p>
+                    </div>
+                  </div>
+                  <span className="px-3 py-1 rounded-full bg-purple-500/20 text-purple-300 font-extrabold text-xs border border-purple-500/40 shrink-0 self-start sm:self-auto">
+                    টেলিমেটিক্স সিম মডিউল
+                  </span>
+                </div>
+
+                <EnterpriseInventoryManager 
+                  standaloneMode="sims"
+                  partnerIdFilter={partnerProfile.partnerId || user?.partnerId} 
+                  isPartnerPortal={true} 
+                />
+              </div>
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* 📑 TAB 5: DEDICATED SALES & DISPATCH AUDIT LOG                             */}
+          {/* ========================================================================= */}
+          {activeSection === 'sales_log' && (
+            <div className="space-y-4 animate-in fade-in duration-150">
+              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 sm:p-5 shadow-xl">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3 mb-4">
+                  <div className="flex items-center space-x-2.5">
+                    <div className="w-9 h-9 rounded-2xl bg-emerald-600/30 border border-emerald-500/50 flex items-center justify-center text-emerald-300 shadow-md">
+                      <FileSpreadsheet className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-extrabold text-sm text-white">
+                        📑 সেলস, ইনস্টলেশন ও বিআরটিএ (BRTA) কমপ্লায়েন্স লেজার
+                      </h3>
+                      <p className="text-[10.5px] text-slate-400">
+                        প্রতিটি বিক্রি ও ইনস্টল্ড গাড়ির পেয়ারিং রেকর্ড এবং ১-ক্লিকে BRTA ডিজিটাল VTS সার্টিফিকেট ডাউনলোড।
+                      </p>
+                    </div>
+                  </div>
+                  <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 font-extrabold text-xs border border-emerald-500/40 shrink-0 self-start sm:self-auto">
+                    অডিট লেজার
+                  </span>
+                </div>
+
+                <EnterpriseInventoryManager 
+                  standaloneMode="sales_log"
                   partnerIdFilter={partnerProfile.partnerId || user?.partnerId} 
                   isPartnerPortal={true} 
                 />

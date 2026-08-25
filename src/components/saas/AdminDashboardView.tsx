@@ -50,7 +50,9 @@ import { EnterpriseInventoryManager } from './EnterpriseInventoryManager';
 type AdminSectionType = 
   | 'overview'
   | 'server_sync'
-  | 'inventory_erp'
+  | 'device_inventory'
+  | 'sim_inventory'
+  | 'sales_log'
   | 'sales_queue'
   | 'dealer_quotas'
   | 'rate_cards'
@@ -385,7 +387,9 @@ export const AdminDashboardView: React.FC = () => {
   const SIDEBAR_ITEMS: { id: AdminSectionType; labelBn: string; labelEn: string; icon: any; badge?: string; badgeColor?: string }[] = [
     { id: 'overview', labelBn: 'ওভারভিউ ও মেট্রিক্স', labelEn: 'Overview & Metrics', icon: Crown },
     { id: 'server_sync', labelBn: 'GPS সার্ভার ও সিঙ্ক হাব', labelEn: 'GPS Server & Sync', icon: Server, badge: 'Live', badgeColor: 'bg-emerald-500/20 text-emerald-300' },
-    { id: 'inventory_erp', labelBn: 'হার্ডওয়্যার ও সিম ERP', labelEn: 'Hardware & SIM ERP', icon: Cpu, badge: 'ERP', badgeColor: 'bg-cyan-500/20 text-cyan-300' },
+    { id: 'device_inventory', labelBn: 'ট্র্যাকার ডিভাইস ERP', labelEn: 'Device Inventory', icon: Cpu, badge: 'Hardware', badgeColor: 'bg-cyan-500/20 text-cyan-300' },
+    { id: 'sim_inventory', labelBn: 'টেলিমেটিক্স সিম ERP', labelEn: 'SIM Inventory', icon: Radio, badge: 'M2M SIM', badgeColor: 'bg-purple-500/20 text-purple-300' },
+    { id: 'sales_log', labelBn: 'সেলস ও ইনস্টলেশন হিস্ট্রি', labelEn: 'Sales & Dispatch Log', icon: FileSpreadsheet, badge: 'BRTA', badgeColor: 'bg-emerald-500/20 text-emerald-300' },
     { id: 'sales_queue', labelBn: 'সেলস অনবোর্ডিং কিউ', labelEn: 'Sales Leads Queue', icon: Smartphone, badge: pendingLeads.length > 0 ? `${pendingLeads.length}` : undefined, badgeColor: 'bg-amber-500/30 text-amber-300' },
     { id: 'dealer_quotas', labelBn: 'ডিলার পে-ওয়াল ও লেজার', labelEn: 'Dealer Quota & Ledger', icon: Building2 },
     { id: 'rate_cards', labelBn: 'সার্ভিস রেট ও পার্টস কার্ড', labelEn: 'Rate Cards & Spares', icon: CreditCard },
@@ -841,31 +845,91 @@ export const AdminDashboardView: React.FC = () => {
           )}
 
           {/* ========================================================================= */}
-          {/* VIEW: CENTRAL HARDWARE & SIM INVENTORY ERP                                 */}
+          {/* VIEW: CENTRAL HARDWARE TRACKER DEVICE ERP                                  */}
           {/* ========================================================================= */}
-          {activeSection === 'inventory_erp' && (
+          {activeSection === 'device_inventory' && (
             <div className="space-y-4 animate-in fade-in duration-150">
               <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3 mb-4">
                   <div className="flex items-center space-x-2.5">
-                    <div className="w-10 h-10 rounded-2xl bg-cyan-600/30 border border-cyan-500/50 flex items-center justify-center text-cyan-300 shadow-md">
+                    <div className="w-10 h-10 rounded-2xl bg-indigo-600/30 border border-indigo-500/50 flex items-center justify-center text-indigo-300 shadow-md">
                       <Cpu className="w-5 h-5" />
                     </div>
                     <div>
                       <h3 className="font-extrabold text-sm text-white">
-                        সেন্ট্রাল হার্ডওয়্যার ও সিম কার্ড ইনভেন্টরি ইআরপি (ERP)
+                        📦 সেন্ট্রাল ট্র্যাকার হার্ডওয়্যার ডিভাইস ইআরপি (ERP)
                       </h3>
                       <p className="text-[11px] text-slate-400">
-                        সারাদেশের সকল পার্টনার ও ডিলারের ট্র্যাকার স্টক, সিম লাইফসাইকেল, বারকোড স্ক্যানার এবং ওয়্যারহাউজ ব্যালেন্স।
+                        সারাদেশের সকল ব্র্যান্ড পার্টনার ও ডিলারের ট্র্যাকার স্টক, IMEI ডাটাবেজ, বারকোড স্ক্যানার এবং ওয়্যারহাউজ ব্যালেন্স।
                       </p>
                     </div>
                   </div>
-                  <span className="px-3 py-1 rounded-full bg-cyan-500/20 text-cyan-300 font-extrabold text-xs border border-cyan-500/40 shrink-0 self-start sm:self-auto">
-                    সেন্ট্রাল স্টক মাস্টার
+                  <span className="px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 font-extrabold text-xs border border-indigo-500/40 shrink-0 self-start sm:self-auto">
+                    সেন্ট্রাল হার্ডওয়্যার স্টক
                   </span>
                 </div>
 
-                <EnterpriseInventoryManager isPartnerPortal={false} />
+                <EnterpriseInventoryManager standaloneMode="devices" isPartnerPortal={false} />
+              </div>
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* VIEW: CENTRAL TELEMATICS SIM CARD INVENTORY ERP                           */}
+          {/* ========================================================================= */}
+          {activeSection === 'sim_inventory' && (
+            <div className="space-y-4 animate-in fade-in duration-150">
+              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3 mb-4">
+                  <div className="flex items-center space-x-2.5">
+                    <div className="w-10 h-10 rounded-2xl bg-purple-600/30 border border-purple-500/50 flex items-center justify-center text-purple-300 shadow-md">
+                      <Radio className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-extrabold text-sm text-white">
+                        📶 সেন্ট্রাল টেলিমেটিক্স সিম কার্ড ইআরপি (M2M Telco ERP)
+                      </h3>
+                      <p className="text-[11px] text-slate-400">
+                        সারাদেশের টেলকো পার্টনার সিম (Robi/GP/BL/Teletalk), MSISDN, ICCID বারকোড, PUK ম্যানেজার ও এম২এম টেলিমেট্রি লাইফসাইকেল।
+                      </p>
+                    </div>
+                  </div>
+                  <span className="px-3 py-1 rounded-full bg-purple-500/20 text-purple-300 font-extrabold text-xs border border-purple-500/40 shrink-0 self-start sm:self-auto">
+                    টেলকো সিম মাস্টার
+                  </span>
+                </div>
+
+                <EnterpriseInventoryManager standaloneMode="sims" isPartnerPortal={false} />
+              </div>
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* VIEW: CENTRAL SALES & DISPATCH AUDIT LOG                                  */}
+          {/* ========================================================================= */}
+          {activeSection === 'sales_log' && (
+            <div className="space-y-4 animate-in fade-in duration-150">
+              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3 mb-4">
+                  <div className="flex items-center space-x-2.5">
+                    <div className="w-10 h-10 rounded-2xl bg-emerald-600/30 border border-emerald-500/50 flex items-center justify-center text-emerald-300 shadow-md">
+                      <FileSpreadsheet className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-extrabold text-sm text-white">
+                        📑 সেন্ট্রাল সেলস, ইনস্টলেশন ও বিআরটিএ (BRTA) কমপ্লায়েন্স লেজার
+                      </h3>
+                      <p className="text-[11px] text-slate-400">
+                        দেশব্যাপী সকল গাড়ি ও বাইকের লাইভ ট্র্যাকার পেয়ারিং অডিট এবং ডিজিটাল BRTA VTS সার্টিফিকেট জেনারেটর।
+                      </p>
+                    </div>
+                  </div>
+                  <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 font-extrabold text-xs border border-emerald-500/40 shrink-0 self-start sm:self-auto">
+                    সেন্ট্রাল অডিট লেজার
+                  </span>
+                </div>
+
+                <EnterpriseInventoryManager standaloneMode="sales_log" isPartnerPortal={false} />
               </div>
             </div>
           )}

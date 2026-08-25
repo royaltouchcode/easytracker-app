@@ -33,7 +33,8 @@ import {
   DigitalPaymentOffer,
   StaffCommissionEntry,
   DeviceInventoryItem,
-  SimInventoryItem
+  SimInventoryItem,
+  AppTheme
 } from '../types/traccar';
 import { traccarApi } from '../services/traccarApi';
 import { traccarSocket } from '../services/traccarSocket';
@@ -280,6 +281,8 @@ interface AppContextType {
     payoutNumber?: string
   ) => void;
 
+  appTheme: AppTheme;
+  setAppTheme: (theme: AppTheme) => void;
   language: Language;
   setLanguage: (lang: Language) => void;
   t: (key: string) => string;
@@ -3133,6 +3136,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     localStorage.setItem('gps_last_known_positions', JSON.stringify({ [realBike.id]: realPos }));
   };
 
+  const [appTheme, setAppThemeState] = useState<AppTheme>(() => {
+    return (localStorage.getItem('easytracker_app_theme') as AppTheme) || 'cyber_midnight';
+  });
+
+  const setAppTheme = (theme: AppTheme) => {
+    setAppThemeState(theme);
+    localStorage.setItem('easytracker_app_theme', theme);
+  };
+
   const restoreDemoFleetData = () => {
     localStorage.removeItem('gps_demo_purged');
     setIsDemoPurged(false);
@@ -3261,6 +3273,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         bulkImportDevices,
         bulkImportSims,
         updatePartnerTierPricing,
+        appTheme,
+        setAppTheme,
         language,
         setLanguage,
         t,

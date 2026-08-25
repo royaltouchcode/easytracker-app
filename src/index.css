@@ -124,3 +124,78 @@
 .leaflet-popup-tip {
   background: #0f172a !important;
 }
+
+/* ========================================================================= */
+/* 🎨 3 MODERN ENTERPRISE THEMES (Global Overrides & Glow Highlights)        */
+/* ========================================================================= */
+
+/* 1. Cyber Midnight (Default Tech Obsidian & Electric Indigo) */
+.theme-cyber-midnight {
+  --theme-bg-base: #020617;
+  --theme-bg-panel: #0f172a;
+  --theme-border: #1e293b;
+  --theme-accent: #3b82f6;
+  --theme-accent-glow: rgba(59, 130, 246, 0.25);
+}
+
+/* 2. Emerald Luxe (Prestige Deep Forest & Jade Green & Gold) */
+.theme-emerald-luxe {
+  --theme-bg-base: #021a12;
+  --theme-bg-panel: #052e1f;
+  --theme-border: #0d4a34;
+  --theme-accent: #10b981;
+  --theme-accent-glow: rgba(16, 185, 129, 0.3);
+}
+
+.theme-emerald-luxe .bg-slate-950 {
+  background-color: #021a12 !important;
+}
+.theme-emerald-luxe .bg-slate-900 {
+  background-color: #052e1f !important;
+  border-color: #0d4a34 !important;
+}
+.theme-emerald-luxe .bg-slate-900\/95 {
+  background-color: rgba(5, 46, 31, 0.95) !important;
+  border-color: #0d4a34 !important;
+}
+.theme-emerald-luxe .bg-slate-800 {
+  background-color: #083d2a !important;
+  border-color: #125e43 !important;
+}
+.theme-emerald-luxe .border-slate-800 {
+  border-color: #0d4a34 !important;
+}
+.theme-emerald-luxe .border-slate-700 {
+  border-color: #125e43 !important;
+}
+
+/* 3. Royal Amethyst (Cosmic Deep Violet & Cyber Fuchsia & Cyan) */
+.theme-royal-amethyst {
+  --theme-bg-base: #090514;
+  --theme-bg-panel: #130a2a;
+  --theme-border: #2c1657;
+  --theme-accent: #a855f7;
+  --theme-accent-glow: rgba(168, 85, 247, 0.3);
+}
+
+.theme-royal-amethyst .bg-slate-950 {
+  background-color: #090514 !important;
+}
+.theme-royal-amethyst .bg-slate-900 {
+  background-color: #130a2a !important;
+  border-color: #2c1657 !important;
+}
+.theme-royal-amethyst .bg-slate-900\/95 {
+  background-color: rgba(19, 10, 42, 0.95) !important;
+  border-color: #2c1657 !important;
+}
+.theme-royal-amethyst .bg-slate-800 {
+  background-color: #1d103d !important;
+  border-color: #3b1e75 !important;
+}
+.theme-royal-amethyst .border-slate-800 {
+  border-color: #2c1657 !important;
+}
+.theme-royal-amethyst .border-slate-700 {
+  border-color: #3b1e75 !important;
+}
