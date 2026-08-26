@@ -2939,8 +2939,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         return;
       }
 
-      // 2. If Persona is Fleet / Bus / Transit Company
-      if (lower.startsWith('fleet') || lower.startsWith('bus') || lower.startsWith('transit')) {
+      // 2. If Persona is Fleet / Bus / Transit Company / Staff PIN User
+      if (lower.startsWith('fleet') || lower.startsWith('bus') || lower.startsWith('transit') || lower.includes('fleetstaff') || /^[0-9\-\+]+$/.test(lower)) {
         const fleetVehicles: Device[] = [
           {
             id: 801,
@@ -3416,7 +3416,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         determinedRole = 'rescue';
         defaultTab = 'saas_rescue';
         approvedRoles = ['rescue', 'customer'];
-      } else if (lower.startsWith('fleet') || lower.startsWith('bus') || lower.startsWith('transit')) {
+      } else if (lower.startsWith('fleet') || lower.startsWith('bus') || lower.startsWith('transit') || lower.includes('fleetstaff') || /^[0-9\-\+]+$/.test(lower)) {
         determinedRole = 'customer';
         defaultTab = 'fleet_transit';
         approvedRoles = ['customer'];

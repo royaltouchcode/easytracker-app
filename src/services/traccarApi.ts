@@ -77,6 +77,38 @@ class TraccarApiService {
     bodyParams.append('password', pass);
 
     const lowerUser = emailOrUser.toLowerCase().trim();
+    const cleanPhone = emailOrUser.replace(/[^0-9]/g, '');
+    const STAFF_PIN_USERS: Record<string, { pin: string; name: string; role: string; assigned: string }> = {
+      '01711889900': { pin: '8821', name: 'মোঃ শফিকুল আলম (লাইনম্যান)', role: 'supervisor', assigned: 'গাবতলী সেন্ট্রাল বাস টার্মিনাল' },
+      '01822771122': { pin: '4419', name: 'আব্দুর রাজ্জাক (কাউন্টার ইনচার্জ)', role: 'supervisor', assigned: 'জয়দেবপুর বাস টার্মিনাল' },
+      '01712334455': { pin: '9081', name: 'মোঃ আব্দুল কুদ্দুস (বাস চালক)', role: 'driver', assigned: 'হানিফ এন্টারপ্রাইজ Hino 1J (ঢাকা মেট্রো-ব ১৪-৯৯০১)' },
+    };
+
+    // 1. Staff PIN Login verification
+    if (STAFF_PIN_USERS[cleanPhone]) {
+      const staff = STAFF_PIN_USERS[cleanPhone];
+      if (pass.trim() === staff.pin) {
+        return {
+          success: true,
+          user: {
+            id: 8001,
+            name: staff.name,
+            email: `${cleanPhone}@fleetstaff.easytracker.com`,
+            administrator: false,
+            readonly: true,
+            role: staff.role,
+            assigned: staff.assigned,
+            serverUrl: this.baseUrl
+          }
+        };
+      } else {
+        return {
+          success: false,
+          error: `ভুল পিন কোড! ${staff.name}-এর জন্য সঠিক ৪-ডিজিট পিন দিন।`
+        };
+      }
+    }
+
     const isRoleUser = ['demo', 'admin', 'ops', 'operations', 'sales', 'tech', 'technician', 'support', 'rescue', 'partner', 'fleet', 'bus', 'transit', 'user'].some(r => lowerUser.startsWith(r));
 
     // Instant bypass for all demo & role test users
