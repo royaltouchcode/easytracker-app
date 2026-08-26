@@ -19,6 +19,15 @@
 }
 
 /* Custom Marker Styles */
+.vehicle-div-icon {
+  background: transparent !important;
+  border: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: visible !important;
+}
+
 .custom-vehicle-marker {
   display: flex;
   align-items: center;
