@@ -769,14 +769,14 @@ export const AdminDashboardView: React.FC = () => {
             <div className="space-y-4 animate-in fade-in duration-150">
               
               {/* Header Action Banner */}
-              <div className="bg-gradient-to-r from-blue-950/60 via-slate-900 to-indigo-950/40 border border-blue-500/40 rounded-3xl p-5 shadow-xl space-y-3">
+              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl space-y-3">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
                   <div className="flex items-center space-x-2.5">
-                    <div className="w-10 h-10 rounded-2xl bg-blue-600/30 border border-blue-500/50 flex items-center justify-center text-blue-400 shadow-sm">
+                    <div className="w-10 h-10 rounded-2xl bg-blue-600/20 border border-blue-500/40 flex items-center justify-center text-blue-400 shadow-sm">
                       <Server className="w-5 h-5" />
                     </div>
                     <div>
-                      <h3 className="font-extrabold text-sm text-slate-100 flex items-center space-x-1.5">
+                      <h3 className="font-extrabold text-sm text-white flex items-center space-x-1.5">
                         <span>Multi-Server GPS Cluster & Partner Ingestion Hub</span>
                         <span className="text-[9.5px] bg-blue-500/20 text-blue-300 font-bold px-2 py-0.2 rounded-full border border-blue-500/30">
                           {trackingServers.length} টি ক্লাস্টার নোড
@@ -792,7 +792,7 @@ export const AdminDashboardView: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setIsAddServerModalOpen(true)}
-                      className="flex-1 sm:flex-initial px-3.5 py-2 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-xs shadow-lg shadow-emerald-600/30 flex items-center justify-center space-x-1.5 transition active:scale-95"
+                      className="flex-1 sm:flex-initial px-3.5 py-2 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs shadow-md shadow-emerald-600/30 flex items-center justify-center space-x-1.5 transition active:scale-95"
                     >
                       <Plus className="w-4 h-4" />
                       <span>নতুন সার্ভার যুক্ত করুন</span>
@@ -802,7 +802,7 @@ export const AdminDashboardView: React.FC = () => {
                       type="button"
                       onClick={handleSyncAllClusters}
                       disabled={isSyncingAllServers}
-                      className="flex-1 sm:flex-initial px-4 py-2 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold text-xs shadow-lg shadow-blue-600/30 flex items-center justify-center space-x-1.5 transition active:scale-95 disabled:opacity-50"
+                      className="flex-1 sm:flex-initial px-4 py-2 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs shadow-md shadow-blue-600/30 flex items-center justify-center space-x-1.5 transition active:scale-95 disabled:opacity-50"
                     >
                       <RefreshCw className={`w-4 h-4 ${isSyncingAllServers ? 'animate-spin text-amber-300' : ''}`} />
                       <span>{isSyncingAllServers ? 'সিঙ্ক হচ্ছে...' : '⚡ সিঙ্ক অল ক্লাস্টার্স'}</span>
@@ -812,30 +812,30 @@ export const AdminDashboardView: React.FC = () => {
 
                 {/* Aggregated Cluster KPI Bar */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 pt-1 text-xs">
-                  <div className="bg-slate-950/80 p-2.5 rounded-2xl border border-slate-800">
+                  <div className="bg-slate-950 p-2.5 rounded-2xl border border-slate-800">
                     <span className="text-[10px] text-slate-400 block">মোট কানেক্টেড সার্ভার:</span>
                     <strong className="text-blue-300 font-mono text-sm">{trackingServers.length} টি নোড</strong>
                   </div>
-                  <div className="bg-slate-950/80 p-2.5 rounded-2xl border border-slate-800">
+                  <div className="bg-slate-950 p-2.5 rounded-2xl border border-slate-800">
                     <span className="text-[10px] text-slate-400 block">মোট সিঙ্ককৃত যানবাহন:</span>
                     <strong className="text-emerald-300 font-mono text-sm">
                       {trackingServers.reduce((acc, s) => acc + s.deviceCount, 0)} টি লাইভ ডিভাইস
                     </strong>
                   </div>
-                  <div className="bg-slate-950/80 p-2.5 rounded-2xl border border-slate-800">
+                  <div className="bg-slate-950 p-2.5 rounded-2xl border border-slate-800">
                     <span className="text-[10px] text-slate-400 block">প্রাইমারি গেটওয়ে:</span>
                     <strong className="text-amber-300 font-mono text-xs truncate block">
                       {trackingServers.find(s => s.isDefault)?.name || 'Default Traccar'}
                     </strong>
                   </div>
-                  <div className="bg-slate-950/80 p-2.5 rounded-2xl border border-slate-800">
+                  <div className="bg-slate-950 p-2.5 rounded-2xl border border-slate-800">
                     <span className="text-[10px] text-slate-400 block">সর্বশেষ গ্লোবাল সিঙ্ক:</span>
                     <strong className="text-purple-300 font-mono text-xs truncate block">{lastSyncTime}</strong>
                   </div>
                 </div>
 
                 {syncSuccessMessage && (
-                  <div className="p-3 bg-emerald-950/90 border border-emerald-500/60 rounded-2xl text-xs text-emerald-300 font-bold flex items-center space-x-2 animate-in fade-in">
+                  <div className="p-3 bg-emerald-950 border border-emerald-500/60 rounded-2xl text-xs text-emerald-300 font-bold flex items-center space-x-2 animate-in fade-in">
                     <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                     <span>{syncSuccessMessage}</span>
                   </div>
@@ -850,7 +850,7 @@ export const AdminDashboardView: React.FC = () => {
                     <div 
                       key={srv.id} 
                       className={`bg-slate-900 border rounded-3xl p-4 flex flex-col justify-between space-y-3 shadow-xl relative transition ${
-                        srv.isDefault ? 'border-blue-500/60 bg-gradient-to-b from-blue-950/20 to-slate-900' : 'border-slate-800'
+                        srv.isDefault ? 'border-blue-500/80 ring-1 ring-blue-500/30 shadow-blue-500/10' : 'border-slate-800'
                       }`}
                     >
                       {/* Top Server Header */}
@@ -875,8 +875,8 @@ export const AdminDashboardView: React.FC = () => {
                         </h4>
 
                         {/* Connection Details */}
-                        <div className="space-y-1 pt-1.5 font-mono text-[10.5px] text-slate-300">
-                          <div className="flex items-center justify-between bg-slate-950/80 px-2 py-1 rounded-xl border border-slate-800">
+                        <div className="space-y-1.5 pt-1 font-mono text-[10.5px]">
+                          <div className="flex items-center justify-between bg-slate-950/80 px-2.5 py-1.5 rounded-xl border border-slate-800">
                             <span className="text-slate-400 text-[10px]">হোস্ট / IP:</span>
                             <div className="flex items-center space-x-1">
                               <span className="text-blue-300 font-bold truncate max-w-[140px]">{srv.url}:{srv.port}</span>
@@ -886,19 +886,19 @@ export const AdminDashboardView: React.FC = () => {
                             </div>
                           </div>
 
-                          <div className="flex items-center justify-between bg-slate-950/80 px-2 py-1 rounded-xl border border-slate-800">
+                          <div className="flex items-center justify-between bg-slate-950/80 px-2.5 py-1.5 rounded-xl border border-slate-800">
                             <span className="text-slate-400 text-[10px]">প্রোটোকল পোর্ট:</span>
-                            <span className="text-emerald-400 truncate max-w-[140px]">{srv.protocolPorts}</span>
+                            <span className="text-emerald-400 font-bold truncate max-w-[140px]">{srv.protocolPorts}</span>
                           </div>
 
-                          <div className="flex items-center justify-between bg-slate-950/80 px-2 py-1 rounded-xl border border-slate-800">
+                          <div className="flex items-center justify-between bg-slate-950/80 px-2.5 py-1.5 rounded-xl border border-slate-800">
                             <span className="text-slate-400 text-[10px]">সংযুক্ত ডিভাইস:</span>
                             <span className="text-purple-300 font-bold">{srv.deviceCount} টি ট্র্যাকার</span>
                           </div>
 
-                          <div className="flex items-center justify-between text-[10px] text-slate-400 pt-0.5 px-1">
+                          <div className="flex items-center justify-between text-[10.5px] text-slate-400 pt-0.5 px-1">
                             <span>সর্বশেষ সিঙ্ক:</span>
-                            <span className="text-amber-300 font-bold">{srv.lastSync}</span>
+                            <span className="text-amber-300 font-bold font-mono">{srv.lastSync}</span>
                           </div>
                         </div>
                       </div>
@@ -909,7 +909,7 @@ export const AdminDashboardView: React.FC = () => {
                           type="button"
                           onClick={() => handleSyncIndividualServer(srv)}
                           disabled={isSyncingThis}
-                          className="flex-1 py-2 rounded-xl bg-blue-600/30 hover:bg-blue-600/50 border border-blue-500/40 text-blue-300 hover:text-white font-extrabold text-[11px] flex items-center justify-center space-x-1 transition active:scale-95 disabled:opacity-50"
+                          className="flex-1 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-[11px] flex items-center justify-center space-x-1.5 shadow-md shadow-blue-600/30 transition active:scale-95 disabled:opacity-50"
                         >
                           <RefreshCw className={`w-3.5 h-3.5 ${isSyncingThis ? 'animate-spin text-amber-300' : ''}`} />
                           <span>{isSyncingThis ? 'সিঙ্ক হচ্ছে..' : 'সিঙ্ক করুন'}</span>

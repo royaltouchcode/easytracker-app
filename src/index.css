@@ -221,53 +221,62 @@
   color: #0f172a;
 }
 
-.theme-nordic-offwhite .bg-slate-950 {
-  background-color: #f1f5f9 !important;
+/* 1. Global Backgrounds & Panels */
+.theme-nordic-offwhite,
+.theme-nordic-offwhite main,
+.theme-nordic-offwhite .bg-slate-950,
+.theme-nordic-offwhite [class*="bg-slate-950"] {
+  background-color: #f8fafc !important;
   color: #0f172a !important;
 }
 
-.theme-nordic-offwhite .bg-slate-900 {
+.theme-nordic-offwhite aside,
+.theme-nordic-offwhite header,
+.theme-nordic-offwhite .bg-slate-900,
+.theme-nordic-offwhite [class*="bg-slate-900"] {
   background-color: #ffffff !important;
-  border-color: #e2e8f0 !important;
-  color: #0f172a !important;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05) !important;
-}
-
-.theme-nordic-offwhite .bg-slate-900\/95,
-.theme-nordic-offwhite .bg-slate-900\/90,
-.theme-nordic-offwhite .bg-slate-900\/80 {
-  background-color: rgba(255, 255, 255, 0.95) !important;
   border-color: #e2e8f0 !important;
   color: #0f172a !important;
 }
 
 .theme-nordic-offwhite .bg-slate-850,
-.theme-nordic-offwhite .bg-slate-800 {
-  background-color: #f8fafc !important;
-  border-color: #e2e8f0 !important;
-  color: #1e293b !important;
-}
-
-.theme-nordic-offwhite .bg-slate-800\/80,
-.theme-nordic-offwhite .bg-slate-800\/50,
-.theme-nordic-offwhite .bg-slate-750 {
+.theme-nordic-offwhite .bg-slate-800,
+.theme-nordic-offwhite [class*="bg-slate-800"] {
   background-color: #f1f5f9 !important;
   border-color: #e2e8f0 !important;
   color: #1e293b !important;
 }
 
+/* 2. Gradient Overrides (Convert dark gradients to clean white/light panels) */
+.theme-nordic-offwhite [class*="bg-gradient-to-"] {
+  background-image: none !important;
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+.theme-nordic-offwhite [class*="from-slate-"],
+.theme-nordic-offwhite [class*="from-blue-950"],
+.theme-nordic-offwhite [class*="from-indigo-950"],
+.theme-nordic-offwhite [class*="from-purple-950"],
+.theme-nordic-offwhite [class*="from-cyan-950"],
+.theme-nordic-offwhite [class*="from-rose-950"] {
+  background-color: #ffffff !important;
+}
+
+/* 3. Borders */
 .theme-nordic-offwhite .border-slate-800,
 .theme-nordic-offwhite .border-slate-700,
-.theme-nordic-offwhite .border-slate-800\/80,
-.theme-nordic-offwhite .border-slate-800\/60 {
+.theme-nordic-offwhite [class*="border-slate-800"],
+.theme-nordic-offwhite [class*="border-slate-700"] {
   border-color: #e2e8f0 !important;
 }
 
 .theme-nordic-offwhite .divide-slate-800\/60 > * + *,
 .theme-nordic-offwhite .divide-slate-800 > * + * {
-  border-color: #e2e8f0 !important;
+  border-color: #f1f5f9 !important;
 }
 
+/* 4. Text Contrast (CRITICAL: Transform light text into rich dark legible text) */
 .theme-nordic-offwhite .text-white,
 .theme-nordic-offwhite .text-slate-100,
 .theme-nordic-offwhite .text-slate-200 {
@@ -276,13 +285,142 @@
 
 .theme-nordic-offwhite .text-slate-300,
 .theme-nordic-offwhite .text-slate-400 {
-  color: #475569 !important;
+  color: #334155 !important;
 }
 
 .theme-nordic-offwhite .text-slate-500 {
   color: #64748b !important;
 }
 
+/* Deep high-contrast colors for all light mode badges and labels */
+.theme-nordic-offwhite .text-blue-300,
+.theme-nordic-offwhite .text-blue-400 {
+  color: #1d4ed8 !important;
+}
+
+.theme-nordic-offwhite .text-indigo-300,
+.theme-nordic-offwhite .text-indigo-400 {
+  color: #4338ca !important;
+}
+
+.theme-nordic-offwhite .text-cyan-300,
+.theme-nordic-offwhite .text-cyan-400 {
+  color: #0369a1 !important;
+}
+
+.theme-nordic-offwhite .text-emerald-300,
+.theme-nordic-offwhite .text-emerald-400 {
+  color: #047857 !important;
+}
+
+.theme-nordic-offwhite .text-amber-300,
+.theme-nordic-offwhite .text-amber-400 {
+  color: #b45309 !important;
+}
+
+.theme-nordic-offwhite .text-purple-300,
+.theme-nordic-offwhite .text-purple-400 {
+  color: #7e22ce !important;
+}
+
+.theme-nordic-offwhite .text-rose-300,
+.theme-nordic-offwhite .text-rose-400 {
+  color: #be123c !important;
+}
+
+.theme-nordic-offwhite .text-sky-300,
+.theme-nordic-offwhite .text-sky-400 {
+  color: #0284c7 !important;
+}
+
+.theme-nordic-offwhite .text-teal-300,
+.theme-nordic-offwhite .text-teal-400 {
+  color: #0f766e !important;
+}
+
+/* 5. Deep Colored Background Badges (Pastel Crisp Tints) */
+.theme-nordic-offwhite [class*="bg-blue-950"],
+.theme-nordic-offwhite [class*="bg-blue-500/20"],
+.theme-nordic-offwhite [class*="bg-blue-600/20"],
+.theme-nordic-offwhite [class*="bg-blue-600/30"] {
+  background-color: #eff6ff !important;
+  border-color: #bfdbfe !important;
+  color: #1d4ed8 !important;
+}
+
+.theme-nordic-offwhite [class*="bg-indigo-950"],
+.theme-nordic-offwhite [class*="bg-indigo-500/20"],
+.theme-nordic-offwhite [class*="bg-indigo-600/20"],
+.theme-nordic-offwhite [class*="bg-indigo-600/30"] {
+  background-color: #eef2ff !important;
+  border-color: #c7d2fe !important;
+  color: #4338ca !important;
+}
+
+.theme-nordic-offwhite [class*="bg-emerald-950"],
+.theme-nordic-offwhite [class*="bg-emerald-500/20"],
+.theme-nordic-offwhite [class*="bg-emerald-600/20"],
+.theme-nordic-offwhite [class*="bg-emerald-600/30"] {
+  background-color: #ecfdf5 !important;
+  border-color: #a7f3d0 !important;
+  color: #047857 !important;
+}
+
+.theme-nordic-offwhite [class*="bg-cyan-950"],
+.theme-nordic-offwhite [class*="bg-cyan-500/20"],
+.theme-nordic-offwhite [class*="bg-cyan-600/20"],
+.theme-nordic-offwhite [class*="bg-cyan-600/30"] {
+  background-color: #ecfeff !important;
+  border-color: #a5f3fc !important;
+  color: #0369a1 !important;
+}
+
+.theme-nordic-offwhite [class*="bg-amber-950"],
+.theme-nordic-offwhite [class*="bg-amber-500/20"],
+.theme-nordic-offwhite [class*="bg-amber-600/20"],
+.theme-nordic-offwhite [class*="bg-amber-600/30"] {
+  background-color: #fffbeb !important;
+  border-color: #fde68a !important;
+  color: #b45309 !important;
+}
+
+.theme-nordic-offwhite [class*="bg-purple-950"],
+.theme-nordic-offwhite [class*="bg-purple-500/20"],
+.theme-nordic-offwhite [class*="bg-purple-600/20"],
+.theme-nordic-offwhite [class*="bg-purple-600/30"] {
+  background-color: #faf5ff !important;
+  border-color: #e9d5ff !important;
+  color: #7e22ce !important;
+}
+
+.theme-nordic-offwhite [class*="bg-rose-950"],
+.theme-nordic-offwhite [class*="bg-rose-500/20"],
+.theme-nordic-offwhite [class*="bg-rose-600/20"],
+.theme-nordic-offwhite [class*="bg-rose-600/30"] {
+  background-color: #fff1f2 !important;
+  border-color: #fecdd3 !important;
+  color: #be123c !important;
+}
+
+.theme-nordic-offwhite [class*="bg-sky-950"],
+.theme-nordic-offwhite [class*="bg-sky-500/20"],
+.theme-nordic-offwhite [class*="bg-sky-600/20"],
+.theme-nordic-offwhite [class*="bg-sky-600/30"] {
+  background-color: #f0f9ff !important;
+  border-color: #bae6fd !important;
+  color: #0284c7 !important;
+}
+
+.theme-nordic-offwhite [class*="bg-teal-950"],
+.theme-nordic-offwhite [class*="bg-teal-500/20"],
+.theme-nordic-offwhite [class*="bg-teal-600/20"],
+.theme-nordic-offwhite [class*="bg-teal-600/30"] {
+  background-color: #f0fdfa !important;
+  border-color: #99f6e4 !important;
+  color: #0f766e !important;
+}
+
+/* 6. Form Inputs, Tables, Shadows & Modals */
 .theme-nordic-offwhite input,
 .theme-nordic-offwhite select,
 .theme-nordic-offwhite textarea {
@@ -291,91 +429,25 @@
   border-color: #cbd5e1 !important;
 }
 
-.theme-nordic-offwhite .bg-emerald-950,
-.theme-nordic-offwhite .bg-emerald-950\/50,
-.theme-nordic-offwhite .bg-emerald-950\/20 {
-  background-color: #ecfdf5 !important;
-  border-color: #a7f3d0 !important;
-}
-.theme-nordic-offwhite .text-emerald-300,
-.theme-nordic-offwhite .text-emerald-400 {
-  color: #047857 !important;
-}
-
-.theme-nordic-offwhite .bg-cyan-950,
-.theme-nordic-offwhite .bg-cyan-950\/40,
-.theme-nordic-offwhite .bg-cyan-950\/20 {
-  background-color: #ecfeff !important;
-  border-color: #a5f3fc !important;
-}
-.theme-nordic-offwhite .text-cyan-300,
-.theme-nordic-offwhite .text-cyan-400 {
-  color: #0e7490 !important;
-}
-
-.theme-nordic-offwhite .bg-amber-950,
-.theme-nordic-offwhite .bg-amber-950\/50,
-.theme-nordic-offwhite .bg-amber-950\/60 {
-  background-color: #fffbeb !important;
-  border-color: #fde68a !important;
-}
-.theme-nordic-offwhite .text-amber-300,
-.theme-nordic-offwhite .text-amber-400 {
-  color: #b45309 !important;
-}
-
-.theme-nordic-offwhite .bg-indigo-950,
-.theme-nordic-offwhite .bg-indigo-950\/40,
-.theme-nordic-offwhite .bg-indigo-950\/30 {
-  background-color: #eef2ff !important;
-  border-color: #c7d2fe !important;
-}
-.theme-nordic-offwhite .text-indigo-300,
-.theme-nordic-offwhite .text-indigo-400 {
-  color: #4338ca !important;
-}
-
-.theme-nordic-offwhite .bg-rose-950,
-.theme-nordic-offwhite .bg-rose-950\/40,
-.theme-nordic-offwhite .bg-rose-950\/70,
-.theme-nordic-offwhite .bg-rose-950\/90 {
-  background-color: #fff1f2 !important;
-  border-color: #fecdd3 !important;
-}
-.theme-nordic-offwhite .text-rose-300,
-.theme-nordic-offwhite .text-rose-400 {
-  color: #be123c !important;
-}
-
-.theme-nordic-offwhite .bg-purple-950,
-.theme-nordic-offwhite .bg-purple-950\/40,
-.theme-nordic-offwhite .bg-purple-950\/30 {
-  background-color: #faf5ff !important;
-  border-color: #e9d5ff !important;
-}
-.theme-nordic-offwhite .text-purple-300,
-.theme-nordic-offwhite .text-purple-400 {
-  color: #7e22ce !important;
-}
-
-.theme-nordic-offwhite .shadow-2xl,
-.theme-nordic-offwhite .shadow-xl {
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05) !important;
-}
-
-.theme-nordic-offwhite .bg-slate-900\/90,
-.theme-nordic-offwhite .bg-slate-900\/80,
-.theme-nordic-offwhite .bg-slate-900\/50 {
-  background-color: #ffffff !important;
+.theme-nordic-offwhite input::placeholder,
+.theme-nordic-offwhite textarea::placeholder {
+  color: #94a3b8 !important;
 }
 
 .theme-nordic-offwhite table tr:hover {
-  background-color: #f8fafc !important;
+  background-color: #f1f5f9 !important;
+}
+
+.theme-nordic-offwhite .shadow-2xl,
+.theme-nordic-offwhite .shadow-xl,
+.theme-nordic-offwhite .shadow-lg {
+  box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.06), 0 2px 6px -2px rgba(15, 23, 42, 0.03) !important;
 }
 
 .theme-nordic-offwhite .bg-black\/80,
 .theme-nordic-offwhite .bg-black\/85 {
-  background-color: rgba(15, 23, 42, 0.6) !important;
+  background-color: rgba(15, 23, 42, 0.5) !important;
 }
+
 
 
