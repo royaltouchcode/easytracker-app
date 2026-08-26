@@ -66,15 +66,15 @@ export const WarrantyAdminManager: React.FC = () => {
     setTimeout(() => setSavedDeviceId(null), 1800);
   };
 
-  const filteredDevices = devices.filter(d =>
-    d.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (d.attributes?.plateNumber || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-    d.uniqueId.includes(searchQuery)
+  const filteredDevices = (devices || []).filter(d =>
+    d?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (d?.attributes?.plateNumber || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (d?.uniqueId || '').includes(searchQuery)
   );
 
-  const totalActiveWarranties = Object.values(deviceWarranties).filter(w => w.status === 'active').length;
-  const pendingClaimsCount = warrantyClaims.filter(c => c.status === 'pending_support' || c.status === 'tech_assigned').length;
-  const completedClaimsCount = warrantyClaims.filter(c => c.status === 'completed').length;
+  const totalActiveWarranties = Object.values(deviceWarranties || {}).filter(w => w?.status === 'active').length;
+  const pendingClaimsCount = (warrantyClaims || []).filter(c => c?.status === 'pending_support' || c?.status === 'tech_assigned').length;
+  const completedClaimsCount = (warrantyClaims || []).filter(c => c?.status === 'completed').length;
 
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl space-y-4">

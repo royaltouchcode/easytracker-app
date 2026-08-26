@@ -173,19 +173,19 @@ export const PartnerOnboardingManager: React.FC = () => {
     alert('✅ পার্টনার স্লট কোটা ও ক্রেডিট লিমিট আপডেট হয়েছে!');
   };
 
-  const pendingList = partnerRegistrations.filter(p => p.status === 'pending_approval');
+  const pendingList = (partnerRegistrations || []).filter(p => p.status === 'pending_approval');
   const filteredPending = pendingList.filter(p =>
-    p.applicantName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (p.applicantName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
     (p.brandName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.phone.includes(searchQuery) ||
-    p.district.toLowerCase().includes(searchQuery.toLowerCase())
+    (p.phone || '').includes(searchQuery) ||
+    (p.district || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const filteredApproved = approvedPartners.filter(p =>
-    p.applicantName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+  const filteredApproved = (approvedPartners || []).filter(p =>
+    (p.applicantName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
     (p.brandName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.phone.includes(searchQuery) ||
-    p.district.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (p.phone || '').includes(searchQuery) ||
+    (p.district || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
     (p.partnerId || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 

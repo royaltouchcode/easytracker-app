@@ -343,7 +343,8 @@ export const UserAccessManager: React.FC = () => {
       canAuditRescueClaims: u.permissions?.canAuditRescueClaims || false,
       canExportData: u.permissions?.canExportData ?? true,
       canAccessGovTech: u.permissions?.canAccessGovTech || false,
-      canPurgeDemo: u.permissions?.canPurgeDemo || false
+      canPurgeDemo: u.permissions?.canPurgeDemo || false,
+      canViewDeviceSimDetails: u.permissions?.canViewDeviceSimDetails ?? true
     });
   };
 
@@ -466,7 +467,8 @@ export const UserAccessManager: React.FC = () => {
         canAuditRescueClaims: newUserRole === 'super_admin' || newUserRole === 'rescue',
         canExportData: true,
         canAccessGovTech: newUserRole === 'super_admin',
-        canPurgeDemo: newUserRole === 'super_admin'
+        canPurgeDemo: newUserRole === 'super_admin',
+        canViewDeviceSimDetails: true
       },
       lastLogin: 'এইমাত্র যুক্ত হয়েছে',
       createdAt: 'আজ'

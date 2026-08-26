@@ -34,6 +34,11 @@ import {
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { DeviceSimBundlerModal } from './DeviceSimBundlerModal';
+import { TransitCounterManager } from './TransitCounterManager';
+import { DriverPerformanceManager } from './DriverPerformanceManager';
+import { FuelTelematicsManager } from './FuelTelematicsManager';
+import { ComplianceDocumentVault } from './ComplianceDocumentVault';
+import { EnterpriseReportCenter } from './EnterpriseReportCenter';
 
 export interface CorporateFleetCompany {
   id: string;
@@ -278,7 +283,9 @@ const DEFAULT_TRIP_DISPATCHES: TripDispatchEntry[] = [
 export const CorporateFleetManager: React.FC = () => {
   const { triggerManualAlert } = useApp();
 
-  const [activeSubTab, setActiveSubTab] = useState<'companies' | 'vehicles' | 'dispatches' | 'fuel_audit'>('companies');
+  const [activeSubTab, setActiveSubTab] = useState<
+    'companies' | 'vehicles' | 'dispatches' | 'transit_counters' | 'drivers_vault' | 'fuel_audit' | 'compliance_docs' | 'reports_audit'
+  >('companies');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<'all' | 'bus_transit' | 'cargo_logistics' | 'courier_delivery'>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -461,45 +468,89 @@ export const CorporateFleetManager: React.FC = () => {
             onClick={() => setActiveSubTab('companies')}
             className={`px-3.5 py-1.5 rounded-xl font-bold border transition flex items-center space-x-1.5 ${
               activeSubTab === 'companies' ? 'bg-amber-600 text-white border-amber-500 shadow-md' : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-white'
-            }`}
-          >
-            <Building2 className="w-3.5 h-3.5" />
-            <span>🏢 কর্পোরেট কোম্পানি তালিকা ({filteredCompanies.length})</span>
-          </button>
+          }`}
+        >
+          <Building2 className="w-3.5 h-3.5" />
+          <span>🏢 কোম্পানি তালিকা ({filteredCompanies.length})</span>
+        </button>
 
-          <button
-            type="button"
-            onClick={() => setActiveSubTab('vehicles')}
-            className={`px-3.5 py-1.5 rounded-xl font-bold border transition flex items-center space-x-1.5 ${
-              activeSubTab === 'vehicles' ? 'bg-emerald-600 text-white border-emerald-500 shadow-md' : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-white'
-            }`}
-          >
-            <Truck className="w-3.5 h-3.5" />
-            <span>🚛 ফ্লিট ভেহিকেল ও চালক ভল্ট ({vehicles.length})</span>
-          </button>
+        <button
+          type="button"
+          onClick={() => setActiveSubTab('vehicles')}
+          className={`px-3 py-1.5 rounded-xl font-bold border transition flex items-center space-x-1.5 ${
+            activeSubTab === 'vehicles' ? 'bg-emerald-600 text-white border-emerald-500 shadow-md' : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-white'
+          }`}
+        >
+          <Truck className="w-3.5 h-3.5" />
+          <span>🚛 ফ্লিট গাড়ি ও লাইভ ({vehicles.length})</span>
+        </button>
 
-          <button
-            type="button"
-            onClick={() => setActiveSubTab('dispatches')}
-            className={`px-3.5 py-1.5 rounded-xl font-bold border transition flex items-center space-x-1.5 ${
-              activeSubTab === 'dispatches' ? 'bg-sky-600 text-white border-sky-500 shadow-md' : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-white'
-            }`}
-          >
-            <Receipt className="w-3.5 h-3.5" />
-            <span>📋 ট্রিপ ডিসপ্যাচ ও বাস টিকেটিং ({dispatches.length})</span>
-          </button>
+        <button
+          type="button"
+          onClick={() => setActiveSubTab('dispatches')}
+          className={`px-3 py-1.5 rounded-xl font-bold border transition flex items-center space-x-1.5 ${
+            activeSubTab === 'dispatches' ? 'bg-sky-600 text-white border-sky-500 shadow-md' : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-white'
+          }`}
+        >
+          <Receipt className="w-3.5 h-3.5" />
+          <span>📋 ট্রিপ ডিসপ্যাচ ({dispatches.length})</span>
+        </button>
 
-          <button
-            type="button"
-            onClick={() => setActiveSubTab('fuel_audit')}
-            className={`px-3.5 py-1.5 rounded-xl font-bold border transition flex items-center space-x-1.5 ${
-              activeSubTab === 'fuel_audit' ? 'bg-purple-600 text-white border-purple-500 shadow-md' : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-white'
-            }`}
-          >
-            <Fuel className="w-3.5 h-3.5" />
-            <span>⛽ ফুয়েল ও লাভ/ক্ষতি লেজার</span>
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => setActiveSubTab('transit_counters')}
+          className={`px-3 py-1.5 rounded-xl font-bold border transition flex items-center space-x-1.5 ${
+            activeSubTab === 'transit_counters' ? 'bg-orange-600 text-white border-orange-500 shadow-md' : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-white'
+          }`}
+        >
+          <Receipt className="w-3.5 h-3.5" />
+          <span>🎫 বাস কাউন্টার ও গেটপাস</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveSubTab('drivers_vault')}
+          className={`px-3 py-1.5 rounded-xl font-bold border transition flex items-center space-x-1.5 ${
+            activeSubTab === 'drivers_vault' ? 'bg-indigo-600 text-white border-indigo-500 shadow-md' : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-white'
+          }`}
+        >
+          <Users className="w-3.5 h-3.5" />
+          <span>👨‍✈️ চালক ও BRTA ভল্ট</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveSubTab('fuel_audit')}
+          className={`px-3 py-1.5 rounded-xl font-bold border transition flex items-center space-x-1.5 ${
+            activeSubTab === 'fuel_audit' ? 'bg-purple-600 text-white border-purple-500 shadow-md' : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-white'
+          }`}
+        >
+          <Fuel className="w-3.5 h-3.5" />
+          <span>⛽ ফুয়েল টেলিমেট্রিক্স</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveSubTab('compliance_docs')}
+          className={`px-3 py-1.5 rounded-xl font-bold border transition flex items-center space-x-1.5 ${
+            activeSubTab === 'compliance_docs' ? 'bg-teal-600 text-white border-teal-500 shadow-md' : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-white'
+          }`}
+        >
+          <ShieldCheck className="w-3.5 h-3.5" />
+          <span>📑 ফিটনেস ও কমপ্লায়েন্স</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveSubTab('reports_audit')}
+          className={`px-3 py-1.5 rounded-xl font-bold border transition flex items-center space-x-1.5 ${
+            activeSubTab === 'reports_audit' ? 'bg-rose-600 text-white border-rose-500 shadow-md' : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-white'
+          }`}
+        >
+          <Sparkles className="w-3.5 h-3.5" />
+          <span>📊 এন্টারপ্রাইজ রিপোর্ট</span>
+        </button>
+      </div>
 
         <div className="relative w-full sm:w-64">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
@@ -813,72 +864,38 @@ export const CorporateFleetManager: React.FC = () => {
         </div>
       )}
 
-      {/* 6. TAB 4: FUEL & MILEAGE AUDIT LEDGER */}
+      {/* 4. TAB: TRANSIT COUNTERS & DEPARTURE GATEPASS */}
+      {activeSubTab === 'transit_counters' && (
+        <div className="animate-in fade-in duration-150">
+          <TransitCounterManager />
+        </div>
+      )}
+
+      {/* 5. TAB: DRIVERS PERFORMANCE & BRTA VAULT */}
+      {activeSubTab === 'drivers_vault' && (
+        <div className="animate-in fade-in duration-150">
+          <DriverPerformanceManager />
+        </div>
+      )}
+
+      {/* 6. TAB: FUEL TELEMATICS & AUDIT */}
       {activeSubTab === 'fuel_audit' && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl space-y-3">
-            <div className="flex items-center space-x-2 text-amber-400 font-bold text-sm">
-              <Fuel className="w-5 h-5" />
-              <span>⛽ ফুয়েল অডিট সামারি</span>
-            </div>
-            <p className="text-xs text-slate-400">
-              ফ্লিট যানবাহনের প্রতি ১০০ কিমিতে গড় জ্বালানি খরচ, ফুয়েল চুরি ডিটেকশন এবং ট্যাংকার রিফিল লগ।
-            </p>
-            <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-2 font-mono text-xs">
-              <div className="flex justify-between">
-                <span className="text-slate-400">মোট মাসিক ডিজেল খরচ:</span>
-                <span className="text-amber-300 font-bold">৳১২,৪৫,০০০</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">গড় মাইলেজ (বাস):</span>
-                <span className="text-emerald-400 font-bold">৪.২ কিমি/লিটার</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">ফুয়েল ড্রেন এলার্ট (আজ):</span>
-                <span className="text-emerald-400 font-bold">০ টি (নিরাপদ)</span>
-              </div>
-            </div>
-          </div>
+        <div className="animate-in fade-in duration-150">
+          <FuelTelematicsManager />
+        </div>
+      )}
 
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl space-y-3">
-            <div className="flex items-center space-x-2 text-sky-400 font-bold text-sm">
-              <ShieldCheck className="w-5 h-5" />
-              <span>BRTA ড্রাইভার ও ফিটনেস ভল্ট</span>
-            </div>
-            <p className="text-xs text-slate-400">
-              চালকদের ড্রাইভিং লাইসেন্স পয়েন্ট এবং গাড়ির ট্যাক্স টোকেন ও রুট পারমিট ডিজিটাল ভেরিফিকেশন।
-            </p>
-            <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-2 font-mono text-xs">
-              <div className="flex justify-between">
-                <span className="text-slate-400">বৈধ লাইসেন্সপ্রাপ্ত চালক:</span>
-                <span className="text-emerald-400 font-bold">৯৮.৫% ভেরিফাইড</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">আগামী ৩০ দিনে রিনিউয়াল:</span>
-                <span className="text-amber-300 font-bold">৩ টি গাড়ি</span>
-              </div>
-            </div>
-          </div>
+      {/* 7. TAB: COMPLIANCE DOCUMENTS & FITNESS VAULT */}
+      {activeSubTab === 'compliance_docs' && (
+        <div className="animate-in fade-in duration-150">
+          <ComplianceDocumentVault />
+        </div>
+      )}
 
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl space-y-3">
-            <div className="flex items-center space-x-2 text-purple-400 font-bold text-sm">
-              <Receipt className="w-5 h-5" />
-              <span>কাউন্টার ডিপার্চার গেটপাস</span>
-            </div>
-            <p className="text-xs text-slate-400">
-              কাউন্টার মাস্টার ও বাস কন্ডাক্টরের মধ্যে ডিজিটাল টিকিট ট্যালি ও ছাড়ার অনুমতি।
-            </p>
-            <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-2 font-mono text-xs">
-              <div className="flex justify-between">
-                <span className="text-slate-400">আজকের ইস্যুকৃত গেটপাস:</span>
-                <span className="text-purple-300 font-bold">৪২ টি ট্রিপ</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">অনলাইন টিকিট রেশিও:</span>
-                <span className="text-sky-300 font-bold">৮৪% ডিজিটাল</span>
-              </div>
-            </div>
-          </div>
+      {/* 8. TAB: ENTERPRISE REPORTS & EXPORT HUB */}
+      {activeSubTab === 'reports_audit' && (
+        <div className="animate-in fade-in duration-150">
+          <EnterpriseReportCenter />
         </div>
       )}
 

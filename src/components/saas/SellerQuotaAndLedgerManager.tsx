@@ -42,7 +42,7 @@ export const SellerQuotaAndLedgerManager: React.FC = () => {
 
   // Assign IMEI Modal State
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
-  const [selectedPartnerId, setSelectedPartnerId] = useState(sellerImeiQuotas[0]?.partnerId || '');
+  const [selectedPartnerId, setSelectedPartnerId] = useState((sellerImeiQuotas || [])[0]?.partnerId || '');
   const [newImei, setNewImei] = useState('');
   const [newModel, setNewModel] = useState('EasyTracker 4G Pro Bike Relay');
   const [newCostBdt, setNewCostBdt] = useState(3000);
@@ -140,7 +140,7 @@ export const SellerQuotaAndLedgerManager: React.FC = () => {
             }`}
           >
             <Smartphone className="w-3.5 h-3.5" />
-            <span>ডিলার IMEI কোটা ({sellerImeiQuotas.length})</span>
+            <span>ডিলার IMEI কোটা ({(sellerImeiQuotas || []).length})</span>
           </button>
 
           <button
@@ -152,7 +152,7 @@ export const SellerQuotaAndLedgerManager: React.FC = () => {
             }`}
           >
             <DollarSign className="w-3.5 h-3.5" />
-            <span>টেকনিশিয়ান ফ্লোটিং লেজার ({technicianLedgers.length})</span>
+            <span>টেকনিশিয়ান ফ্লোটিং লেজার ({(technicianLedgers || []).length})</span>
           </button>
 
           <button
