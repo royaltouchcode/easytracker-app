@@ -29,7 +29,15 @@ import {
   Eye,
   SlidersHorizontal,
   Compass,
-  ArrowUpRight
+  ArrowUpRight,
+  KeyRound,
+  Lock,
+  Globe,
+  Share2,
+  Copy,
+  Check,
+  Settings,
+  Webhook
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
@@ -81,6 +89,29 @@ export interface CargoWaybill {
   actualArrival?: string;
   status: 'LOADING' | 'IN_TRANSIT' | 'DELIVERED' | 'CUSTOMS_HOLD';
   isAutoDetected?: boolean;
+}
+
+export interface StaffSubUser {
+  id: string;
+  fullName: string;
+  phone: string;
+  role: 'SUPERVISOR' | 'DRIVER' | 'AUDITOR';
+  assignedCounterOrPlate: string;
+  loginPin: string;
+  status: 'ACTIVE' | 'SUSPENDED';
+  lastActive: string;
+}
+
+export interface TicketingApiConnector {
+  id: string;
+  providerName: string;
+  endpointUrl: string;
+  apiKey: string;
+  autoSync: boolean;
+  syncIntervalMin: number;
+  lastPingStatus: 'SUCCESS' | 'FAILED' | 'PENDING';
+  lastPingTime: string;
+  latencyMs: number;
 }
 
 export const INITIAL_COUNTERS: TransitCounter[] = [
@@ -246,6 +277,64 @@ export const INITIAL_CARGO_WAYBILLS: CargoWaybill[] = [
   }
 ];
 
+export const INITIAL_STAFF_USERS: StaffSubUser[] = [
+  {
+    id: 'staff_1',
+    fullName: 'মোঃ শফিকুল আলম (লাইনম্যান)',
+    phone: '01711-889900',
+    role: 'SUPERVISOR',
+    assignedCounterOrPlate: 'গাবতলী সেন্ট্রাল বাস টার্মিনাল কাউন্টার',
+    loginPin: '8821',
+    status: 'ACTIVE',
+    lastActive: '১০ মিনিট পূর্বে'
+  },
+  {
+    id: 'staff_2',
+    fullName: 'আব্দুর রাজ্জাক (কাউন্টার ইনচার্জ)',
+    phone: '01822-771122',
+    role: 'SUPERVISOR',
+    assignedCounterOrPlate: 'মহাখালী আন্তঃজেলা বাস টার্মিনাল',
+    loginPin: '4419',
+    status: 'ACTIVE',
+    lastActive: 'আজকে ০৮:৩০ AM'
+  },
+  {
+    id: 'staff_3',
+    fullName: 'মোঃ আব্দুল কুদ্দুস (ড্রাইভার)',
+    phone: '01712-334455',
+    role: 'DRIVER',
+    assignedCounterOrPlate: 'ঢাকা মেট্রো-ব ১৪-৯৯০১',
+    loginPin: '9081',
+    status: 'ACTIVE',
+    lastActive: '১ ঘণ্টা পূর্বে'
+  }
+];
+
+export const INITIAL_API_CONNECTORS: TicketingApiConnector[] = [
+  {
+    id: 'api_1',
+    providerName: 'সহজ (Shohoz Ticketing Engine)',
+    endpointUrl: 'https://api.shohoz.com/v2/trips/dispatch',
+    apiKey: 'shz_live_8902189a812b',
+    autoSync: true,
+    syncIntervalMin: 5,
+    lastPingStatus: 'SUCCESS',
+    lastPingTime: 'আজকে ১২:৪০ PM',
+    latencyMs: 42
+  },
+  {
+    id: 'api_2',
+    providerName: 'যাত্রী (Jatri Fleet Webhook)',
+    endpointUrl: 'https://api.jatri.co/v1/fleet/schedules',
+    apiKey: 'jtr_live_339102bc91',
+    autoSync: true,
+    syncIntervalMin: 15,
+    lastPingStatus: 'SUCCESS',
+    lastPingTime: 'আজকে ১২:৩০ PM',
+    latencyMs: 58
+  }
+];
+
 interface TransitCounterManagerProps {
   isCustomerScoped?: boolean;
 }
@@ -253,7 +342,6 @@ interface TransitCounterManagerProps {
 export const TransitCounterManager: React.FC<TransitCounterManagerProps> = ({ isCustomerScoped = false }) => {
   const { devices, selectedDevice, language } = useApp();
 
-  // Determine Default Transit Engine based on Selected Vehicle Category
   const category = (selectedDevice?.category || '').toLowerCase();
   const isTruckOrCargo = category.includes('truck') || category.includes('trailer') || category.includes('pickup') || category.includes('van');
 
@@ -285,30 +373,64 @@ export const TransitCounterManager: React.FC<TransitCounterManagerProps> = ({ is
     return INITIAL_CARGO_WAYBILLS;
   });
 
-  // User View Role: Executive (Owner - Zero manual data entry, read-only analytics) vs Supervisor (Staff Dispatcher)
+  const [staffUsers, setStaffUsers] = useState<StaffSubUser[]>(() => {
+    const saved = localStorage.getItem('gps_transit_staff_users');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return INITIAL_STAFF_USERS;
+  });
+
+  const [apiConnectors, setApiConnectors] = useState<TicketingApiConnector[]>(() => {
+    const saved = localStorage.getItem('gps_transit_api_connectors');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return INITIAL_API_CONNECTORS;
+  });
+
   const [operatorRole, setOperatorRole] = useState<'owner' | 'supervisor'>('owner');
 
-  const [activeSubView, setActiveSubView] = useState<'schedules' | 'counters'>('schedules');
+  const [activeSubView, setActiveSubView] = useState<'schedules' | 'counters' | 'api_hub' | 'staff_users'>('schedules');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'COMPLETED' | 'DELAYED'>('ALL');
   const [isGpsAutoSyncing, setIsGpsAutoSyncing] = useState(false);
   const [autoSyncSuccessMsg, setAutoSyncSuccessMsg] = useState<string | null>(null);
 
-  // Modals
   const [isAddBusModalOpen, setIsAddBusModalOpen] = useState(false);
   const [isAddCargoModalOpen, setIsAddCargoModalOpen] = useState(false);
+  const [isAddCounterModalOpen, setIsAddCounterModalOpen] = useState(false);
+  const [isAddStaffModalOpen, setIsAddStaffModalOpen] = useState(false);
+  const [isAddApiModalOpen, setIsAddApiModalOpen] = useState(false);
 
-  // Bus Form State
+  const [cntName, setCntName] = useState('');
+  const [cntCity, setCntCity] = useState('ঢাকা');
+  const [cntType, setCntType] = useState<'BUS_TERMINAL' | 'CARGO_DEPOT'>('BUS_TERMINAL');
+  const [cntSupervisor, setCntSupervisor] = useState('');
+  const [cntPhone, setCntPhone] = useState('');
+  const [cntRadius, setCntRadius] = useState(150);
+
+  const [staffName, setStaffName] = useState('');
+  const [staffPhone, setStaffPhone] = useState('');
+  const [staffRole, setStaffRole] = useState<'SUPERVISOR' | 'DRIVER' | 'AUDITOR'>('SUPERVISOR');
+  const [staffAssigned, setStaffAssigned] = useState('');
+  const [staffPin, setStaffPin] = useState('');
+  const [copiedStaffId, setCopiedStaffId] = useState<string | null>(null);
+
+  const [apiName, setApiName] = useState('সহজ (Shohoz Ticketing API)');
+  const [apiUrl, setApiUrl] = useState('https://api.shohoz.com/v2/trips');
+  const [apiKeyVal, setApiKeyVal] = useState('');
+  const [apiPingLoading, setApiPingLoading] = useState<string | null>(null);
+
   const [busCoach, setBusCoach] = useState('');
   const [busPlate, setBusPlate] = useState(selectedDevice?.attributes?.plateNumber || '');
   const [busOrigin, setBusOrigin] = useState('গাবতলী সেন্ট্রাল বাস টার্মিনাল কাউন্টার');
   const [busDest, setBusDest] = useState('দামপাড়া / জিইসি বাস কাউন্টার');
   const [busTime, setBusTime] = useState('০১:৩০ PM');
   const [busPassengers, setBusPassengers] = useState(36);
-  const [busDriver, setBusDriver] = useState('মোঃ রফিকুল ইসলাম');
+  const [busDriver, setBusDriver] = useState('মোঃ আব্দুল কুদ্দুস');
 
-  // Cargo Form State
-  const [cargoWaybillNo, setCargoWaybillNo] = useState(`CH-DHK-${Math.floor(1000 + Math.random() * 9000)}`);
+  const [cargoWaybillNo, setCargoWaybillNo] = useState('CH-DHK-9081');
   const [cargoPlate, setCargoPlate] = useState(selectedDevice?.attributes?.plateNumber || '');
   const [cargoType, setCargoType] = useState('তৈরি পোশাক এক্সপোর্ট (RMG Goods)');
   const [cargoWeight, setCargoWeight] = useState(12.5);
@@ -318,7 +440,101 @@ export const TransitCounterManager: React.FC<TransitCounterManagerProps> = ({ is
   const [cargoDriver, setCargoDriver] = useState('মোঃ ফারুক হোসেন');
   const [cargoDriverPhone, setCargoDriverPhone] = useState('01700-112233');
 
-  // Save Bus Schedule
+  const handleSaveCounter = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!cntName.trim() || !cntSupervisor.trim()) return;
+
+    const newCounter: TransitCounter = {
+      id: `cnt_${Date.now().toString().slice(-4)}`,
+      nameBn: cntName.trim(),
+      cityBn: cntCity,
+      supervisorName: cntSupervisor.trim(),
+      supervisorPhone: cntPhone.trim() || '01700-000000',
+      latitude: 23.7788 + (Math.random() * 0.05),
+      longitude: 90.3444 + (Math.random() * 0.05),
+      radiusMeters: Number(cntRadius),
+      activeDeparturesToday: 0,
+      type: cntType
+    };
+
+    const updated = [newCounter, ...counters];
+    setCounters(updated);
+    localStorage.setItem('gps_transit_counters', JSON.stringify(updated));
+    setIsAddCounterModalOpen(false);
+    setCntName('');
+    setCntSupervisor('');
+    setCntPhone('');
+  };
+
+  const handleSaveStaffUser = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!staffName.trim() || !staffPhone.trim()) return;
+
+    const pin = staffPin.trim() || Math.floor(1000 + Math.random() * 9000).toString();
+
+    const newStaff: StaffSubUser = {
+      id: `staff_${Date.now().toString().slice(-4)}`,
+      fullName: staffName.trim(),
+      phone: staffPhone.trim(),
+      role: staffRole,
+      assignedCounterOrPlate: staffAssigned || (counters[0]?.nameBn || 'সেন্ট্রাল টার্মিনাল'),
+      loginPin: pin,
+      status: 'ACTIVE',
+      lastActive: 'এখনই তৈরি'
+    };
+
+    const updated = [newStaff, ...staffUsers];
+    setStaffUsers(updated);
+    localStorage.setItem('gps_transit_staff_users', JSON.stringify(updated));
+    setIsAddStaffModalOpen(false);
+    setStaffName('');
+    setStaffPhone('');
+    setStaffPin('');
+  };
+
+  const handleSaveApi = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!apiName.trim() || !apiKeyVal.trim()) return;
+
+    const newApi: TicketingApiConnector = {
+      id: `api_${Date.now().toString().slice(-4)}`,
+      providerName: apiName.trim(),
+      endpointUrl: apiUrl.trim(),
+      apiKey: apiKeyVal.trim(),
+      autoSync: true,
+      syncIntervalMin: 5,
+      lastPingStatus: 'SUCCESS',
+      lastPingTime: 'এখনই সিঙ্ক',
+      latencyMs: 38
+    };
+
+    const updated = [newApi, ...apiConnectors];
+    setApiConnectors(updated);
+    localStorage.setItem('gps_transit_api_connectors', JSON.stringify(updated));
+    setIsAddApiModalOpen(false);
+    setApiKeyVal('');
+  };
+
+  const handlePingApi = (id: string) => {
+    setApiPingLoading(id);
+    setTimeout(() => {
+      const updated = apiConnectors.map(c => {
+        if (c.id === id) {
+          return {
+            ...c,
+            lastPingStatus: 'SUCCESS' as const,
+            lastPingTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            latencyMs: Math.floor(35 + Math.random() * 30)
+          };
+        }
+        return c;
+      });
+      setApiConnectors(updated);
+      localStorage.setItem('gps_transit_api_connectors', JSON.stringify(updated));
+      setApiPingLoading(null);
+    }, 900);
+  };
+
   const handleSaveBusSchedule = (e: React.FormEvent) => {
     e.preventDefault();
     if (!busCoach.trim() || !busPlate.trim()) return;
@@ -345,7 +561,6 @@ export const TransitCounterManager: React.FC<TransitCounterManagerProps> = ({ is
     setIsAddBusModalOpen(false);
   };
 
-  // Save Cargo Waybill
   const handleSaveCargoWaybill = (e: React.FormEvent) => {
     e.preventDefault();
     if (!cargoWaybillNo.trim() || !cargoPlate.trim()) return;
@@ -375,7 +590,6 @@ export const TransitCounterManager: React.FC<TransitCounterManagerProps> = ({ is
     setIsAddCargoModalOpen(false);
   };
 
-  // 1-Click Simulated GPS Geofence Auto-Detection Engine
   const triggerGpsAutoSync = () => {
     setIsGpsAutoSyncing(true);
     setAutoSyncSuccessMsg(null);
@@ -419,7 +633,6 @@ export const TransitCounterManager: React.FC<TransitCounterManagerProps> = ({ is
     }, 1200);
   };
 
-  // Filtered Bus Schedules
   const filteredBusSchedules = busSchedules.filter(sch => {
     const matchesSearch = sch.coachNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           sch.vehiclePlate.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -432,7 +645,6 @@ export const TransitCounterManager: React.FC<TransitCounterManagerProps> = ({ is
     return true;
   });
 
-  // Filtered Cargo Waybills
   const filteredCargoWaybills = cargoWaybills.filter(wb => {
     const matchesSearch = wb.waybillNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           wb.truckPlate.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -448,7 +660,6 @@ export const TransitCounterManager: React.FC<TransitCounterManagerProps> = ({ is
   return (
     <div className="space-y-4 select-none">
       
-      {/* Top Banner with Adaptive Mode Switcher */}
       <div className="bg-gradient-to-r from-slate-900 via-slate-900 to-cyan-950 border border-slate-800 rounded-3xl p-4 sm:p-5 shadow-2xl space-y-3">
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
           <div className="flex items-center space-x-3">
@@ -470,16 +681,12 @@ export const TransitCounterManager: React.FC<TransitCounterManagerProps> = ({ is
                 </span>
               </div>
               <p className="text-xs text-slate-400 mt-0.5">
-                {transitEngineMode === 'bus'
-                  ? 'কাউন্টার জিওফেন্সিং, ডিপার্চার শিডিউল, ডিলে অ্যালার্ট ও সুপারভাইজার গেটপাস ম্যানেজমেন্ট'
-                  : 'ডিপো ও লোডিং পয়েন্ট, চালান ট্র্যাকিং, কার্গো ওজন, সিল নম্বর ও ডেলিভারি স্ট্যাটাস'}
+                কাউন্টার জিওফেন্সিং, ডিপার্চার শিডিউল, টিকেটিং API এবং সুপারভাইজার ও ড্রাইভার সাব-লগইন সিস্টেম
               </p>
             </div>
           </div>
 
-          {/* Mode Switchers & Role Toggle */}
           <div className="flex items-center space-x-2 flex-wrap self-end lg:self-auto">
-            {/* Transit Engine Mode Switcher */}
             <div className="flex items-center bg-slate-950 p-1 rounded-2xl border border-slate-800">
               <button
                 type="button"
@@ -507,7 +714,6 @@ export const TransitCounterManager: React.FC<TransitCounterManagerProps> = ({ is
               </button>
             </div>
 
-            {/* Operator Role Switcher */}
             <div className="flex items-center bg-slate-950 p-1 rounded-2xl border border-slate-800">
               <button
                 type="button"
@@ -517,7 +723,7 @@ export const TransitCounterManager: React.FC<TransitCounterManagerProps> = ({ is
                     ? 'bg-blue-600 text-white shadow-md'
                     : 'text-slate-400 hover:text-slate-200'
                 }`}
-                title="কোম্পানি মালিক মোড (Zero manual input, read-only analytics)"
+                title="কোম্পানি মালিক মোড (Zero manual input, full control)"
               >
                 <Eye className="w-3 h-3" />
                 <span>মালিক ভিউ</span>
@@ -539,7 +745,6 @@ export const TransitCounterManager: React.FC<TransitCounterManagerProps> = ({ is
           </div>
         </div>
 
-        {/* GPS Auto-Detection & Action Row */}
         <div className="pt-2 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-2.5">
           <div className="flex items-center space-x-2 text-xs">
             <button
@@ -560,24 +765,58 @@ export const TransitCounterManager: React.FC<TransitCounterManagerProps> = ({ is
             )}
           </div>
 
-          {operatorRole === 'supervisor' && (
-            <button
-              type="button"
-              onClick={() => transitEngineMode === 'bus' ? setIsAddBusModalOpen(true) : setIsAddCargoModalOpen(true)}
-              className="px-4 py-2 rounded-2xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 text-white font-extrabold text-xs shadow-lg shadow-cyan-600/30 flex items-center space-x-1.5 transition active:scale-95 shrink-0"
-            >
-              <Plus className="w-4 h-4" />
-              <span>{transitEngineMode === 'bus' ? '+ নতুন বাস ট্রিপ এন্ট্রি' : '+ নতুন কার্গো চালান এন্ট্রি'}</span>
-            </button>
-          )}
+          <div className="flex items-center space-x-2">
+            {activeSubView === 'counters' && (
+              <button
+                type="button"
+                onClick={() => setIsAddCounterModalOpen(true)}
+                className="px-3.5 py-2 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 text-white font-extrabold text-xs shadow-lg shadow-emerald-600/30 flex items-center space-x-1.5 transition active:scale-95 shrink-0"
+              >
+                <Plus className="w-4 h-4" />
+                <span>+ নতুন কাউন্টার ও সুপারভাইজার</span>
+              </button>
+            )}
+
+            {activeSubView === 'api_hub' && (
+              <button
+                type="button"
+                onClick={() => setIsAddApiModalOpen(true)}
+                className="px-3.5 py-2 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 text-white font-extrabold text-xs shadow-lg shadow-indigo-600/30 flex items-center space-x-1.5 transition active:scale-95 shrink-0"
+              >
+                <Plus className="w-4 h-4" />
+                <span>+ নতুন টিকেটিং API কানেক্ট করুন</span>
+              </button>
+            )}
+
+            {activeSubView === 'staff_users' && (
+              <button
+                type="button"
+                onClick={() => setIsAddStaffModalOpen(true)}
+                className="px-3.5 py-2 rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 text-white font-extrabold text-xs shadow-lg shadow-blue-600/30 flex items-center space-x-1.5 transition active:scale-95 shrink-0"
+              >
+                <Plus className="w-4 h-4" />
+                <span>+ নতুন স্টাফ সাব-ইউজার তৈরি করুন</span>
+              </button>
+            )}
+
+            {activeSubView === 'schedules' && operatorRole === 'supervisor' && (
+              <button
+                type="button"
+                onClick={() => transitEngineMode === 'bus' ? setIsAddBusModalOpen(true) : setIsAddCargoModalOpen(true)}
+                className="px-4 py-2 rounded-2xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 text-white font-extrabold text-xs shadow-lg shadow-cyan-600/30 flex items-center space-x-1.5 transition active:scale-95 shrink-0"
+              >
+                <Plus className="w-4 h-4" />
+                <span>{transitEngineMode === 'bus' ? '+ নতুন বাস ট্রিপ এন্ট্রি' : '+ নতুন কার্গো চালান এন্ট্রি'}</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* 4 KPI Executive Metrics */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="bg-slate-900 border border-slate-800 p-3.5 rounded-2xl">
           <span className="text-[10.5px] text-slate-400 font-bold block">
-            {transitEngineMode === 'bus' ? 'মোট নিবন্ধিত কাউন্টার' : 'নিবন্ধিত ডিপো ও ফ্রেইট ইয়ার্ড'}
+            {transitEngineMode === 'bus' ? 'নিবন্ধিত কাউন্টার' : 'নিবন্ধিত ডিপো ও ফ্রেইট ইয়ার্ড'}
           </span>
           <span className="text-lg font-black text-white">
             {counters.filter(c => transitEngineMode === 'bus' ? c.type === 'BUS_TERMINAL' : c.type === 'CARGO_DEPOT').length} টি
@@ -600,21 +839,18 @@ export const TransitCounterManager: React.FC<TransitCounterManagerProps> = ({ is
           <span className="text-lg font-black text-emerald-300">৯৬.৪% অন-টাইম</span>
         </div>
 
-        <div className="bg-slate-900 border border-amber-500/30 p-3.5 rounded-2xl">
-          <span className="text-[10.5px] text-amber-400 font-bold block">
-            {transitEngineMode === 'bus' ? 'বোর্ডিং / ডিপার্চার রানিং' : 'চলতি ট্রিপ ও ট্রানজিট'}
+        <div className="bg-slate-900 border border-purple-500/30 p-3.5 rounded-2xl">
+          <span className="text-[10.5px] text-purple-400 font-bold block">
+            স্টাফ সাব-ইউজার ও API
           </span>
-          <span className="text-lg font-black text-amber-300">
-            {transitEngineMode === 'bus' 
-              ? `${busSchedules.filter(s => s.status === 'BOARDING').length} টি কোচ`
-              : `${cargoWaybills.filter(w => w.status === 'IN_TRANSIT').length} টি চালান`}
+          <span className="text-lg font-black text-purple-300">
+            {staffUsers.length} স্টাফ • {apiConnectors.length} API
           </span>
         </div>
       </div>
 
-      {/* Filter and View Controls Bar */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-900 border border-slate-800 p-2.5 rounded-2xl">
-        <div className="flex space-x-2 text-xs">
+        <div className="flex flex-wrap gap-1.5 text-xs">
           <button
             type="button"
             onClick={() => setActiveSubView('schedules')}
@@ -623,9 +859,10 @@ export const TransitCounterManager: React.FC<TransitCounterManagerProps> = ({ is
             }`}
           >
             {transitEngineMode === 'bus' 
-              ? `🚌 বাস ডিপার্চার শিডিউল (${filteredBusSchedules.length})` 
-              : `📦 কার্গো চালান ও ওয়েবিল (${filteredCargoWaybills.length})`}
+              ? `🚌 ট্রিপ শিডিউল (${filteredBusSchedules.length})` 
+              : `📦 কার্গো চালান (${filteredCargoWaybills.length})`}
           </button>
+          
           <button
             type="button"
             onClick={() => setActiveSubView('counters')}
@@ -633,40 +870,62 @@ export const TransitCounterManager: React.FC<TransitCounterManagerProps> = ({ is
               activeSubView === 'counters' ? 'bg-cyan-600 text-white border-cyan-500 shadow-md' : 'bg-slate-950 text-slate-400 border-slate-800'
             }`}
           >
-            🏢 {transitEngineMode === 'bus' ? 'কাউন্টার লোকেশন' : 'ডিপো ও ওয়্যারহাউজ'} ({counters.filter(c => transitEngineMode === 'bus' ? c.type === 'BUS_TERMINAL' : c.type === 'CARGO_DEPOT').length})
+            🏢 {transitEngineMode === 'bus' ? 'কাউন্টার ও সুপারভাইজার' : 'ডিপো ও ওয়্যারহাউজ'} ({counters.filter(c => transitEngineMode === 'bus' ? c.type === 'BUS_TERMINAL' : c.type === 'CARGO_DEPOT').length})
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveSubView('api_hub')}
+            className={`px-3.5 py-1.5 rounded-xl font-bold border transition flex items-center space-x-1.5 ${
+              activeSubView === 'api_hub' ? 'bg-indigo-600 text-white border-indigo-500 shadow-md' : 'bg-slate-950 text-slate-400 border-slate-800'
+            }`}
+          >
+            <Webhook className="w-3.5 h-3.5 text-indigo-300" />
+            <span>🔌 টিকেটিং ও ERP API ({apiConnectors.length})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveSubView('staff_users')}
+            className={`px-3.5 py-1.5 rounded-xl font-bold border transition flex items-center space-x-1.5 ${
+              activeSubView === 'staff_users' ? 'bg-blue-600 text-white border-blue-500 shadow-md' : 'bg-slate-950 text-slate-400 border-slate-800'
+            }`}
+          >
+            <Users className="w-3.5 h-3.5 text-blue-300" />
+            <span>👥 স্টাফ ও সাব-লগইন ({staffUsers.length})</span>
           </button>
         </div>
 
-        {/* Search & Status Filters */}
-        <div className="flex items-center space-x-2">
-          <div className="relative flex-1 sm:w-48">
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="সার্চ প্লেট/কোচ/রুট..."
-              className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-8 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
-            />
-          </div>
+        {(activeSubView === 'schedules') && (
+          <div className="flex items-center space-x-2">
+            <div className="relative flex-1 sm:w-48">
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="সার্চ প্লেট/কোচ/রুট..."
+                className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-8 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+              />
+            </div>
 
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as any)}
-            className="bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-slate-300 font-bold focus:outline-none focus:border-cyan-500"
-          >
-            <option value="ALL">সকল স্ট্যাটাস</option>
-            <option value="ACTIVE">চলমান (Active)</option>
-            <option value="COMPLETED">সম্পন্ন (Completed)</option>
-            <option value="DELAYED">ডিলে / হোল্ড (Delayed)</option>
-          </select>
-        </div>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as any)}
+              className="bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-slate-300 font-bold focus:outline-none focus:border-cyan-500"
+            >
+              <option value="ALL">সকল স্ট্যাটাস</option>
+              <option value="ACTIVE">চলমান (Active)</option>
+              <option value="COMPLETED">সম্পন্ন (Completed)</option>
+              <option value="DELAYED">ডিলে / হোল্ড (Delayed)</option>
+            </select>
+          </div>
+        )}
       </div>
 
-      {/* Main Content Area */}
-      {activeSubView === 'schedules' ? (
+      {/* 1. SCHEDULES & TRIPS */}
+      {activeSubView === 'schedules' && (
         transitEngineMode === 'bus' ? (
-          /* BUS SCHEDULES LIST */
           <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl space-y-3">
             <div className="space-y-2.5">
               {filteredBusSchedules.length === 0 ? (
@@ -737,7 +996,6 @@ export const TransitCounterManager: React.FC<TransitCounterManagerProps> = ({ is
             </div>
           </div>
         ) : (
-          /* CARGO WAYBILLS LIST */
           <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl space-y-3">
             <div className="space-y-2.5">
               {filteredCargoWaybills.length === 0 ? (
@@ -809,8 +1067,10 @@ export const TransitCounterManager: React.FC<TransitCounterManagerProps> = ({ is
             </div>
           </div>
         )
-      ) : (
-        /* COUNTERS & DEPOTS LIST */
+      )}
+
+      {/* 2. COUNTERS & SUPERVISORS LIST */}
+      {activeSubView === 'counters' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
           {counters
             .filter(c => transitEngineMode === 'bus' ? c.type === 'BUS_TERMINAL' : c.type === 'CARGO_DEPOT')
@@ -846,6 +1106,414 @@ export const TransitCounterManager: React.FC<TransitCounterManagerProps> = ({ is
                 </div>
               </div>
             ))}
+        </div>
+      )}
+
+      {/* 3. TICKETING & ERP API CONNECTORS */}
+      {activeSubView === 'api_hub' && (
+        <div className="space-y-3">
+          <div className="p-3.5 rounded-2xl bg-indigo-950/30 border border-indigo-500/30 text-xs text-slate-300 flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Globe className="w-4 h-4 text-indigo-400 shrink-0" />
+              <span>সহজ (Shohoz), যাত্রী (Jatri) বা কোম্পানির সেন্ট্রাল টিকেটিং সফটওয়্যারের সাথে স্বয়ংক্রিয় ট্রিপ ও যাত্রী সিঙ্ক।</span>
+            </div>
+            <span className="text-[10px] font-mono bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded border border-indigo-500/40">
+              REST / WEBHOOK
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+            {apiConnectors.map((api) => (
+              <div key={api.id} className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl space-y-3">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <span className="text-xs font-black text-white block">{api.providerName}</span>
+                    <span className="text-[10px] text-slate-400 font-mono">{api.endpointUrl}</span>
+                  </div>
+                  <span className={`text-[9.5px] font-mono font-bold px-2 py-0.5 rounded-full border ${
+                    api.lastPingStatus === 'SUCCESS' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' : 'bg-rose-500/20 text-rose-400 border-rose-500/40'
+                  }`}>
+                    {api.lastPingStatus} ({api.latencyMs}ms)
+                  </span>
+                </div>
+
+                <div className="bg-slate-950 p-2.5 rounded-2xl border border-slate-800 space-y-1.5 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-slate-400 text-[10px]">API টোকেন:</span>
+                    <span className="font-mono text-indigo-300">{api.apiKey.slice(0, 8)}••••••••</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400 text-[10px]">অটো-সিঙ্ক ইন্টারভ্যাল:</span>
+                    <span className="font-bold text-emerald-400">প্রতি {api.syncIntervalMin} মিনিট পর পর</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400 text-[10px]">সর্বশেষ পিং:</span>
+                    <span className="font-mono text-slate-300">{api.lastPingTime}</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-1">
+                  <span className="text-[10px] text-emerald-400 font-bold flex items-center space-x-1">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>লাইভ সিঙ্ক অ্যাক্টিভ</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handlePingApi(api.id)}
+                    disabled={apiPingLoading === api.id}
+                    className="px-3 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-bold border border-slate-700 transition flex items-center space-x-1"
+                  >
+                    <RefreshCw className={`w-3 h-3 ${apiPingLoading === api.id ? 'animate-spin' : ''}`} />
+                    <span>{apiPingLoading === api.id ? 'পিং হচ্ছে...' : 'পিং টেস্ট'}</span>
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 4. STAFF & SUB-USER ACCOUNTS (RBAC LOGIN SYSTEM) */}
+      {activeSubView === 'staff_users' && (
+        <div className="space-y-3">
+          <div className="p-3.5 rounded-2xl bg-blue-950/30 border border-blue-500/30 text-xs text-slate-300 flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <KeyRound className="w-4 h-4 text-blue-400 shrink-0" />
+              <span>টার্মিনাল লাইনম্যান ও কাউন্টার সুপারভাইজারদের জন্য নির্দিষ্ট সাব-লগইন আইডি ও গোপন পিন (PIN)।</span>
+            </div>
+            <span className="text-[10px] font-mono bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded border border-blue-500/40">
+              RBAC PROTECTED
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+            {staffUsers.map((staff) => (
+              <div key={staff.id} className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl space-y-3 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <span className="text-xs font-black text-white block">{staff.fullName}</span>
+                      <span className="text-[10px] text-slate-400 font-mono">{staff.phone}</span>
+                    </div>
+                    <span className="text-[9px] font-mono font-bold bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded-full border border-blue-500/40">
+                      {staff.role}
+                    </span>
+                  </div>
+
+                  <div className="bg-slate-950 p-2.5 rounded-2xl border border-slate-800 space-y-1.5 text-xs mt-3">
+                    <div>
+                      <span className="text-[10px] text-slate-400 block">নির্ধারিত কাউন্টার / গাড়ি:</span>
+                      <span className="font-bold text-cyan-300 text-[11px] block">{staff.assignedCounterOrPlate}</span>
+                    </div>
+                    <div className="flex justify-between items-center pt-1 border-t border-slate-800/80">
+                      <span className="text-[10px] text-slate-400">লগইন পিন (PIN):</span>
+                      <span className="font-mono font-extrabold text-amber-300 tracking-widest">{staff.loginPin}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-2 flex items-center justify-between border-t border-slate-800/80 text-[10.5px]">
+                  <span className="text-slate-400 font-mono">{staff.lastActive}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard?.writeText(`EasyTracker Staff Login:\nPhone: ${staff.phone}\nPIN: ${staff.loginPin}`);
+                      setCopiedStaffId(staff.id);
+                      setTimeout(() => setCopiedStaffId(null), 2500);
+                    }}
+                    className="px-2.5 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold flex items-center space-x-1 border border-slate-700 transition"
+                  >
+                    {copiedStaffId === staff.id ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3 text-slate-400" />}
+                    <span>{copiedStaffId === staff.id ? 'কপি হয়েছে' : 'পিন কপি'}</span>
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: ADD COUNTER & SUPERVISOR */}
+      {isAddCounterModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in select-none">
+          <div className="bg-slate-900 border border-emerald-500/60 rounded-3xl max-w-md w-full p-5 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+              <h3 className="font-extrabold text-sm text-emerald-300 flex items-center space-x-2">
+                <Building2 className="w-4 h-4 text-emerald-400" />
+                <span>নতুন কাউন্টার ও সুপারভাইজার যুক্ত করুন</span>
+              </h3>
+              <button onClick={() => setIsAddCounterModalOpen(false)} className="text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveCounter} className="space-y-3 text-xs">
+              <div>
+                <label className="text-[10.5px] font-bold text-slate-300 block mb-1">কাউন্টার / ডিপো নাম *</label>
+                <input
+                  type="text"
+                  required
+                  value={cntName}
+                  onChange={(e) => setCntName(e.target.value)}
+                  placeholder="যেমন: সিলেট কদমতলী সেন্ট্রাল বাস টার্মিনাল"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-bold focus:border-emerald-500 focus:outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10.5px] font-bold text-slate-300 block mb-1">শহর / বিভাগ</label>
+                  <select
+                    value={cntCity}
+                    onChange={(e) => setCntCity(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white focus:border-emerald-500 focus:outline-none"
+                  >
+                    <option value="ঢাকা">ঢাকা বিভাগ</option>
+                    <option value="চট্টগ্রাম">চট্টগ্রাম বিভাগ</option>
+                    <option value="সিলেট">সিলেট বিভাগ</option>
+                    <option value="রাজশাহী">রাজশাহী বিভাগ</option>
+                    <option value="খুলনা">খুলনা বিভাগ</option>
+                    <option value="বগুড়া">বগুড়া সার্কেল</option>
+                    <option value="বরিশাল">বরিশাল বিভাগ</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[10.5px] font-bold text-slate-300 block mb-1">ধরন</label>
+                  <select
+                    value={cntType}
+                    onChange={(e) => setCntType(e.target.value as any)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white focus:border-emerald-500 focus:outline-none"
+                  >
+                    <option value="BUS_TERMINAL">🚌 বাস টার্মিনাল</option>
+                    <option value="CARGO_DEPOT">📦 কার্গো ডিপো</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10.5px] font-bold text-slate-300 block mb-1">সুপারভাইজার / ইনচার্জ *</label>
+                  <input
+                    type="text"
+                    required
+                    value={cntSupervisor}
+                    onChange={(e) => setCntSupervisor(e.target.value)}
+                    placeholder="মোঃ জহিরুল হক"
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10.5px] font-bold text-slate-300 block mb-1">মোবাইল নম্বর *</label>
+                  <input
+                    type="text"
+                    required
+                    value={cntPhone}
+                    onChange={(e) => setCntPhone(e.target.value)}
+                    placeholder="01711-XXXXXX"
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10.5px] font-bold text-slate-300 block mb-1">জিওফেন্স রেডিয়াস (মিটার)</label>
+                <input
+                  type="number"
+                  value={cntRadius}
+                  onChange={(e) => setCntRadius(Number(e.target.value))}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono focus:border-emerald-500 focus:outline-none"
+                />
+              </div>
+
+              <div className="flex space-x-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsAddCounterModalOpen(false)}
+                  className="flex-1 py-2.5 rounded-xl bg-slate-800 text-slate-300 font-bold text-xs"
+                >
+                  বাতিল
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-black text-xs shadow-lg shadow-emerald-600/30"
+                >
+                  কাউন্টার সংরক্ষণ
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: ADD STAFF SUB-USER */}
+      {isAddStaffModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in select-none">
+          <div className="bg-slate-900 border border-blue-500/60 rounded-3xl max-w-md w-full p-5 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+              <h3 className="font-extrabold text-sm text-blue-300 flex items-center space-x-2">
+                <Users className="w-4 h-4 text-blue-400" />
+                <span>নতুন স্টাফ সাব-ইউজার আইডি তৈরি</span>
+              </h3>
+              <button onClick={() => setIsAddStaffModalOpen(false)} className="text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveStaffUser} className="space-y-3 text-xs">
+              <div>
+                <label className="text-[10.5px] font-bold text-slate-300 block mb-1">স্টাফের নাম *</label>
+                <input
+                  type="text"
+                  required
+                  value={staffName}
+                  onChange={(e) => setStaffName(e.target.value)}
+                  placeholder="যেমন: মোঃ জসিম উদ্দিন (লাইনম্যান)"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-bold focus:border-blue-500 focus:outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10.5px] font-bold text-slate-300 block mb-1">মোবাইল নম্বর (লগইন আইডি) *</label>
+                  <input
+                    type="text"
+                    required
+                    value={staffPhone}
+                    onChange={(e) => setStaffPhone(e.target.value)}
+                    placeholder="01711-XXXXXX"
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono focus:border-blue-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10.5px] font-bold text-slate-300 block mb-1">রোল (Role)</label>
+                  <select
+                    value={staffRole}
+                    onChange={(e) => setStaffRole(e.target.value as any)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white focus:border-blue-500 focus:outline-none"
+                  >
+                    <option value="SUPERVISOR">👨‍💼 কাউন্টার সুপারভাইজার</option>
+                    <option value="DRIVER">👨‍✈️ ড্রাইভার</option>
+                    <option value="AUDITOR">📊 ফ্লিট অডিটর</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10.5px] font-bold text-slate-300 block mb-1">নির্ধারিত কাউন্টার / টার্মিনাল</label>
+                  <select
+                    value={staffAssigned}
+                    onChange={(e) => setStaffAssigned(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white focus:border-blue-500 focus:outline-none"
+                  >
+                    {counters.map(c => (
+                      <option key={c.id} value={c.nameBn}>{c.nameBn.split(' ')[0]}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10.5px] font-bold text-slate-300 block mb-1">৪-ডিজিট সিকিউর পিন (PIN)</label>
+                  <input
+                    type="password"
+                    maxLength={6}
+                    value={staffPin}
+                    onChange={(e) => setStaffPin(e.target.value)}
+                    placeholder="যেমন: 4419"
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono tracking-widest focus:border-blue-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="flex space-x-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsAddStaffModalOpen(false)}
+                  className="flex-1 py-2.5 rounded-xl bg-slate-800 text-slate-300 font-bold text-xs"
+                >
+                  বাতিল
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-black text-xs shadow-lg shadow-blue-600/30"
+                >
+                  স্টাফ অ্যাকাউন্ট তৈরি
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: ADD TICKETING API */}
+      {isAddApiModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in select-none">
+          <div className="bg-slate-900 border border-indigo-500/60 rounded-3xl max-w-md w-full p-5 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+              <h3 className="font-extrabold text-sm text-indigo-300 flex items-center space-x-2">
+                <Webhook className="w-4 h-4 text-indigo-400" />
+                <span>নতুন টিকেটিং বা ERP API যুক্ত করুন</span>
+              </h3>
+              <button onClick={() => setIsAddApiModalOpen(false)} className="text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveApi} className="space-y-3 text-xs">
+              <div>
+                <label className="text-[10.5px] font-bold text-slate-300 block mb-1">API প্রোভাইডার নাম *</label>
+                <input
+                  type="text"
+                  required
+                  value={apiName}
+                  onChange={(e) => setApiName(e.target.value)}
+                  placeholder="যেমন: সহজ / যাত্রী / কাস্টম ERP API"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-bold focus:border-indigo-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-[10.5px] font-bold text-slate-300 block mb-1">এন্ডপয়েন্ট URL *</label>
+                <input
+                  type="url"
+                  required
+                  value={apiUrl}
+                  onChange={(e) => setApiUrl(e.target.value)}
+                  placeholder="https://api.yourcompany.com/v1/trips"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono focus:border-indigo-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-[10.5px] font-bold text-slate-300 block mb-1">API কী / Bearer Token *</label>
+                <input
+                  type="password"
+                  required
+                  value={apiKeyVal}
+                  onChange={(e) => setApiKeyVal(e.target.value)}
+                  placeholder="Bearer eyJhbGciOi..."
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono focus:border-indigo-500 focus:outline-none"
+                />
+              </div>
+
+              <div className="flex space-x-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsAddApiModalOpen(false)}
+                  className="flex-1 py-2.5 rounded-xl bg-slate-800 text-slate-300 font-bold text-xs"
+                >
+                  বাতিল
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-black text-xs shadow-lg shadow-indigo-600/30"
+                >
+                  API সংরক্ষণ ও সিঙ্ক
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 
