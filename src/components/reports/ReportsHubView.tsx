@@ -67,6 +67,7 @@ export type DetailedReportType = 'trip' | 'stoppage' | 'ignition' | 'engine_lock
 
 export const ReportsHubView: React.FC = () => {
   const { 
+    user,
     selectedDevice, 
     selectedPosition, 
     fuelRefillLogs: fuelLogs = [], 
@@ -78,6 +79,35 @@ export const ReportsHubView: React.FC = () => {
     setActiveTab,
     updateDeviceProfile
   } = useApp();
+
+  const isStaffUser = Boolean(
+    user?.email?.includes('fleetstaff') || 
+    user?.role === 'supervisor' || 
+    user?.role === 'driver' || 
+    (user as any)?.assigned ||
+    /^[0-9\-\+]+@/.test(user?.email || '')
+  );
+
+  if (isStaffUser) {
+    return (
+      <div className="flex-1 p-6 bg-slate-950 flex flex-col items-center justify-center text-center space-y-4 select-none">
+        <div className="w-16 h-16 rounded-3xl bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center text-2xl shadow-lg">
+          🔒
+        </div>
+        <h3 className="text-base font-black text-white">স্টাফ সাব-ইউজার এক্সেস সীমাবদ্ধ</h3>
+        <p className="text-xs text-slate-400 max-w-md">
+          কোম্পানির অডিট রিপোর্ট, ফুয়েল হিসাব এবং BRTA আইনি ভল্ট শুধুমাত্র ফ্লিট ওনারের জন্য সংরক্ষিত। আপনার নির্ধারিত টার্মিনাল গেটপাস ও ট্রিপ পোর্টালে যান।
+        </p>
+        <button
+          type="button"
+          onClick={() => setActiveTab('fleet_transit')}
+          className="py-2.5 px-4 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs shadow-lg shadow-cyan-600/30 transition active:scale-95"
+        >
+          🏢 টার্মিনাল গেটপাস ও ট্রিপ পোর্টালে যান
+        </button>
+      </div>
+    );
+  }
 
   // Vehicle Category & Adaptive Persona Detection
   const category = (selectedDevice?.category || 'motorcycle').toLowerCase();
