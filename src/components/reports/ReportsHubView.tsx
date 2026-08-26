@@ -654,9 +654,15 @@ export const ReportsHubView: React.FC = () => {
                     : 'bg-slate-950/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
                 }`}
               >
-                <Bus className="w-5 h-5 sm:w-4 sm:h-4 text-cyan-300 shrink-0" />
+                {category.includes('truck') || category.includes('trailer') || category.includes('van') ? (
+                  <Truck className="w-5 h-5 sm:w-4 sm:h-4 text-cyan-300 shrink-0" />
+                ) : (
+                  <Bus className="w-5 h-5 sm:w-4 sm:h-4 text-cyan-300 shrink-0" />
+                )}
                 <span className="text-[10px] sm:text-xs leading-tight mt-1 sm:mt-0 font-bold block">
-                  {language === 'bn' ? 'বাস কাউন্টার' : 'Bus Counters'}
+                  {category.includes('truck') || category.includes('trailer') || category.includes('van')
+                    ? (language === 'bn' ? 'কার্গো চালান' : 'Cargo Waybill')
+                    : (language === 'bn' ? 'বাস কাউন্টার' : 'Bus Counters')}
                 </span>
               </button>
             </div>
