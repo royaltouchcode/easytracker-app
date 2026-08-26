@@ -83,15 +83,15 @@ export const ReportsHubView: React.FC = () => {
   const category = (selectedDevice?.category || 'motorcycle').toLowerCase();
   const isBike = category.includes('motorcycle') || category.includes('bike') || category.includes('scooter');
   const isCar = category.includes('car') || category.includes('suv') || category.includes('jeep') || category.includes('sedan') || category.includes('cng');
-  const isCommercialFleet = category.includes('bus') || category.includes('truck') || category.includes('trailer') || category.includes('pickup') || (devices && devices.length > 1);
+  const isCommercialFleet = !isBike && (category.includes('bus') || category.includes('truck') || category.includes('trailer') || category.includes('van'));
 
   const [activeSubTab, setActiveSubTab] = useState<'hub' | 'fuel' | 'compliance' | 'driver' | 'transit' | 'maintenance' | 'ai_manual' | 'running' | 'subscription'>('hub');
   const [reportHubMode, setReportHubMode] = useState<'enterprise' | 'compact'>(() => isCommercialFleet ? 'enterprise' : 'compact');
-  const [personaMode, setPersonaMode] = useState<'auto' | 'personal' | 'fleet'>('auto');
+  const [personaMode, setPersonaMode] = useState<'auto' | 'personal' | 'fleet'>(() => (isBike || isCar) ? 'personal' : 'auto');
   const [selectedReportType, setSelectedReportType] = useState<DetailedReportType>(null);
   const [reportDateFilter, setReportDateFilter] = useState<'today' | 'yesterday' | 'week' | 'month'>('today');
 
-  const isFleetMode = personaMode === 'fleet' || (personaMode === 'auto' && isCommercialFleet);
+  const isFleetMode = !isBike && (personaMode === 'fleet' || (personaMode === 'auto' && isCommercialFleet));
 
   // Real Server Trips & Stoppages State (Strict Zero-Demo: loaded from real Traccar API)
   const [realServerTrips, setRealServerTrips] = useState<any[]>([]);
@@ -448,45 +448,54 @@ export const ReportsHubView: React.FC = () => {
             </div>
           </div>
 
-          {/* Persona Switcher Pill (Quick View Toggle for Personal vs Fleet Pro) */}
-          <div className="flex items-center bg-slate-950 p-1 rounded-2xl border border-slate-800 shrink-0">
-            <button
-              type="button"
-              onClick={() => setPersonaMode('auto')}
-              className={`px-2.5 py-1 rounded-xl text-[10px] font-bold transition flex items-center space-x-1 ${
-                personaMode === 'auto'
-                  ? 'bg-blue-600 text-white shadow'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-              title="স্মার্ট অটো অ্যাডাপ্টিভ"
-            >
-              <span>⚡ অটো</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setPersonaMode('personal')}
-              className={`px-2.5 py-1 rounded-xl text-[10px] font-bold transition flex items-center space-x-1 ${
-                personaMode === 'personal'
-                  ? 'bg-blue-600 text-white shadow'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-              title="পার্সোনাল ক্লিন ভিউ"
-            >
-              <span>🏍️ পার্সোনাল</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setPersonaMode('fleet')}
-              className={`px-2.5 py-1 rounded-xl text-[10px] font-bold transition flex items-center space-x-1 ${
-                personaMode === 'fleet'
-                  ? 'bg-cyan-600 text-white shadow'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-              title="এন্টারপ্রাইজ ফ্লিট স্যুট"
-            >
-              <span>🏢 ফ্লিট প্রো</span>
-            </button>
-          </div>
+          {/* Persona Switcher Pill / Clean Personal Badge */}
+          {isBike ? (
+            <div className="flex items-center space-x-1.5 px-3 py-1 bg-slate-950 rounded-2xl border border-blue-500/40 text-[10.5px] font-extrabold text-blue-300 shrink-0">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span>🏍️ পার্সোনাল বাইক ড্যাশবোর্ড</span>
+            </div>
+          ) : (
+            <div className="flex items-center bg-slate-950 p-1 rounded-2xl border border-slate-800 shrink-0">
+              <button
+                type="button"
+                onClick={() => setPersonaMode('auto')}
+                className={`px-2.5 py-1 rounded-xl text-[10px] font-bold transition flex items-center space-x-1 ${
+                  personaMode === 'auto'
+                    ? 'bg-blue-600 text-white shadow'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+                title="স্মার্ট অটো অ্যাডাপ্টিভ"
+              >
+                <span>⚡ অটো</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setPersonaMode('personal')}
+                className={`px-2.5 py-1 rounded-xl text-[10px] font-bold transition flex items-center space-x-1 ${
+                  personaMode === 'personal'
+                    ? 'bg-blue-600 text-white shadow'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+                title="পার্সোনাল ক্লিন ভিউ"
+              >
+                <span>🚗 পার্সোনাল</span>
+              </button>
+              {isCommercialFleet && (
+                <button
+                  type="button"
+                  onClick={() => setPersonaMode('fleet')}
+                  className={`px-2.5 py-1 rounded-xl text-[10px] font-bold transition flex items-center space-x-1 ${
+                    personaMode === 'fleet'
+                      ? 'bg-cyan-600 text-white shadow'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                  title="এন্টারপ্রাইজ ফ্লিট স্যুট"
+                >
+                  <span>🏢 ফ্লিট প্রো</span>
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Global Odometer Badge (Click to Calibrate) */}
@@ -792,21 +801,38 @@ export const ReportsHubView: React.FC = () => {
                   </div>
                 </button>
 
-                {/* 2. AC & Sensors Report */}
-                <button
-                  onClick={() => setSelectedReportType('sensor')}
-                  className="bg-slate-900/90 hover:bg-slate-850 border border-slate-800 hover:border-sky-500/50 p-3.5 rounded-3xl flex flex-col justify-between text-left transition active:scale-95 shadow-md group"
-                >
-                  <div className="w-10 h-10 rounded-2xl bg-sky-500/20 border border-sky-500/30 flex items-center justify-center text-sky-400 text-lg shadow-inner">
-                    ❄️
-                  </div>
-                  <div className="mt-3">
-                    <div className="font-extrabold text-xs text-slate-100 group-hover:text-sky-300 transition">
-                      {language === 'bn' ? 'এসি ও সেন্সর রিপোর্ট' : 'AC & Sensor Report'}
+                {/* 2. Bike Vibration / Car AC Sensor Report */}
+                {isBike ? (
+                  <button
+                    onClick={() => setSelectedReportType('sensor')}
+                    className="bg-slate-900/90 hover:bg-slate-850 border border-slate-800 hover:border-amber-500/50 p-3.5 rounded-3xl flex flex-col justify-between text-left transition active:scale-95 shadow-md group"
+                  >
+                    <div className="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 text-lg shadow-inner">
+                      📳
                     </div>
-                    <div className="text-[10px] text-slate-400 mt-0.5">এসি ও ডোর সেন্সর লগ</div>
-                  </div>
-                </button>
+                    <div className="mt-3">
+                      <div className="font-extrabold text-xs text-slate-100 group-hover:text-amber-300 transition">
+                        {language === 'bn' ? 'ঝাঁকুনি ও সিকিউরিটি সেন্সর' : 'Vibration & Anti-Theft'}
+                      </div>
+                      <div className="text-[10px] text-slate-400 mt-0.5">বাইক নাড়াচাড়া ও ব্যাটারি ভোল্টেজ লগ</div>
+                    </div>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setSelectedReportType('sensor')}
+                    className="bg-slate-900/90 hover:bg-slate-850 border border-slate-800 hover:border-sky-500/50 p-3.5 rounded-3xl flex flex-col justify-between text-left transition active:scale-95 shadow-md group"
+                  >
+                    <div className="w-10 h-10 rounded-2xl bg-sky-500/20 border border-sky-500/30 flex items-center justify-center text-sky-400 text-lg shadow-inner">
+                      ❄️
+                    </div>
+                    <div className="mt-3">
+                      <div className="font-extrabold text-xs text-slate-100 group-hover:text-sky-300 transition">
+                        {language === 'bn' ? 'এসি ও সেন্সর রিপোর্ট' : 'AC & Sensor Report'}
+                      </div>
+                      <div className="text-[10px] text-slate-400 mt-0.5">এসি ও ডোর সেন্সর লগ</div>
+                    </div>
+                  </button>
+                )}
 
                 {/* 3. Trip Report */}
                 <button
