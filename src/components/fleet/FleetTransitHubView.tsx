@@ -191,10 +191,16 @@ export const FleetTransitHubView: React.FC = () => {
     status: 'VALID' as 'VALID' | 'EXPIRING_SOON' | 'EXPIRED'
   });
 
-  // Dynamic Available Driver & Bus Pool
-  const [assignedDriverName, setAssignedDriverName] = useState('মোঃ আব্দুল কুদ্দুস');
-  const [assignedDriverPhone, setAssignedDriverPhone] = useState('01712-334455');
-  const [assignedBusPlate, setAssignedBusPlate] = useState('ঢাকা মেট্রো-ব ১৪-৯৯০১');
+  // Dynamic Available Driver & Bus Pool with LocalStorage Persistence
+  const [assignedDriverName, setAssignedDriverName] = useState(() => {
+    return localStorage.getItem('gps_transit_driver_name') || 'মোঃ আব্দুল কুদ্দুস';
+  });
+  const [assignedDriverPhone, setAssignedDriverPhone] = useState(() => {
+    return localStorage.getItem('gps_transit_driver_phone') || '01712-334455';
+  });
+  const [assignedBusPlate, setAssignedBusPlate] = useState(() => {
+    return localStorage.getItem('gps_transit_bus_plate') || 'ঢাকা মেট্রো-ব ১৪-৯৯০১';
+  });
 
   // Available Drivers Pool (Idle / Ready drivers only)
   const AVAILABLE_DRIVERS_POOL = [
@@ -204,29 +210,51 @@ export const FleetTransitHubView: React.FC = () => {
     { id: 4, name: 'মোঃ কামাল হোসেন', phone: '01733-445566', license: 'DL-GA-332901', expiry: '২০২৫-১২-৩১', status: 'EXPIRED' }
   ];
 
-  // 1-Tap Walkie-Talkie Dispatched Messages & Real-World Trip Counters
-  const [tripCounters, setTripCounters] = useState({
-    checkpost: 0,
-    fuelRefill: 0,
-    heavyJam: 0,
-    hotelBreak: 0,
-    tollFerry: 0
+  // 1-Tap Walkie-Talkie Dispatched Messages & Real-World Trip Counters with LocalStorage Persistence
+  const [tripCounters, setTripCounters] = useState(() => {
+    const saved = localStorage.getItem('gps_transit_trip_counters');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return {
+      checkpost: 0,
+      fuelRefill: 0,
+      heavyJam: 0,
+      hotelBreak: 0,
+      tollFerry: 0
+    };
   });
 
-  const [walkieMessages, setWalkieMessages] = useState<Array<{ id: number; sender: string; text: string; time: string; target: string }>>([
-    { id: 1, sender: '🏢 গাবতলী কাউন্টার', text: 'যাত্রী বোর্ডিং সম্পূর্ণ • ছাড়ার প্রস্তুতি নিন', time: '১০:২৫ AM', target: 'বাস চালক' },
-    { id: 2, sender: '👨‍✈️ চালক (কুদ্দুস)', text: 'বাস রেডি • গেটপাস ক্লিয়ারেন্স দিন', time: '১০:২৮ AM', target: 'লাইনম্যান' }
-  ]);
+  const [walkieMessages, setWalkieMessages] = useState<Array<{ id: number; sender: string; text: string; time: string; target: string; roleType?: 'driver' | 'supervisor' | 'lineman' | 'system' }>>(() => {
+    const saved = localStorage.getItem('gps_transit_walkie_messages');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return [
+      { id: 1, sender: '🏢 গাবতলী কাউন্টার (ইনচার্জ)', text: 'যাত্রী বোর্ডিং সম্পূর্ণ • ছাড়ার প্রস্তুতি নিন', time: '১০:২৫ AM', target: 'বাস চালক', roleType: 'supervisor' },
+      { id: 2, sender: '👨‍✈️ চালক (কুদ্দুস)', text: 'বাস রেডি • গেটপাস ক্লিয়ারেন্স দিন', time: '১০:২৮ AM', target: 'লাইনম্যান', roleType: 'driver' }
+    ];
+  });
 
-  // Dynamic Onboard Passenger Management
-  const [onboardPassengerCount, setOnboardPassengerCount] = useState(38);
-  const [boardingLogs, setBoardingLogs] = useState<Array<{ id: number; location: string; count: number; delta: number; time: string }>>([
-    { id: 1, location: 'গাবতলী সেন্ট্রাল টার্মিনাল (১ম বোর্ডিং)', count: 30, delta: 30, time: '১০:৩০ AM' },
-    { id: 2, location: 'সাভার বাজার বাসস্ট্যান্ড (সাব-কাউন্টার)', count: 35, delta: 5, time: '১১:১৫ AM' },
-    { id: 3, location: 'চন্দ্রা ত্রিমোড় (হাইওয়ে পিকআপ)', count: 38, delta: 3, time: '১১:৪৫ AM' }
-  ]);
+  // Dynamic Onboard Passenger Management with LocalStorage Persistence
+  const [onboardPassengerCount, setOnboardPassengerCount] = useState(() => {
+    const saved = localStorage.getItem('gps_transit_passenger_count');
+    return saved ? parseInt(saved, 10) : 38;
+  });
+
+  const [boardingLogs, setBoardingLogs] = useState<Array<{ id: number; location: string; count: number; delta: number; time: string }>>(() => {
+    const saved = localStorage.getItem('gps_transit_boarding_logs');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return [
+      { id: 1, location: 'গাবতলী সেন্ট্রাল টার্মিনাল (১ম বোর্ডিং)', count: 30, delta: 30, time: '১০:৩০ AM' },
+      { id: 2, location: 'সাভার বাজার বাসস্ট্যান্ড (সাব-কাউন্টার)', count: 35, delta: 5, time: '১১:১৫ AM' },
+      { id: 3, location: 'চন্দ্রা ত্রিমোড় (হাইওয়ে পিকআপ)', count: 38, delta: 3, time: '১১:৪৫ AM' }
+    ];
+  });
   const [isGatepassApprovalModalOpen, setIsGatepassApprovalModalOpen] = useState(false);
-  const [gatepassBatchInput, setGatepassBatchInput] = useState(38);
+  const [gatepassBatchInput, setGatepassBatchInput] = useState(onboardPassengerCount);
   const [showBoardingLogs, setShowBoardingLogs] = useState(false);
 
   const [isDriverSosOpen, setIsDriverSosOpen] = useState(false);
@@ -243,54 +271,71 @@ export const FleetTransitHubView: React.FC = () => {
     setTimeout(() => setCabinAlarm(null), 5000);
   };
 
-  const sendWalkieMessage = (text: string, sender: string, target: string) => {
+  const sendWalkieMessage = (text: string, sender: string, target: string, roleType?: 'driver' | 'supervisor' | 'lineman' | 'system') => {
     const newMsg = {
       id: Date.now(),
       sender,
       text,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      target
+      target,
+      roleType: roleType || (sender.includes('চালক') ? 'driver' : sender.includes('লাইনম্যান') ? 'lineman' : 'supervisor')
     };
-    setWalkieMessages(prev => [newMsg, ...prev]);
+    setWalkieMessages(prev => {
+      const next = [newMsg, ...prev].slice(0, 30);
+      try { localStorage.setItem('gps_transit_walkie_messages', JSON.stringify(next)); } catch (e) {}
+      return next;
+    });
   };
 
   const logTripEvent = (type: 'CHECKPOST' | 'FUEL' | 'JAM' | 'BREAK' | 'TOLL' | 'PASSENGER' | 'ARRIVED') => {
     let text = '';
-    let sender = '👨‍✈️ চালক (কুদ্দুস)';
-    let target = 'কাউন্টার ও ওনার';
+    const sender = `👨‍✈️ চালক (${user?.name?.split(' ')[1] || 'কুদ্দুস'})`;
+    const target = 'কাউন্টার ও ওনার';
 
     if (type === 'CHECKPOST') {
       const next = tripCounters.checkpost + 1;
-      setTripCounters(prev => ({ ...prev, checkpost: next }));
+      const nextObj = { ...tripCounters, checkpost: next };
+      setTripCounters(nextObj);
+      try { localStorage.setItem('gps_transit_trip_counters', JSON.stringify(nextObj)); } catch (e) {}
       text = `👮 পুলিশ/বিআরটিএ চেকপোস্টে চেকিং চলছে (লগ #${next})`;
     } else if (type === 'FUEL') {
       const next = tripCounters.fuelRefill + 1;
-      setTripCounters(prev => ({ ...prev, fuelRefill: next }));
-      text = `⛽ পাম্পে ফুয়েল/সিএনজি রিফিল চলছে (রিফিল #${next})`;
+      const nextObj = { ...tripCounters, fuelRefill: next };
+      setTripCounters(nextObj);
+      try { localStorage.setItem('gps_transit_trip_counters', JSON.stringify(nextObj)); } catch (e) {}
+      text = `⛽ পাম্পে ফুয়েল/সিএনজি রিফিল সম্পন্ন (রিফিল #${next})`;
     } else if (type === 'JAM') {
       const next = tripCounters.heavyJam + 1;
-      setTripCounters(prev => ({ ...prev, heavyJam: next }));
+      const nextObj = { ...tripCounters, heavyJam: next };
+      setTripCounters(nextObj);
+      try { localStorage.setItem('gps_transit_trip_counters', JSON.stringify(nextObj)); } catch (e) {}
       text = `🚦 হাইওয়েতে তীব্র যানজট (> ১০ মিনিট বিলম্ব) (জ্যাম রিপোর্ট #${next})`;
     } else if (type === 'BREAK') {
       const next = tripCounters.hotelBreak + 1;
-      setTripCounters(prev => ({ ...prev, hotelBreak: next }));
+      const nextObj = { ...tripCounters, hotelBreak: next };
+      setTripCounters(nextObj);
+      try { localStorage.setItem('gps_transit_trip_counters', JSON.stringify(nextObj)); } catch (e) {}
       text = `🍱 হাইওয়ে রেস্তোরাঁয় যাত্রী খাবার বিরতি (বিরতি #${next})`;
     } else if (type === 'TOLL') {
       const next = tripCounters.tollFerry + 1;
-      setTripCounters(prev => ({ ...prev, tollFerry: next }));
+      const nextObj = { ...tripCounters, tollFerry: next };
+      setTripCounters(nextObj);
+      try { localStorage.setItem('gps_transit_trip_counters', JSON.stringify(nextObj)); } catch (e) {}
       text = `🌉 টোল প্লাজা / ফেরি পারাপারের লাইনে অপেক্ষমাণ (লগ #${next})`;
     } else if (type === 'PASSENGER') {
-      text = `👥 কাউন্টারে যাত্রী কাউন্ট ও আসন তথ্য আপডেট জানতে চাই`;
+      text = `👥 যাত্রী সংখ্যা ও আসন স্ট্যাটাস লাইভ আপডেট জানতে অনুরোধ করা হলো`;
     } else if (type === 'ARRIVED') {
-      text = `✅ গন্তব্যে নিরাপদে পৌঁছেছি • আজকের ট্রিপ সফলভাবে সম্পন্ন`;
+      text = `✅ গন্তব্যে নিরাপদে পৌঁছেছি • আজকের ট্রিপ সফলভাবে সমাপ্ত`;
     }
 
-    sendWalkieMessage(text, sender, target);
+    sendWalkieMessage(text, sender, target, 'driver');
   };
 
   const updatePassengerOnboard = (delta: number) => {
     const nextCount = Math.max(0, Math.min(40, onboardPassengerCount + delta));
     setOnboardPassengerCount(nextCount);
+    try { localStorage.setItem('gps_transit_passenger_count', String(nextCount)); } catch (e) {}
+
     const newLog = {
       id: Date.now(),
       location: delta > 0 ? 'হাইওয়ে স্পট পিকআপ (জিপিএস লাইভ)' : 'হাইওয়ে ড্রপ অফ (জিপিএস লাইভ)',
@@ -298,13 +343,19 @@ export const FleetTransitHubView: React.FC = () => {
       delta,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
-    setBoardingLogs(prev => [newLog, ...prev]);
+    setBoardingLogs(prev => {
+      const next = [newLog, ...prev];
+      try { localStorage.setItem('gps_transit_boarding_logs', JSON.stringify(next)); } catch (e) {}
+      return next;
+    });
+
     sendWalkieMessage(
       delta > 0 
-        ? `👥 নতুন যাত্রী অনবোর্ড (+${delta} জন) • বাসে বর্তমান যাত্রী: ${nextCount}/৪০ জন` 
-        : `👥 যাত্রী নেমেছেন (${delta} জন) • বাসে বর্তমান যাত্রী: ${nextCount}/৪০ জন`,
-      '👨‍✈️ চালক/কন্ডাক্টর',
-      'কাউন্টার ও ওনার'
+        ? `👥 নতুন যাত্রী অনবোর্ড (+${delta} জন) • বাসে মোট যাত্রী: ${nextCount}/৪০ জন` 
+        : `👥 যাত্রী নেমেছেন (${Math.abs(delta)} জন) • বাসে মোট যাত্রী: ${nextCount}/৪০ জন`,
+      `👨‍✈️ চালক (${user?.name?.split(' ')[1] || 'কুদ্দুস'})`,
+      'কাউন্টার ও ওনার',
+      'driver'
     );
   };
 
@@ -692,17 +743,37 @@ export const FleetTransitHubView: React.FC = () => {
                 </button>
               </div>
 
-              {/* Message Feed */}
-              <div className="space-y-1.5 bg-slate-950 p-3 rounded-2xl border border-slate-800 text-xs max-h-36 overflow-y-auto">
-                <span className="text-[10px] uppercase font-extrabold text-slate-400 block mb-1">সর্বশেষ মেসেজ ফিড:</span>
-                {walkieMessages.map(msg => (
-                  <div key={msg.id} className="flex justify-between items-center bg-slate-900/80 p-2 rounded-xl border border-slate-800/80">
-                    <div>
-                      <strong className="text-cyan-300">{msg.sender}:</strong> <span className="text-slate-200">{msg.text}</span>
+              {/* Synchronized Message & Action Log Feed */}
+              <div className="space-y-1.5 bg-slate-950 p-3.5 rounded-2xl border border-slate-800 text-xs max-h-48 overflow-y-auto">
+                <div className="flex items-center justify-between pb-1 mb-1 border-b border-slate-800/80">
+                  <span className="text-[10.5px] uppercase font-extrabold text-slate-300 flex items-center space-x-1.5">
+                    <Radio className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>আন্তঃসংযুক্ত লাইভ মেসেজ ও অ্যাকশন ফিড:</span>
+                  </span>
+                  <span className="text-[9px] font-mono text-emerald-400 bg-emerald-950 px-1.5 py-0.5 rounded border border-emerald-500/30">
+                    LIVE SYNC
+                  </span>
+                </div>
+                {walkieMessages.map(msg => {
+                  const isSenderDriver = msg.sender.includes('চালক') || msg.roleType === 'driver';
+                  const isSenderLineman = msg.sender.includes('লাইনম্যান') || msg.roleType === 'lineman';
+
+                  return (
+                    <div key={msg.id} className="flex justify-between items-center bg-slate-900/90 p-2.5 rounded-xl border border-slate-800/80">
+                      <div className="flex items-start space-x-2">
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold border shrink-0 mt-0.5 ${
+                          isSenderDriver ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' :
+                          isSenderLineman ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' :
+                          'bg-cyan-500/20 text-cyan-300 border-cyan-500/40'
+                        }`}>
+                          {msg.sender}
+                        </span>
+                        <span className="text-slate-200 text-xs">{msg.text}</span>
+                      </div>
+                      <span className="text-[10px] text-slate-500 font-mono shrink-0 ml-2">{msg.time}</span>
                     </div>
-                    <span className="text-[10px] text-slate-500 font-mono shrink-0 ml-2">{msg.time}</span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -789,25 +860,65 @@ export const FleetTransitHubView: React.FC = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   <button
                     type="button"
-                    onClick={() => sendWalkieMessage('👥 আরও যাত্রী আসছে • অনুগ্রহ করে অল্প সময় অপেক্ষা করুন', '🏢 কাউন্টার ইনচার্জ', 'বাস চালক')}
+                    onClick={() => sendWalkieMessage('👥 আরও যাত্রী আসছে • অনুগ্রহ করে অল্প সময় অপেক্ষা করুন', isLineman ? '👨‍💼 লাইনম্যান (শফিকুল)' : '🏢 কাউন্টার ইনচার্জ (রাজ্জাক)', 'বাস চালক', isLineman ? 'lineman' : 'supervisor')}
                     className="p-2.5 rounded-2xl bg-slate-950 hover:bg-slate-850 border border-slate-800 hover:border-cyan-500/50 text-xs font-bold text-slate-200 transition active:scale-95 text-left"
                   >
                     <span>👥 আরও যাত্রী আসছে (অল্প অপেক্ষা করুন)</span>
                   </button>
                   <button
                     type="button"
-                    onClick={() => sendWalkieMessage('✅ ৩ নং প্ল্যাটফর্ম ক্লিয়ার • বাস ভেতরে নিয়ে আসুন', '👨‍💼 লাইনম্যান', 'বাস চালক')}
+                    onClick={() => sendWalkieMessage('✅ ৩ নং প্ল্যাটফর্ম ক্লিয়ার • বাস ভেতরে নিয়ে আসুন', isLineman ? '👨‍💼 লাইনম্যান (শফিকুল)' : '🏢 কাউন্টার ইনচার্জ (রাজ্জাক)', 'বাস চালক', isLineman ? 'lineman' : 'supervisor')}
                     className="p-2.5 rounded-2xl bg-slate-950 hover:bg-slate-850 border border-slate-800 hover:border-emerald-500/50 text-xs font-bold text-slate-200 transition active:scale-95 text-left"
                   >
                     <span>✅ প্ল্যাটফর্ম খালি (বাস ভেতরে আনুন)</span>
                   </button>
                   <button
                     type="button"
-                    onClick={() => sendWalkieMessage('🛑 ট্রিপ ছাড়ার সময় হয়েছে • ডিপার্চারের প্রস্তুতি নিন', '🏢 কাউন্টার ইনচার্জ', 'বাস চালক ও লাইনম্যান')}
+                    onClick={() => sendWalkieMessage('🛑 ট্রিপ ছাড়ার সময় হয়েছে • ডিপার্চারের প্রস্তুতি নিন', isLineman ? '👨‍💼 লাইনম্যান (শফিকুল)' : '🏢 কাউন্টার ইনচার্জ (রাজ্জাক)', 'বাস চালক ও লাইনম্যান', isLineman ? 'lineman' : 'supervisor')}
                     className="p-2.5 rounded-2xl bg-slate-950 hover:bg-slate-850 border border-slate-800 hover:border-amber-500/50 text-xs font-bold text-slate-200 transition active:scale-95 text-left"
                   >
                     <span>🛑 ট্রিপ ছাড়ার ক্লিয়ারেন্স ও প্রস্তুতি</span>
                   </button>
+                </div>
+              </div>
+
+              {/* Live Synchronized Message & Action Log Feed for Supervisor / Lineman */}
+              <div className="pt-2 border-t border-slate-800 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-300 flex items-center space-x-1.5">
+                    <Radio className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>📢 আন্তঃসংযুক্ত লাইভ মেসেজ ও অ্যাকশন হিস্টোরি ফিড:</span>
+                  </span>
+                  <span className="text-[10px] font-mono text-cyan-300 bg-cyan-950 px-2 py-0.5 rounded border border-cyan-500/40">
+                    REAL-TIME SYNC ACTIVE
+                  </span>
+                </div>
+
+                <div className="space-y-1.5 bg-slate-950 p-3 rounded-2xl border border-slate-800 text-xs max-h-48 overflow-y-auto">
+                  {walkieMessages.length === 0 ? (
+                    <div className="text-center text-slate-500 py-3 text-xs">কোনো সাম্প্রতিক অ্যাকশন লগ নেই</div>
+                  ) : (
+                    walkieMessages.map(msg => {
+                      const isSenderDriver = msg.sender.includes('চালক') || msg.roleType === 'driver';
+                      const isSenderLineman = msg.sender.includes('লাইনম্যান') || msg.roleType === 'lineman';
+
+                      return (
+                        <div key={msg.id} className="flex justify-between items-center bg-slate-900/90 p-2.5 rounded-xl border border-slate-800 hover:border-slate-700 transition">
+                          <div className="flex items-start space-x-2">
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold border shrink-0 mt-0.5 ${
+                              isSenderDriver ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' :
+                              isSenderLineman ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' :
+                              'bg-cyan-500/20 text-cyan-300 border-cyan-500/40'
+                            }`}>
+                              {msg.sender}
+                            </span>
+                            <span className="text-slate-200 text-xs">{msg.text}</span>
+                          </div>
+                          <span className="text-[10px] text-slate-500 font-mono shrink-0 ml-2">{msg.time}</span>
+                        </div>
+                      );
+                    })
+                  )}
                 </div>
               </div>
             </div>
@@ -918,6 +1029,16 @@ export const FleetTransitHubView: React.FC = () => {
                           }
                           setAssignedDriverName(drv.name);
                           setAssignedDriverPhone(drv.phone);
+                          try {
+                            localStorage.setItem('gps_transit_driver_name', drv.name);
+                            localStorage.setItem('gps_transit_driver_phone', drv.phone);
+                          } catch (e) {}
+                          sendWalkieMessage(
+                            `🔄 চালক পরিবর্তন: নতুন চালক ${drv.name} (${drv.phone}) কে বাসে দায়িত্ব দেওয়া হয়েছে`,
+                            isLineman ? '👨‍💼 লাইনম্যান (শফিকুল)' : '🏢 কাউন্টার ইনচার্জ (রাজ্জাক)',
+                            'ফ্লিট সিস্টেম ও চালক',
+                            isLineman ? 'lineman' : 'supervisor'
+                          );
                         }}
                         className={`p-3 rounded-2xl border transition cursor-pointer flex items-center justify-between ${
                           isSelected
@@ -1149,21 +1270,26 @@ export const FleetTransitHubView: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => {
-                    setOnboardPassengerCount(gatepassBatchInput);
+                    const approvedCount = Math.max(0, Math.min(40, gatepassBatchInput));
+                    setOnboardPassengerCount(approvedCount);
+                    try { localStorage.setItem('gps_transit_passenger_count', String(approvedCount)); } catch (e) {}
                     const newLog = {
                       id: Date.now(),
                       location: `${staffTerminalOrBus} (১ম বোর্ডিং গেটপাস)`,
-                      count: gatepassBatchInput,
-                      delta: gatepassBatchInput,
+                      count: approvedCount,
+                      delta: approvedCount,
                       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                     };
-                    setBoardingLogs([newLog]);
+                    const nextLogs = [newLog, ...boardingLogs];
+                    setBoardingLogs(nextLogs);
+                    try { localStorage.setItem('gps_transit_boarding_logs', JSON.stringify(nextLogs)); } catch (e) {}
                     sendWalkieMessage(
-                      `✅ গেটপাস অনুমোদিত! মোট যাত্রী: ${gatepassBatchInput} জন • ট্রিপ ছাড়ার ক্লিয়ারেন্স দেওয়া হলো।`,
-                      '🏢 কাউন্টার ইনচার্জ / লাইনম্যান',
-                      'বাস চালক ও ওনার'
+                      `✅ গেটপাস অনুমোদিত! মোট যাত্রী: ${approvedCount} জন • ট্রিপ ছাড়ার ক্লিয়ারেন্স দেওয়া হলো।`,
+                      isLineman ? '👨‍💼 লাইনম্যান (শফিকুল)' : '🏢 কাউন্টার ইনচার্জ (রাজ্জাক)',
+                      'বাস চালক ও ওনার',
+                      isLineman ? 'lineman' : 'supervisor'
                     );
-                    alert(`✅ গেটপাস অনুমোদিত! ${gatepassBatchInput} জন যাত্রী সহ বাসটি টার্মিনাল ছাড়ার ক্লিয়ারেন্স পেয়েছে।`);
+                    alert(`✅ গেটপাস অনুমোদিত! ${approvedCount} জন যাত্রী সহ বাসটি টার্মিনাল ছাড়ার ক্লিয়ারেন্স পেয়েছে।`);
                     setIsGatepassApprovalModalOpen(false);
                   }}
                   className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs shadow-lg shadow-emerald-600/30 transition active:scale-95"
