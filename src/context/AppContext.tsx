@@ -2815,9 +2815,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   };
 
-  const syncServerData = async () => {
+  const syncServerData = async (overrideEmail?: string) => {
     try {
-      const lower = (user?.email || '').toLowerCase();
+      const lower = (overrideEmail || user?.email || '').toLowerCase();
       
       // 1. If Persona is Personal Demo Bike User (demo / user)
       if (lower.startsWith('demo') || lower.startsWith('user')) {
@@ -3023,8 +3023,85 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             }
           }
         ];
+
+        const fleetPositions: Record<number, Position> = {
+          801: {
+            id: 80101,
+            deviceId: 801,
+            protocol: 'gt06',
+            serverTime: new Date().toISOString(),
+            deviceTime: new Date().toISOString(),
+            fixTime: new Date().toISOString(),
+            outdated: false,
+            valid: true,
+            latitude: 23.7806,
+            longitude: 90.3501,
+            altitude: 14,
+            speed: 62,
+            course: 110,
+            address: 'ঢাকা-ময়মনসিংহ হাইওয়ে (গাবতলী টার্মিনাল লিংক)',
+            accuracy: 4,
+            attributes: { ignition: true, motion: true, sat: 16, batteryLevel: 98, power: 24.2 }
+          },
+          802: {
+            id: 80201,
+            deviceId: 802,
+            protocol: 'gt06',
+            serverTime: new Date().toISOString(),
+            deviceTime: new Date().toISOString(),
+            fixTime: new Date().toISOString(),
+            outdated: false,
+            valid: true,
+            latitude: 23.7104,
+            longitude: 90.4348,
+            altitude: 12,
+            speed: 58,
+            course: 140,
+            address: 'ঢাকা-চট্টগ্রাম এক্সপ্রেসওয়ে (সায়েদাবাদ এক্সিট)',
+            accuracy: 4,
+            attributes: { ignition: true, motion: true, sat: 15, batteryLevel: 96, power: 24.0 }
+          },
+          803: {
+            id: 80301,
+            deviceId: 803,
+            protocol: 'gt06',
+            serverTime: new Date().toISOString(),
+            deviceTime: new Date().toISOString(),
+            fixTime: new Date().toISOString(),
+            outdated: false,
+            valid: true,
+            latitude: 23.7540,
+            longitude: 90.3920,
+            altitude: 14,
+            speed: 46,
+            course: 200,
+            address: 'পদ্মা সেতু এক্সপ্রেসওয়ে লিংক (তেজগাঁও ডিপো রুট)',
+            accuracy: 5,
+            attributes: { ignition: true, motion: true, sat: 14, batteryLevel: 94, power: 24.4, fuel: 140 }
+          },
+          804: {
+            id: 80401,
+            deviceId: 804,
+            protocol: 'gt06',
+            serverTime: new Date().toISOString(),
+            deviceTime: new Date().toISOString(),
+            fixTime: new Date().toISOString(),
+            outdated: false,
+            valid: true,
+            latitude: 23.8512,
+            longitude: 90.4074,
+            altitude: 16,
+            speed: 38,
+            course: 350,
+            address: 'বিমানবন্দর রোড (উত্তরা এক্সপ্রেসওয়ে)',
+            accuracy: 4,
+            attributes: { ignition: true, motion: true, sat: 14, batteryLevel: 95, power: 12.8, fuel: 45 }
+          }
+        };
+
         setDevices(fleetVehicles);
         setSelectedDeviceId(fleetVehicles[0].id);
+        setPositions(fleetPositions);
         return;
       }
 
@@ -3364,7 +3441,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       setActiveTab(defaultTab);
       localStorage.setItem('gps_user_session', JSON.stringify(userWithRole));
       localStorage.setItem('gps_saas_current_role', determinedRole);
-      await syncServerData();
+      await syncServerData(emailOrUser.trim());
     }
     return res;
   };
