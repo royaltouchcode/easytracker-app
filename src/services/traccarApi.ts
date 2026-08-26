@@ -310,6 +310,57 @@ class TraccarApiService {
         }
       }
     } catch (e) {}
+
+    // Simulated high-fidelity playback trip for Demo Bike (Device #991)
+    if (deviceId === 991 || deviceId === 801 || deviceId === 803) {
+      const baseLat = deviceId === 991 ? 23.7745 : (deviceId === 801 ? 23.7806 : 23.7540);
+      const baseLon = deviceId === 991 ? 90.4137 : (deviceId === 801 ? 90.3501 : 90.3920);
+      const waypoints = [
+        { dLat: 0.000, dLon: 0.000, spd: 0, addr: 'রামপুরা ব্রিজ পয়েন্ট (যাত্রা শুরু)' },
+        { dLat: 0.003, dLon: -0.003, spd: 36, addr: 'হাতিরঝিল লেক রোড (নর্থ লুপ)' },
+        { dLat: 0.006, dLon: -0.007, spd: 48, addr: 'মধুবাগ ওভারপাস সংযোগ' },
+        { dLat: 0.004, dLon: -0.013, spd: 54, addr: 'রেইনবো ব্রিজ ও এফডিসি মোড়' },
+        { dLat: 0.001, dLon: -0.016, spd: 32, addr: 'কারওয়ান বাজার লিংক রোড' },
+        { dLat: -0.004, dLon: -0.012, spd: 0, addr: 'সোনারগাঁও ভিউ পয়েন্ট (স্টপেজ)' },
+        { dLat: -0.006, dLon: -0.005, spd: 42, addr: 'মহানগর প্রজেক্ট এভিনিউ' },
+        { dLat: -0.003, dLon: 0.003, spd: 58, addr: 'বাড্ডা লিংক রোড এক্সপ্রেসওয়ে' },
+        { dLat: 0.000, dLon: 0.000, spd: 0, addr: 'রামপুরা ব্রিজ পয়েন্ট (ট্রিপ সমাপ্ত)' }
+      ];
+
+      const now = Date.now();
+      const generated: Position[] = [];
+      let curTime = now - 3600000 * 2.5; // 2.5 hours ago
+
+      waypoints.forEach((wp, idx) => {
+        generated.push({
+          id: 991000 + idx,
+          deviceId: deviceId,
+          protocol: 'osmand',
+          serverTime: new Date(curTime).toISOString(),
+          deviceTime: new Date(curTime).toISOString(),
+          fixTime: new Date(curTime).toISOString(),
+          outdated: false,
+          valid: true,
+          latitude: baseLat + wp.dLat,
+          longitude: baseLon + wp.dLon,
+          altitude: 14,
+          speed: wp.spd,
+          course: idx * 40,
+          address: wp.addr,
+          accuracy: 4,
+          attributes: {
+            ignition: wp.spd > 0,
+            motion: wp.spd > 0,
+            batteryLevel: 94,
+            sat: 14
+          }
+        });
+        curTime += 180000; // 3 mins interval
+      });
+
+      return generated;
+    }
+
     return [];
   }
 

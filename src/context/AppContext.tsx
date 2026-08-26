@@ -2849,8 +2849,93 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             }
           }
         };
+
+        const demoPosition: Position = {
+          id: 99101,
+          deviceId: 991,
+          protocol: 'osmand',
+          serverTime: new Date().toISOString(),
+          deviceTime: new Date().toISOString(),
+          fixTime: new Date().toISOString(),
+          outdated: false,
+          valid: true,
+          latitude: 23.7745,
+          longitude: 90.4137,
+          altitude: 12,
+          speed: 42,
+          course: 145,
+          address: 'হাতিরঝিল লেক রোড (রেইনবো ব্রিজ সংযোগ), ঢাকা',
+          accuracy: 3,
+          attributes: {
+            ignition: true,
+            motion: true,
+            batteryLevel: 96,
+            power: 12.8,
+            sat: 14,
+            distance: 4.8,
+            totalDistance: 12450000
+          }
+        };
+
         setDevices([demoBike]);
         setSelectedDeviceId(demoBike.id);
+        setPositions({ 991: demoPosition });
+
+        // Populate Rich Demo Event Logs & Video Records
+        setEventLogs([
+          {
+            id: 9911,
+            deviceId: 991,
+            type: 'accident_impact',
+            serverTime: new Date(Date.now() - 3600000 * 2).toISOString(),
+            attributes: {
+              alarm: 'accident_impact',
+              message: '🚨 জরুরি ক্র্যাশ ইমপ্যাক্ট (4.6G) সনাক্ত: কুড়িল ফ্লাইওভার সংযোগস্থল • ৫ সেকেন্ডের জরুরি ভিডিও এভিডেন্স সংরক্ষিত।',
+              location: 'Airport Road, Kuril Flyover, Dhaka',
+              speed: 48,
+              hasVideoEvidence: true,
+              impactG: '4.6 G'
+            }
+          },
+          {
+            id: 9912,
+            deviceId: 991,
+            type: 'traffic_signal',
+            serverTime: new Date(Date.now() - 3600000 * 5).toISOString(),
+            attributes: {
+              alarm: 'traffic_signal',
+              message: '🚦 ADAS ক্যামেরা অ্যালার্ট: লাল বাতি সিগন্যাল অতিক্রম করা হয়েছে • বিজয় সরণি ইন্টারসেকশন।',
+              location: 'Bijoy Sarani Traffic Intersection, Dhaka',
+              speed: 38,
+              hasVideoEvidence: true
+            }
+          },
+          {
+            id: 9913,
+            deviceId: 991,
+            type: 'overspeed',
+            serverTime: new Date(Date.now() - 3600000 * 8).toISOString(),
+            attributes: {
+              alarm: 'overspeed',
+              message: '⚡ ওভার-স্পিড অতিক্রম: নির্ধারিত ৬৫ কিমি/ঘণ্টা স্পিড লিমিট অতিক্রম করে ৭৪ কিমি/ঘণ্টা গতি রেকর্ড হয়েছে।',
+              speed: 74,
+              location: 'Hatirjheel Lake Loop Road, Dhaka'
+            }
+          },
+          {
+            id: 9914,
+            deviceId: 991,
+            type: 'parking_violation',
+            serverTime: new Date(Date.now() - 3600000 * 12).toISOString(),
+            attributes: {
+              alarm: 'parking_violation',
+              message: '🅿️ অবৈধ পার্কিং ও ঝাঁকুনি অ্যালার্ট: ইঞ্জিন বন্ধ অবস্থায় বাইক নাড়াচাড়া করা হয়েছে।',
+              location: 'Dhanmondi Lake Viewpoint, Dhaka',
+              speed: 0
+            }
+          }
+        ]);
+
         return;
       }
 
