@@ -175,16 +175,19 @@ export const DriverPerformanceManager: React.FC<{ isCustomerScoped?: boolean }> 
             <User className="w-6 h-6" />
           </div>
           <div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 flex-wrap">
               <h3 className="font-extrabold text-base text-white">
-                👨‍✈️ ড্রাইভার রোস্টার ও পারফরম্যান্স স্কোরকার্ড (Driver Safety Leaderboard)
+                👨‍✈️ ড্রাইভার প্রোফাইল ও স্মার্ট লাইসেন্স হাব
               </h3>
+              <span className="text-[9px] font-mono px-2 py-0.5 rounded-full font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">
+                👨‍✈️ ড্রাইভারের দায়িত্ব (DRIVER MANAGED)
+              </span>
               <span className="text-[9px] font-mono px-2 py-0.5 rounded-full font-bold bg-blue-500/20 text-blue-300 border border-blue-500/40">
                 ECO-SAFETY AI
               </span>
             </div>
             <p className="text-xs text-slate-400 mt-0.5">
-              ড্রাইভার প্রোফাইল, ডিউটি শিফট ট্র্যাকিং, ওভারস্পিড/হার্শ ব্রেক আচরণ এবং সেফটি র‍্যাংকিং
+              ড্রাইভারের স্মার্ট লাইসেন্স আপলোড, ডিউটি শিফট, ওভারস্পিড/হার্শ ব্রেক ও লাইসেন্স মেয়াদ ট্র্যাকিং (মালিক ও ড্রাইভার উভয়কে এলার্ট প্রেরিত)
             </p>
           </div>
         </div>
@@ -200,6 +203,19 @@ export const DriverPerformanceManager: React.FC<{ isCustomerScoped?: boolean }> 
           <Plus className="w-4 h-4" />
           <span>+ নতুন ড্রাইভার যুক্ত করুন</span>
         </button>
+      </div>
+
+      {/* Driver License 2-Tier Expiry Notification Indicator */}
+      <div className="p-3 rounded-2xl bg-slate-900 border border-indigo-500/30 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 shadow-md">
+        <div className="flex items-center space-x-2">
+          <ShieldAlert className="w-4 h-4 text-indigo-400 shrink-0" />
+          <span className="text-slate-300">
+            <strong className="text-white">স্মার্ট লাইসেন্স অটো-ট্র্যাকার:</strong> ড্রাইভারের লাইসেন্সের মেয়াদ শেষ হওয়ার পূর্বে <strong>মালিক ও চালক দুজনেই</strong> অগ্রিম নোটিফিকেশন পাবেন এবং মেয়াদ শেষ হলে তাৎক্ষণিক ট্রাফিক পুলিশ ফাইন এলার্ট পাবেন।
+          </span>
+        </div>
+        <span className="text-[9px] font-mono font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 px-2 py-0.5 rounded-lg shrink-0">
+          DUAL-NOTIFY ACTIVE
+        </span>
       </div>
 
       {/* KPI Cards */}

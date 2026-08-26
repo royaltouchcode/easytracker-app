@@ -176,23 +176,26 @@ export const ComplianceDocumentVault: React.FC<{ isCustomerScoped?: boolean }> =
   return (
     <div className="space-y-4 select-none">
       
-      {/* Top Banner */}
+      {/* Top Banner with Owner Designation */}
       <div className="bg-gradient-to-r from-slate-900 via-slate-900 to-emerald-950 border border-slate-800 rounded-3xl p-4 sm:p-5 shadow-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center space-x-3">
           <div className="w-12 h-12 rounded-2xl bg-emerald-600/30 text-emerald-400 border border-emerald-500/50 flex items-center justify-center shadow-lg shrink-0">
             <FileCheck className="w-6 h-6" />
           </div>
           <div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 flex-wrap">
               <h3 className="font-extrabold text-base text-white">
-                📅 বিআরটিএ লিগ্যাল কমপ্লায়েন্স ও ডকুমেন্টস ভল্ট (Compliance Vault)
+                📅 বিআরটিএ লিগ্যাল কমপ্লায়েন্স ও ডকুমেন্টস ভল্ট
               </h3>
               <span className="text-[9px] font-mono px-2 py-0.5 rounded-full font-bold bg-blue-500/20 text-blue-300 border border-blue-500/40">
-                BRTA DIGITAL SYNC
+                👔 মালিকের ভল্ট (OWNER ONLY)
+              </span>
+              <span className="text-[9px] font-mono px-2 py-0.5 rounded-full font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                🔔 অটো পুশ ও এসএমএস এলার্ট
               </span>
             </div>
             <p className="text-xs text-slate-400 mt-0.5">
-              ফিটনেস সার্টিফিকেট, ট্যাক্স টোকেন, ইন্স্যুরেন্স ও রুট পারমিটের মেয়াদ ট্র্যাকিং ও স্বয়ংক্রিয় রিমাইন্ডার
+              গাড়ির ট্যাক্স টোকেন, ফিটনেস, রুট পারমিট ও ইন্স্যুরেন্সের মেয়াদ ট্র্যাকিং (ড্রাইভারের লাইসেন্স ড্রাইভার প্রোফাইলে সংরক্ষিত)
             </p>
           </div>
         </div>
@@ -209,6 +212,45 @@ export const ComplianceDocumentVault: React.FC<{ isCustomerScoped?: boolean }> =
           <span>+ নতুন ডকুমেন্ট যুক্ত করুন</span>
         </button>
       </div>
+
+      {/* 2-Tier Alert Banners: Advance Warning vs High Risk Expired Fine Danger */}
+      {expiredCount > 0 && (
+        <div className="p-3.5 rounded-2xl bg-rose-500/20 border border-rose-500/50 text-rose-200 flex items-center justify-between gap-3 animate-pulse">
+          <div className="flex items-center space-x-2.5">
+            <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0" />
+            <div>
+              <span className="text-xs font-black text-white block">
+                🚨 হাই রিস্ক ট্রাফিক মামলা ও ডাম্পিং এলার্ট! ({expiredCount} টি ডকুমেন্ট মেয়াদোত্তীর্ণ)
+              </span>
+              <span className="text-[11px] text-rose-300">
+                গাড়ির প্রয়োজনীয় কাগজপত্রের মেয়াদ শেষ হয়েছে। এই অবস্থায় রাস্তায় গাড়ি বের করলে বিআরটিএ বা ট্রাফিক পুলিশ ভারী জরিমানা ও গাড়ি ডাম্পিং করতে পারে!
+              </span>
+            </div>
+          </div>
+          <span className="text-[10px] font-mono font-bold bg-rose-600 text-white px-2.5 py-1 rounded-xl shrink-0">
+            HIGH DANGER
+          </span>
+        </div>
+      )}
+
+      {expiringCount > 0 && (
+        <div className="p-3 rounded-2xl bg-amber-500/15 border border-amber-500/40 text-amber-200 flex items-center justify-between gap-3">
+          <div className="flex items-center space-x-2.5">
+            <Clock className="w-4 h-4 text-amber-400 shrink-0" />
+            <div>
+              <span className="text-xs font-bold text-amber-300 block">
+                ⚠️ অ্যাডভান্স রিমাইন্ডার ({expiringCount} টি ডকুমেন্টের মেয়াদ ৩০ দিনের কম বাকি)
+              </span>
+              <span className="text-[11px] text-amber-200/80">
+                দেরি ফি ও জরিমানা এড়াতে এখনই বিআরটিএ সার্কেল অফিস বা ইন্স্যুরেন্স কোম্পানিতে রিনিউ করার আবেদন করুন।
+              </span>
+            </div>
+          </div>
+          <span className="text-[9.5px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded-lg shrink-0">
+            SMS SENT TO OWNER
+          </span>
+        </div>
+      )}
 
       {/* 4 KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
