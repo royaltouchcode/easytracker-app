@@ -79,17 +79,17 @@ export const ReportsHubView: React.FC = () => {
     updateDeviceProfile
   } = useApp();
 
-  const [activeSubTab, setActiveSubTab] = useState<'hub' | 'fuel' | 'compliance' | 'driver' | 'transit' | 'maintenance' | 'ai_manual' | 'running' | 'subscription'>('hub');
-  const [reportHubMode, setReportHubMode] = useState<'enterprise' | 'compact'>('enterprise');
-  const [personaMode, setPersonaMode] = useState<'auto' | 'personal' | 'fleet'>('auto');
-  const [selectedReportType, setSelectedReportType] = useState<DetailedReportType>(null);
-  const [reportDateFilter, setReportDateFilter] = useState<'today' | 'yesterday' | 'week' | 'month'>('today');
-
   // Vehicle Category & Adaptive Persona Detection
   const category = (selectedDevice?.category || 'motorcycle').toLowerCase();
   const isBike = category.includes('motorcycle') || category.includes('bike') || category.includes('scooter');
   const isCar = category.includes('car') || category.includes('suv') || category.includes('jeep') || category.includes('sedan') || category.includes('cng');
   const isCommercialFleet = category.includes('bus') || category.includes('truck') || category.includes('trailer') || category.includes('pickup') || (devices && devices.length > 1);
+
+  const [activeSubTab, setActiveSubTab] = useState<'hub' | 'fuel' | 'compliance' | 'driver' | 'transit' | 'maintenance' | 'ai_manual' | 'running' | 'subscription'>('hub');
+  const [reportHubMode, setReportHubMode] = useState<'enterprise' | 'compact'>(() => isCommercialFleet ? 'enterprise' : 'compact');
+  const [personaMode, setPersonaMode] = useState<'auto' | 'personal' | 'fleet'>('auto');
+  const [selectedReportType, setSelectedReportType] = useState<DetailedReportType>(null);
+  const [reportDateFilter, setReportDateFilter] = useState<'today' | 'yesterday' | 'week' | 'month'>('today');
 
   const isFleetMode = personaMode === 'fleet' || (personaMode === 'auto' && isCommercialFleet);
 
