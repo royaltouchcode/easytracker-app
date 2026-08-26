@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Building2, 
   Bus, 
@@ -170,7 +170,8 @@ export const FleetTransitHubView: React.FC = () => {
     selectedDevice, 
     positions, 
     setActiveTab, 
-    language 
+    language,
+    triggerManualAlert
   } = useApp();
 
   const [activeSubTab, setActiveSubTab] = useState<'live_radar' | 'trip_dispatch' | 'transit_counters' | 'company_rbac' | 'driver_performance' | 'fuel_billing' | 'compliance_vault'>('live_radar');
@@ -609,6 +610,160 @@ export const FleetTransitHubView: React.FC = () => {
 
   const [isDriverSosOpen, setIsDriverSosOpen] = useState(false);
 
+  // Real-Time Cross-Tab Broadcast & Floating Push Notification State
+  const [liveIncomingBanner, setLiveIncomingBanner] = useState<{ sender: string; text: string; time: string; roleType?: string } | null>(null);
+  const [incomingEmergencyAlert, setIncomingEmergencyAlert] = useState<{ busPlate: string; driver: string; supervisor: string; location: string; speed: string; time: string; senderRole: string } | null>(null);
+
+  // Web Audio Synthesizer for Radio Walkie-Talkie Chime and Emergency Sirens
+  const playAudioChime = (type: 'walkie' | 'sos' | 'gatepass') => {
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+
+      if (type === 'sos') {
+        // High-low pulsing emergency alarm siren
+        [0, 0.2, 0.4, 0.6, 0.8, 1.0].forEach(time => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(time % 0.4 === 0 ? 1175 : 880, ctx.currentTime + time);
+          gain.gain.setValueAtTime(0.25, ctx.currentTime + time);
+          gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + time + 0.18);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(ctx.currentTime + time);
+          osc.stop(ctx.currentTime + time + 0.19);
+        });
+      } else if (type === 'walkie') {
+        // 2-tone walkie talkie chirp
+        [0, 0.09].forEach((time, idx) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(idx === 0 ? 950 : 1350, ctx.currentTime + time);
+          gain.gain.setValueAtTime(0.2, ctx.currentTime + time);
+          gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + time + 0.08);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(ctx.currentTime + time);
+          osc.stop(ctx.currentTime + time + 0.09);
+        });
+      } else {
+        // Gatepass approval 3-note harmonic chime
+        [523, 659, 784].forEach((freq, idx) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.1);
+          gain.gain.setValueAtTime(0.18, ctx.currentTime + idx * 0.1);
+          gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + idx * 0.1 + 0.22);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(ctx.currentTime + idx * 0.1);
+          osc.stop(ctx.currentTime + idx * 0.1 + 0.23);
+        });
+      }
+    } catch (e) {
+      console.warn('Web Audio synthesis prevented:', e);
+    }
+  };
+
+  // BroadcastChannel & Storage Event Real-Time Listener
+  useEffect(() => {
+    let bc: BroadcastChannel | null = null;
+    try {
+      bc = new BroadcastChannel('easytracker_fleet_realtime_channel');
+      bc.onmessage = (event) => {
+        const { type, payload } = event.data || {};
+        if (type === 'WALKIE_MSG') {
+          setWalkieMessages(prev => {
+            if (prev.some(m => m.id === payload.id)) return prev;
+            return [payload, ...prev].slice(0, 30);
+          });
+          setLiveIncomingBanner({ sender: payload.sender, text: payload.text, time: payload.time, roleType: payload.roleType });
+          playAudioChime('walkie');
+          setTimeout(() => setLiveIncomingBanner(null), 8000);
+        } else if (type === 'EMERGENCY_SOS') {
+          setIncomingEmergencyAlert(payload);
+          setIsCrashAlertModalOpen(true);
+          playAudioChime('sos');
+          triggerManualAlert('sos', `🚨 জরুরি এক্সিডেন্ট এসওএস! বাস: ${payload.busPlate}, অবস্থান: ${payload.location}`);
+        } else if (type === 'PASSENGER_UPDATE') {
+          setOnboardPassengerCount(payload.count);
+        } else if (type === 'GATEPASS_APPROVED') {
+          setOnboardPassengerCount(payload.count);
+          playAudioChime('gatepass');
+          setLiveIncomingBanner({ sender: '🏢 কাউন্টার ইনচার্জ', text: `✅ গেটপাস অনুমোদিত! যাত্রী: ${payload.count} জন • ট্রিপ ছাড়ার ক্লিয়ারেন্স`, time: payload.time });
+          setTimeout(() => setLiveIncomingBanner(null), 8000);
+        } else if (type === 'DRIVER_ASSIGNED') {
+          setAssignedDriverName(payload.driverName);
+          setAssignedDriverPhone(payload.driverPhone);
+        }
+      };
+    } catch (e) {}
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'gps_transit_walkie_messages' && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setWalkieMessages(parsed);
+            const latest = parsed[0];
+            setLiveIncomingBanner({ sender: latest.sender, text: latest.text, time: latest.time, roleType: latest.roleType });
+            playAudioChime('walkie');
+            setTimeout(() => setLiveIncomingBanner(null), 8000);
+          }
+        } catch (err) {}
+      } else if (e.key === 'gps_transit_emergency_sos_broadcast' && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (parsed) {
+            setIncomingEmergencyAlert(parsed);
+            setIsCrashAlertModalOpen(true);
+            playAudioChime('sos');
+          }
+        } catch (err) {}
+      } else if (e.key === 'gps_transit_passenger_count' && e.newValue) {
+        setOnboardPassengerCount(parseInt(e.newValue, 10) || 0);
+      } else if (e.key === 'gps_transit_driver_name' && e.newValue) {
+        setAssignedDriverName(e.newValue);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    // Periodic fallback polling to sync messages across tabs
+    const syncInterval = setInterval(() => {
+      try {
+        const storedMsgs = localStorage.getItem('gps_transit_walkie_messages');
+        if (storedMsgs) {
+          const parsed = JSON.parse(storedMsgs);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setWalkieMessages(parsed);
+          }
+        }
+        const storedSos = localStorage.getItem('gps_transit_emergency_sos_broadcast');
+        if (storedSos) {
+          const parsed = JSON.parse(storedSos);
+          if (parsed && Date.now() - parsed.timestamp < 12000 && !incomingEmergencyAlert) {
+            setIncomingEmergencyAlert(parsed);
+            setIsCrashAlertModalOpen(true);
+            playAudioChime('sos');
+          }
+        }
+        const pCount = localStorage.getItem('gps_transit_passenger_count');
+        if (pCount) setOnboardPassengerCount(parseInt(pCount, 10));
+      } catch (e) {}
+    }, 1000);
+
+    return () => {
+      if (bc) bc.close();
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(syncInterval);
+    };
+  }, []);
+
   // ADAS Cabin Alarm Simulation State
   const [cabinAlarm, setCabinAlarm] = useState<string | null>(null);
 
@@ -630,83 +785,62 @@ export const FleetTransitHubView: React.FC = () => {
       target,
       roleType: roleType || (sender.includes('চালক') ? 'driver' : sender.includes('লাইনম্যান') ? 'lineman' : 'supervisor')
     };
+
     setWalkieMessages(prev => {
-      const next = [newMsg, ...prev].slice(0, 30);
+      const next = [newMsg, ...prev.filter(m => m.id !== newMsg.id)].slice(0, 30);
       try { localStorage.setItem('gps_transit_walkie_messages', JSON.stringify(next)); } catch (e) {}
       return next;
     });
+
+    // Multi-tab real-time broadcast
+    try {
+      const bc = new BroadcastChannel('easytracker_fleet_realtime_channel');
+      bc.postMessage({ type: 'WALKIE_MSG', payload: newMsg });
+      bc.close();
+    } catch (e) {}
+
+    playAudioChime('walkie');
   };
 
-  const logTripEvent = (type: 'CHECKPOST' | 'FUEL' | 'JAM' | 'BREAK' | 'TOLL' | 'PASSENGER' | 'ARRIVED') => {
-    let text = '';
-    const sender = `👨‍✈️ চালক (${user?.name?.split(' ')[1] || 'কুদ্দুস'})`;
-    const target = 'কাউন্টার ও ওনার';
-
-    if (type === 'CHECKPOST') {
-      const next = tripCounters.checkpost + 1;
-      const nextObj = { ...tripCounters, checkpost: next };
-      setTripCounters(nextObj);
-      try { localStorage.setItem('gps_transit_trip_counters', JSON.stringify(nextObj)); } catch (e) {}
-      text = `👮 পুলিশ/বিআরটিএ চেকপোস্টে চেকিং চলছে (লগ #${next})`;
-    } else if (type === 'FUEL') {
-      const next = tripCounters.fuelRefill + 1;
-      const nextObj = { ...tripCounters, fuelRefill: next };
-      setTripCounters(nextObj);
-      try { localStorage.setItem('gps_transit_trip_counters', JSON.stringify(nextObj)); } catch (e) {}
-      text = `⛽ পাম্পে ফুয়েল/সিএনজি রিফিল সম্পন্ন (রিফিল #${next})`;
-    } else if (type === 'JAM') {
-      const next = tripCounters.heavyJam + 1;
-      const nextObj = { ...tripCounters, heavyJam: next };
-      setTripCounters(nextObj);
-      try { localStorage.setItem('gps_transit_trip_counters', JSON.stringify(nextObj)); } catch (e) {}
-      text = `🚦 হাইওয়েতে তীব্র যানজট (> ১০ মিনিট বিলম্ব) (জ্যাম রিপোর্ট #${next})`;
-    } else if (type === 'BREAK') {
-      const next = tripCounters.hotelBreak + 1;
-      const nextObj = { ...tripCounters, hotelBreak: next };
-      setTripCounters(nextObj);
-      try { localStorage.setItem('gps_transit_trip_counters', JSON.stringify(nextObj)); } catch (e) {}
-      text = `🍱 হাইওয়ে রেস্তোরাঁয় যাত্রী খাবার বিরতি (বিরতি #${next})`;
-    } else if (type === 'TOLL') {
-      const next = tripCounters.tollFerry + 1;
-      const nextObj = { ...tripCounters, tollFerry: next };
-      setTripCounters(nextObj);
-      try { localStorage.setItem('gps_transit_trip_counters', JSON.stringify(nextObj)); } catch (e) {}
-      text = `🌉 টোল প্লাজা / ফেরি পারাপারের লাইনে অপেক্ষমাণ (লগ #${next})`;
-    } else if (type === 'PASSENGER') {
-      text = `👥 যাত্রী সংখ্যা ও আসন স্ট্যাটাস লাইভ আপডেট জানতে অনুরোধ করা হলো`;
-    } else if (type === 'ARRIVED') {
-      text = `✅ গন্তব্যে নিরাপদে পৌঁছেছি • আজকের ট্রিপ সফলভাবে সমাপ্ত`;
-    }
-
-    sendWalkieMessage(text, sender, target, 'driver');
-  };
-
-  const updatePassengerOnboard = (delta: number) => {
-    const nextCount = Math.max(0, Math.min(40, onboardPassengerCount + delta));
-    setOnboardPassengerCount(nextCount);
-    try { localStorage.setItem('gps_transit_passenger_count', String(nextCount)); } catch (e) {}
-
-    const newLog = {
+  // 2-Way Instant Emergency SOS Dispatcher
+  const triggerEmergencySos = (senderRole: 'supervisor' | 'driver') => {
+    const sosData = {
       id: Date.now(),
-      location: delta > 0 ? 'হাইওয়ে স্পট পিকআপ (জিপিএস লাইভ)' : 'হাইওয়ে ড্রপ অফ (জিপিএস লাইভ)',
-      count: nextCount,
-      delta,
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      timestamp: Date.now(),
+      busPlate: assignedBusPlate,
+      driver: `${assignedDriverName} (${assignedDriverPhone})`,
+      supervisor: 'মোঃ শফিকুল আলম (01711-889900)',
+      location: 'ঢাকা-ময়মনসিংহ হাইওয়ে (টোল প্লাজা সংলগ্ন)',
+      speed: '৬০ কিমি/ঘণ্টা',
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      senderRole
     };
-    setBoardingLogs(prev => {
-      const next = [newLog, ...prev];
-      try { localStorage.setItem('gps_transit_boarding_logs', JSON.stringify(next)); } catch (e) {}
-      return next;
-    });
+
+    try {
+      localStorage.setItem('gps_transit_emergency_sos_broadcast', JSON.stringify(sosData));
+      const bc = new BroadcastChannel('easytracker_fleet_realtime_channel');
+      bc.postMessage({ type: 'EMERGENCY_SOS', payload: sosData });
+      bc.close();
+    } catch (e) {}
 
     sendWalkieMessage(
-      delta > 0 
-        ? `👥 নতুন যাত্রী অনবোর্ড (+${delta} জন) • বাসে মোট যাত্রী: ${nextCount}/৪০ জন` 
-        : `👥 যাত্রী নেমেছেন (${Math.abs(delta)} জন) • বাসে মোট যাত্রী: ${nextCount}/৪০ জন`,
-      `👨‍✈️ চালক (${user?.name?.split(' ')[1] || 'কুদ্দুস'})`,
-      'কাউন্টার ও ওনার',
-      'driver'
+      `🚨 জরুরি এক্সিডেন্ট এসওএস! বাসের অবস্থান: ঢাকা-ময়মনসিংহ হাইওয়ে • অবিলম্বে রেসকিউ টিম পাঠান!`,
+      senderRole === 'supervisor' ? '🎫 বাস সুপারভাইজার (শফিকুল)' : '👨‍✈️ বাস চালক (কুদ্দুস)',
+      'কাউন্টার ইনচার্জ, ডিসপ্যাচার ও প্রধান কার্যালয়',
+      'system'
     );
+
+    triggerManualAlert(
+      'sos',
+      `🚨 জরুরি এসওএস সংকেত! বাস: ${assignedBusPlate}, অবস্থান: ঢাকা-ময়মনসিংহ হাইওয়ে। কাউন্টার ও রেসকিউ টিমকে সতর্ক করা হয়েছে!`
+    );
+
+    playAudioChime('sos');
+    if (senderRole === 'driver') {
+      setIsDriverSosOpen(true);
+    } else {
+      setIsCrashAlertModalOpen(true);
+    }
   };
 
   // =========================================================================
@@ -716,6 +850,34 @@ export const FleetTransitHubView: React.FC = () => {
     return (
       <div className="flex-1 overflow-y-auto bg-slate-950 p-3 sm:p-5 space-y-4 select-none animate-in fade-in">
         
+        {/* 📢 Live Real-Time Floating Incoming Banner */}
+        {liveIncomingBanner && (
+          <div className="p-4 rounded-3xl bg-gradient-to-r from-cyan-950 via-indigo-950 to-slate-900 border-2 border-cyan-400 text-white shadow-2xl flex items-center justify-between animate-in slide-in-from-top-4 duration-300">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 rounded-2xl bg-cyan-600/30 text-cyan-300 border border-cyan-400 flex items-center justify-center text-xl animate-pulse shrink-0 shadow-lg">
+                📢
+              </div>
+              <div>
+                <div className="flex items-center space-x-2">
+                  <span className="font-extrabold text-cyan-300 text-xs">{liveIncomingBanner.sender}</span>
+                  <span className="text-[10px] text-slate-400 font-mono">({liveIncomingBanner.time})</span>
+                  <span className="text-[9px] bg-cyan-500/20 text-cyan-200 border border-cyan-500/40 px-2 py-0.5 rounded-full font-bold">
+                    রিয়েল-টাইম বার্তা
+                  </span>
+                </div>
+                <p className="font-black text-sm text-white mt-0.5">{liveIncomingBanner.text}</p>
+              </div>
+            </div>
+            <button 
+              onClick={() => setLiveIncomingBanner(null)}
+              className="p-1.5 rounded-xl bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 transition"
+              title="বন্ধ করুন"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
         {/* Cabin Alarm Banner (Live ADAS Signal) */}
         {cabinAlarm && (
           <div className="p-4 rounded-3xl bg-gradient-to-r from-rose-950 via-rose-900 to-rose-950 border-2 border-rose-500 text-white shadow-2xl flex items-center justify-between animate-bounce">
@@ -1359,6 +1521,25 @@ export const FleetTransitHubView: React.FC = () => {
                 </div>
               </div>
 
+              {/* 🚨 Emergency SOS & Hotline Actions for Vehicle Supervisor */}
+              <div className="pt-2 border-t border-slate-800 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => triggerEmergencySos('supervisor')}
+                  className="py-3 px-3 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-black text-xs flex items-center justify-center space-x-2 shadow-lg shadow-rose-600/30 transition active:scale-95"
+                >
+                  <AlertTriangle className="w-4 h-4 animate-bounce" />
+                  <span>🚨 জরুরি হাইওয়ে এসওএস / এক্সিডেন্ট এলার্ট পাঠান</span>
+                </button>
+                <a
+                  href="tel:01822771122"
+                  className="py-3 px-3 rounded-2xl bg-cyan-950 hover:bg-cyan-900 border border-cyan-500/50 text-cyan-300 font-bold text-xs flex items-center justify-center space-x-2 transition active:scale-95"
+                >
+                  <Phone className="w-4 h-4" />
+                  <span>📞 কাউন্টার ইনচার্জকে সরাসরি কল দিন</span>
+                </a>
+              </div>
+
               {/* Synchronized Message & Action Log Feed */}
               <div className="pt-2 border-t border-slate-800 space-y-2">
                 <div className="flex items-center justify-between">
@@ -1490,7 +1671,7 @@ export const FleetTransitHubView: React.FC = () => {
               <div className="pt-2 border-t border-slate-800 grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <button
                   type="button"
-                  onClick={() => setIsDriverSosOpen(true)}
+                  onClick={() => triggerEmergencySos('driver')}
                   className="py-3 px-3 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-black text-xs flex items-center justify-center space-x-2 shadow-lg shadow-rose-600/30 transition active:scale-95"
                 >
                   <AlertTriangle className="w-4 h-4 animate-bounce" />
@@ -1787,6 +1968,9 @@ export const FleetTransitHubView: React.FC = () => {
                           try {
                             localStorage.setItem('gps_transit_driver_name', drv.name);
                             localStorage.setItem('gps_transit_driver_phone', drv.phone);
+                            const bc = new BroadcastChannel('easytracker_fleet_realtime_channel');
+                            bc.postMessage({ type: 'DRIVER_ASSIGNED', payload: { driverName: drv.name, driverPhone: drv.phone } });
+                            bc.close();
                           } catch (e) {}
                           sendWalkieMessage(
                             `🔄 চালক পরিবর্তন: নতুন চালক ${drv.name} (${drv.phone}) কে বাসে দায়িত্ব দেওয়া হয়েছে`,
@@ -2027,7 +2211,12 @@ export const FleetTransitHubView: React.FC = () => {
                   onClick={() => {
                     const approvedCount = Math.max(0, Math.min(40, gatepassBatchInput));
                     setOnboardPassengerCount(approvedCount);
-                    try { localStorage.setItem('gps_transit_passenger_count', String(approvedCount)); } catch (e) {}
+                    try { 
+                      localStorage.setItem('gps_transit_passenger_count', String(approvedCount)); 
+                      const bc = new BroadcastChannel('easytracker_fleet_realtime_channel');
+                      bc.postMessage({ type: 'GATEPASS_APPROVED', payload: { count: approvedCount, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) } });
+                      bc.close();
+                    } catch (e) {}
                     const newLog = {
                       id: Date.now(),
                       location: `${staffTerminalOrBus} (১ম বোর্ডিং গেটপাস)`,
