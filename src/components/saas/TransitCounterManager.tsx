@@ -1175,109 +1175,157 @@ export const TransitCounterManager: React.FC<TransitCounterManagerProps> = ({ is
 
       {/* 4. STAFF & SUB-USER ACCOUNTS (RBAC LOGIN SYSTEM) */}
       {activeSubView === 'staff_users' && (
-        <div className="space-y-3">
-          <div className="p-3.5 rounded-2xl bg-blue-950/30 border border-blue-500/30 text-xs text-slate-300 flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <KeyRound className="w-4 h-4 text-blue-400 shrink-0" />
-              <span>টার্মিনাল লাইনম্যান ও কাউন্টার সুপারভাইজারদের জন্য নির্দিষ্ট সাব-লগইন আইডি ও গোপন পিন (PIN)।</span>
+        <div className="space-y-4 animate-in fade-in">
+          {/* Visual Step-by-Step Login Guide for Fleet Owners */}
+          <div className="p-4 rounded-3xl bg-gradient-to-r from-blue-950/70 via-slate-900 to-cyan-950/70 border border-cyan-500/40 text-xs text-slate-200 shadow-xl space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <KeyRound className="w-5 h-5 text-cyan-400 shrink-0" />
+                <span className="font-extrabold text-sm text-white">📱 স্টাফ, লাইনম্যান ও চালক সাব-লগইন পোর্টাল</span>
+              </div>
+              <span className="text-[10px] font-mono bg-cyan-500/20 text-cyan-300 px-2.5 py-0.5 rounded-full border border-cyan-500/40 font-black">
+                PIN SYSTEM
+              </span>
             </div>
-            <span className="text-[10px] font-mono bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded border border-blue-500/40">
-              RBAC PROTECTED
-            </span>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 border-t border-slate-800 text-[11px]">
+              <div className="bg-slate-950/80 p-2.5 rounded-2xl border border-slate-800">
+                <span className="font-bold text-cyan-300 block mb-0.5">১. পিন পাঠান</span>
+                <span className="text-slate-400">নিচের WhatsApp বা SMS বাটনে চাপ দিয়ে স্টাফকে তার ৪-ডিজিট পিন পাঠান।</span>
+              </div>
+              <div className="bg-slate-950/80 p-2.5 rounded-2xl border border-slate-800">
+                <span className="font-bold text-emerald-300 block mb-0.5">২. স্টাফের লগইন</span>
+                <span className="text-slate-400">স্টাফ মোবাইল থেকে অ্যাপে গিয়ে <strong>'📱 স্টাফ ও পিন লগইন'</strong> ট্যাবে চাপ দেবে।</span>
+              </div>
+              <div className="bg-slate-950/80 p-2.5 rounded-2xl border border-slate-800">
+                <span className="font-bold text-purple-300 block mb-0.5">৩. সহজ গেটপাস স্ক্রিন</span>
+                <span className="text-slate-400">মোবাইল + পিন দিলেই স্টাফ শুধু তার কাউন্টারের বাস ও ডিজিটাল চালান দেখবে।</span>
+              </div>
+            </div>
           </div>
 
+          {/* Staff Cards Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
-            {staffUsers.map((staff) => (
-              <div key={staff.id} className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl space-y-3 flex flex-col justify-between">
-                <div>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <span className="text-xs font-black text-white block">{staff.fullName}</span>
-                      <span className="text-[10px] text-slate-400 font-mono">{staff.phone}</span>
+            {staffUsers.map((staff) => {
+              const isDriver = staff.role === 'DRIVER' || staff.fullName.includes('কুদ্দুস');
+              const isGabtoli = staff.assignedCounterOrPlate.includes('গাবতলী');
+
+              return (
+                <div key={staff.id} className="bg-slate-900 border border-slate-800 hover:border-cyan-500/40 rounded-3xl p-4 shadow-xl space-y-3 flex flex-col justify-between transition group">
+                  <div>
+                    {/* Header with Avatar and Role */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center space-x-2.5 min-w-0">
+                        <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-xl shrink-0 shadow-inner ${
+                          isDriver ? 'bg-emerald-500/20 border border-emerald-500/30' : 'bg-cyan-500/20 border border-cyan-500/30'
+                        }`}>
+                          {isDriver ? '👨‍✈️' : '👨‍💼'}
+                        </div>
+                        <div className="min-w-0">
+                          <span className="text-xs font-black text-white truncate block">{staff.fullName}</span>
+                          <span className="text-[10.5px] text-cyan-400 font-mono font-bold block">{staff.phone}</span>
+                        </div>
+                      </div>
+
+                      <span className={`text-[9.5px] font-mono font-extrabold px-2.5 py-0.5 rounded-full border shrink-0 ${
+                        isDriver 
+                          ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' 
+                          : 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40'
+                      }`}>
+                        {staff.role}
+                      </span>
                     </div>
-                    <span className="text-[9px] font-mono font-bold bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded-full border border-blue-500/40">
-                      {staff.role}
-                    </span>
+
+                    {/* Assigned Counter & High-Contrast PIN Box */}
+                    <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-2 text-xs mt-3">
+                      <div>
+                        <span className="text-[10px] text-slate-400 block font-bold">
+                          {isDriver ? '🚌 নির্ধারিত ফ্লিট গাড়ি:' : '🏢 নির্ধারিত কাউন্টার টার্মিনাল:'}
+                        </span>
+                        <span className="font-extrabold text-cyan-300 text-xs block truncate mt-0.5">
+                          {staff.assignedCounterOrPlate}
+                        </span>
+                      </div>
+
+                      <div className="flex justify-between items-center pt-2 border-t border-slate-800/80 bg-slate-900/60 p-2 rounded-xl border border-amber-500/30">
+                        <span className="text-[10.5px] font-bold text-slate-300 flex items-center space-x-1">
+                          <KeyRound className="w-3.5 h-3.5 text-amber-400" />
+                          <span>৪-ডিজিট লগইন পিন:</span>
+                        </span>
+                        <span className="font-mono font-black text-amber-300 text-sm tracking-widest bg-slate-950 px-2.5 py-0.5 rounded border border-amber-500/40 shadow-inner">
+                          {staff.loginPin}
+                        </span>
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="bg-slate-950 p-2.5 rounded-2xl border border-slate-800 space-y-1.5 text-xs mt-3">
-                    <div>
-                      <span className="text-[10px] text-slate-400 block">নির্ধারিত কাউন্টার / গাড়ি:</span>
-                      <span className="font-bold text-cyan-300 text-[11px] block">{staff.assignedCounterOrPlate}</span>
+                  <div className="pt-2 border-t border-slate-800/80 space-y-2">
+                    <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono">
+                      <span>স্ট্যাটাস: <strong className="text-emerald-400">সক্রিয় (Active)</strong></span>
+                      <span>{staff.lastActive}</span>
                     </div>
-                    <div className="flex justify-between items-center pt-1 border-t border-slate-800/80">
-                      <span className="text-[10px] text-slate-400">লগইন পিন (PIN):</span>
-                      <span className="font-mono font-extrabold text-amber-300 tracking-widest">{staff.loginPin}</span>
+
+                    {/* 3 PIN Delivery Action Buttons */}
+                    <div className="grid grid-cols-3 gap-1 text-[10px] font-bold">
+                      {/* 1. Copy PIN */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard?.writeText(`EasyTracker ফ্লিট স্টাফ লগইন:\nমোবাইল: ${staff.phone}\nপিন: ${staff.loginPin}\nকাউন্টার: ${staff.assignedCounterOrPlate}\nলিঙ্ক: http://localhost:5173/`);
+                          setCopiedStaffId(staff.id);
+                          setTimeout(() => setCopiedStaffId(null), 2500);
+                        }}
+                        className="py-1.5 px-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center justify-center space-x-1 transition active:scale-95"
+                        title="মোবাইল ও পিন কপি করুন"
+                      >
+                        {copiedStaffId === staff.id ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3 text-slate-400" />}
+                        <span>{copiedStaffId === staff.id ? 'কপি হয়েছে' : 'পিন কপি'}</span>
+                      </button>
+
+                      {/* 2. WhatsApp Share */}
+                      <a
+                        href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`*EasyTracker ফ্লিট স্টাফ লগইন*\n👤 নাম: ${staff.fullName}\n📱 মোবাইল: ${staff.phone}\n🔑 ৪-ডিজিট পিন: ${staff.loginPin}\n🏢 নির্ধারিত কাউন্টার: ${staff.assignedCounterOrPlate}\n🌐 লগইন লিঙ্ক: http://localhost:5173/`)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="py-1.5 px-1 rounded-xl bg-emerald-950/70 hover:bg-emerald-900/80 text-emerald-300 border border-emerald-600/50 flex items-center justify-center space-x-1 transition active:scale-95"
+                        title="WhatsApp-এ সরাসরি পিন পাঠান"
+                      >
+                        <Share2 className="w-3 h-3 text-emerald-400" />
+                        <span>WhatsApp</span>
+                      </a>
+
+                      {/* 3. Auto SMS Dispatch */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCopiedStaffId(`sms_${staff.id}`);
+                          setTimeout(() => setCopiedStaffId(null), 3000);
+                        }}
+                        className="py-1.5 px-1 rounded-xl bg-indigo-950/70 hover:bg-indigo-900/80 text-indigo-300 border border-indigo-600/50 flex items-center justify-center space-x-1 transition active:scale-95"
+                        title="স্বয়ংক্রিয় এসএমএস গেটওয়ে দিয়ে পাঠান"
+                      >
+                        <PhoneCall className="w-3 h-3 text-indigo-400" />
+                        <span>{copiedStaffId === `sms_${staff.id}` ? 'এসএমএস সেন্ট' : 'SMS পাঠান'}</span>
+                      </button>
                     </div>
-                  </div>
-                </div>
 
-                <div className="pt-2.5 border-t border-slate-800/80 space-y-2">
-                  <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono">
-                    <span>স্ট্যাটাস: <strong className="text-emerald-400">সক্রিয় (Active)</strong></span>
-                    <span>{staff.lastActive}</span>
-                  </div>
-
-                  {/* Action Buttons: Copy, WhatsApp, SMS and 1-Click Staff Preview */}
-                  <div className="grid grid-cols-3 gap-1 text-[10px] font-bold">
-                    {/* 1. Copy PIN */}
+                    {/* 4. 1-Click Live Impersonate / Preview Button */}
                     <button
                       type="button"
                       onClick={() => {
-                        navigator.clipboard?.writeText(`EasyTracker Staff Login:\nMobile: ${staff.phone}\nPIN: ${staff.loginPin}\nApp: https://easytracker.com`);
-                        setCopiedStaffId(staff.id);
-                        setTimeout(() => setCopiedStaffId(null), 2500);
+                        setOperatorRole('supervisor');
+                        setActiveSubView('schedules');
                       }}
-                      className="py-1.5 px-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center justify-center space-x-1 transition active:scale-95"
-                      title="মোবাইল ও পিন কপি করুন"
+                      className="w-full py-2 rounded-2xl bg-cyan-600/20 hover:bg-cyan-600/35 text-cyan-300 border border-cyan-500/40 text-[11px] font-extrabold flex items-center justify-center space-x-1.5 transition active:scale-95 shadow-sm"
+                      title="এই স্টাফের পোর্টালে সরাসরি ঢুকে ভিউ দেখুন"
                     >
-                      {copiedStaffId === staff.id ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3 text-slate-400" />}
-                      <span>{copiedStaffId === staff.id ? 'কপি হয়েছে' : 'পিন কপি'}</span>
-                    </button>
-
-                    {/* 2. WhatsApp Share */}
-                    <a
-                      href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`*EasyTracker ফ্লিট স্টাফ লগইন ক্রেডেনশিয়াল*\n👤 নাম: ${staff.fullName}\n📱 মোবাইল: ${staff.phone}\n🔑 ৪-ডিজিট পিন: ${staff.loginPin}\n🏢 নির্ধারিত কাউন্টার: ${staff.assignedCounterOrPlate}\n🌐 লগইন লিঙ্ক: http://localhost:5173/`)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="py-1.5 px-1 rounded-xl bg-emerald-950/70 hover:bg-emerald-900/80 text-emerald-300 border border-emerald-600/50 flex items-center justify-center space-x-1 transition active:scale-95"
-                      title="WhatsApp-এ সরাসরি ক্রেডেনশিয়াল পাঠান"
-                    >
-                      <Share2 className="w-3 h-3 text-emerald-400" />
-                      <span>WhatsApp</span>
-                    </a>
-
-                    {/* 3. Auto SMS Dispatch */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setCopiedStaffId(`sms_${staff.id}`);
-                        setTimeout(() => setCopiedStaffId(null), 3000);
-                      }}
-                      className="py-1.5 px-1 rounded-xl bg-indigo-950/70 hover:bg-indigo-900/80 text-indigo-300 border border-indigo-600/50 flex items-center justify-center space-x-1 transition active:scale-95"
-                      title="স্বয়ংক্রিয় এসএমএস গেটওয়ে দিয়ে পাঠান"
-                    >
-                      <PhoneCall className="w-3 h-3 text-indigo-400" />
-                      <span>{copiedStaffId === `sms_${staff.id}` ? 'এসএমএস সেন্ট' : 'SMS পাঠান'}</span>
+                      <Eye className="w-4 h-4 text-cyan-400" />
+                      <span>👁️ {isDriver ? 'ড্রাইভার ভিউ প্রিভিউ (সরাসরি টেস্ট)' : 'সুপারভাইজার ভিউ প্রিভিউ (সরাসরি টেস্ট)'}</span>
                     </button>
                   </div>
-
-                  {/* 4. 1-Click Impersonate / Preview as this Staff */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setOperatorRole('supervisor');
-                      setActiveSubView('schedules');
-                    }}
-                    className="w-full py-1.5 rounded-xl bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 border border-cyan-500/40 text-[10.5px] font-bold flex items-center justify-center space-x-1.5 transition active:scale-95"
-                    title="এই স্টাফের পোর্টালে সরাসরি ঢুকে ভিউ দেখুন"
-                  >
-                    <Eye className="w-3.5 h-3.5 text-cyan-400" />
-                    <span>👁️ স্টাফ ভিউ প্রিভিউ (সরাসরি টেস্ট করুন)</span>
-                  </button>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
