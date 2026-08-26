@@ -37,7 +37,8 @@ import {
   Undo2,
   Package,
   Eye,
-  Printer
+  Printer,
+  Zap
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { 

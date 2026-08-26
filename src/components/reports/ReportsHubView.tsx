@@ -40,7 +40,8 @@ import {
   DoorClosed,
   FileCheck,
   User,
-  Bus
+  Bus,
+  Truck
 } from 'lucide-react';
 import { FuelRefillLog, Position } from '../../types/traccar';
 import { lookupVehicleMaintenanceSpec, VehicleMaintenanceSpec } from '../../utils/maintenanceAiService';

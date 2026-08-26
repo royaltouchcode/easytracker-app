@@ -20,7 +20,8 @@ import {
   Building2,
   Palette,
   Gift,
-  Bus
+  Bus,
+  Users
 } from 'lucide-react';
 import { VehicleIcon } from '../../utils/vehicleIcons';
 import { UserProfileModal } from '../auth/UserProfileModal';

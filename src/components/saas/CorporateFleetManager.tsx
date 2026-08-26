@@ -30,7 +30,8 @@ import {
   Mic,
   Volume2,
   Eye,
-  EyeOff
+  EyeOff,
+  Cpu
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { DeviceSimBundlerModal } from './DeviceSimBundlerModal';

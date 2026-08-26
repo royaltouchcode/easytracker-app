@@ -21,7 +21,14 @@ import {
   Building2,
   Server,
   Users,
-  Receipt
+  Receipt,
+  Sliders,
+  Zap,
+  DollarSign,
+  Globe,
+  FileText,
+  FileSpreadsheet,
+  Trash2
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { SaasRole, TenantTier } from '../../types/traccar';

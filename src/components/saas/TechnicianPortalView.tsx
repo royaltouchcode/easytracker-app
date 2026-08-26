@@ -24,7 +24,8 @@ import {
   Receipt,
   Send,
   Package,
-  Plus
+  Plus,
+  X
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { SelectedServiceItem, SelectedSparePartItem } from '../../types/traccar';
