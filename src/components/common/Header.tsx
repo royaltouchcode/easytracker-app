@@ -271,10 +271,13 @@ export const Header: React.FC = () => {
               user?.email?.includes('fleetstaff') || 
               user?.role === 'supervisor' || 
               user?.role === 'driver' || 
+              user?.role === 'lineman' ||
               (user as any)?.assigned ||
               /^[0-9\-\+]+@/.test(user?.email || '')
             );
             const isDriver = isStaffUser && (user?.role === 'driver' || user?.name?.includes('কুদ্দুস') || (user as any)?.assigned?.includes('ঢাকা মেট্রো-ব'));
+            const isLineman = isStaffUser && !isDriver && (user?.role === 'lineman' || user?.name?.includes('লাইনম্যান') || user?.name?.includes('শফিকুল'));
+            const staffRoleTitle = isDriver ? 'বাস চালক' : isLineman ? 'টার্মিনাল লাইনম্যান' : 'কাউন্টার ইনচার্জ';
 
             return (
               <button
@@ -313,7 +316,7 @@ export const Header: React.FC = () => {
                 )}
                 <span className="capitalize font-extrabold">
                   {isStaffUser
-                    ? (isDriver ? 'বাস চালক' : 'কাউন্টার ইনচার্জ')
+                    ? staffRoleTitle
                     : currentRole === 'super_admin' ? 'অ্যাডমিন'
                     : currentRole === 'sales' ? 'সেলস'
                     : currentRole === 'technician' ? 'টেক'

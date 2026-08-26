@@ -27,7 +27,11 @@ import {
   BarChart3,
   AlertTriangle,
   Flame,
-  Shield
+  Shield,
+  Building2,
+  Users,
+  Phone,
+  Bus
 } from 'lucide-react';
 import { PinVerificationModal } from '../commands/PinVerificationModal';
 import { CustomCommandModal } from '../commands/CustomCommandModal';
@@ -37,6 +41,7 @@ import { resolveDeviceCapabilities } from '../../utils/deviceCapabilities';
 
 export const DeviceSlidingSheet: React.FC = () => {
   const { 
+    user,
     selectedDevice, 
     selectedPosition, 
     distanceInfo, 
@@ -584,101 +589,164 @@ export const DeviceSlidingSheet: React.FC = () => {
             )
           )}
 
-          {/* Enhanced Action Buttons Grid - Strict Single Row of 5 Cards */}
-          <div className="grid grid-cols-5 gap-1">
-            {/* 1. Engine Cut / Resume Button */}
-            {isRelayCut ? (
-              <button
-                type="button"
-                onClick={handleOpenResumeModal}
-                disabled={commandPending !== 'idle' || commandStatus === 'not_executed'}
-                className={`py-1.5 px-0.5 rounded-xl font-bold text-[10px] xs:text-[10.5px] flex flex-col items-center justify-center space-y-0.5 transition active:scale-95 shadow-md ${
-                  commandPending !== 'idle' || commandStatus === 'not_executed'
-                    ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed opacity-60'
-                    : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30'
-                }`}
-              >
-                <Power className="w-3.5 h-3.5 shrink-0" />
-                <span className="truncate leading-tight">{language === 'bn' ? 'ইঞ্জিন চালু' : 'Engine ON'}</span>
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={handleOpenCutModal}
-                disabled={commandPending !== 'idle' || commandStatus === 'not_executed'}
-                className={`py-1.5 px-0.5 rounded-xl font-bold text-[10px] xs:text-[10.5px] flex flex-col items-center justify-center space-y-0.5 transition active:scale-95 shadow-md ${
-                  commandPending !== 'idle' || commandStatus === 'not_executed'
-                    ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed opacity-60'
-                    : 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-600/30'
-                }`}
-              >
-                <Power className="w-3.5 h-3.5 shrink-0" />
-                <span className="truncate leading-tight">{language === 'bn' ? 'ইঞ্জিন অফ' : 'Engine OFF'}</span>
-              </button>
-            )}
+          {/* Enhanced Action Buttons Grid - Isolated for Staff vs Owner */}
+          {(() => {
+            const isStaffUser = Boolean(
+              user?.email?.includes('fleetstaff') || 
+              user?.role === 'supervisor' || 
+              user?.role === 'driver' || 
+              user?.role === 'lineman' ||
+              (user as any)?.assigned ||
+              /^[0-9\-\+]+@/.test(user?.email || '')
+            );
+            const isDriver = isStaffUser && (user?.role === 'driver' || user?.name?.includes('কুদ্দুস') || (user as any)?.assigned?.includes('ঢাকা মেট্রো-ব'));
 
-            {/* 2. Custom Command Menu Button */}
-            <button
-              type="button"
-              onClick={() => setIsCustomCmdModalOpen(true)}
-              className="py-1.5 px-0.5 rounded-xl bg-amber-600/20 hover:bg-amber-600/35 border border-amber-500/40 text-amber-300 font-bold text-[10px] xs:text-[10.5px] flex flex-col items-center justify-center space-y-0.5 transition active:scale-95 shadow-sm"
-              title="Custom Commands & Presets"
-            >
-              <Terminal className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-              <span className="truncate leading-tight">{language === 'bn' ? 'কমান্ড' : 'Commands'}</span>
-            </button>
+            if (isStaffUser) {
+              return (
+                <div className="grid grid-cols-4 gap-1.5">
+                  {/* 1. Terminal / Cabin Hub Portal */}
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('fleet_transit')}
+                    className="py-2 px-1 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-extrabold text-[11px] flex flex-col items-center justify-center space-y-0.5 shadow-md shadow-cyan-600/30 transition active:scale-95"
+                    title={isDriver ? 'ড্রাইভার কেবিনে প্রবেশ' : 'টার্মিনাল গেটপাস কন্ট্রোল'}
+                  >
+                    <Building2 className="w-4 h-4 shrink-0" />
+                    <span className="truncate leading-tight">{isDriver ? 'চালকের কেবিন' : 'টার্মিনাল গেটপাস'}</span>
+                  </button>
 
-            {/* 3. Reports & Fleet Health Button */}
-            <button
-              type="button"
-              onClick={() => setActiveTab('reports')}
-              className="py-1.5 px-0.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/35 border border-emerald-500/40 text-emerald-300 font-bold text-[10px] xs:text-[10.5px] flex flex-col items-center justify-center space-y-0.5 transition active:scale-95 shadow-sm"
-              title="Reports, Fuel & Fleet Health Hub"
-            >
-              <BarChart3 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-              <span className="truncate leading-tight">{language === 'bn' ? 'রিপোর্ট' : 'Reports'}</span>
-            </button>
+                  {/* 2. Direct Call Driver or Terminal Hotline */}
+                  <a
+                    href={isDriver ? 'tel:01711889900' : 'tel:01712334455'}
+                    className="py-2 px-1 rounded-xl bg-indigo-950/80 hover:bg-indigo-900 border border-indigo-500/50 text-indigo-300 font-bold text-[11px] flex flex-col items-center justify-center space-y-0.5 transition active:scale-95 shadow-sm"
+                    title={isDriver ? 'কাউন্টারম্যানকে কল' : 'বাস চালককে কল'}
+                  >
+                    <Phone className="w-4 h-4 text-indigo-400 shrink-0" />
+                    <span className="truncate leading-tight">{isDriver ? 'কাউন্টার কল' : 'চালককে কল'}</span>
+                  </a>
 
-            {/* 4. Playback Route Button */}
-            <button
-              type="button"
-              onClick={() => setActiveTab('playback')}
-              className="py-1.5 px-0.5 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-200 font-bold text-[10px] xs:text-[10.5px] flex flex-col items-center justify-center space-y-0.5 border border-slate-700/80 transition active:scale-95 shadow-sm"
-            >
-              <History className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-              <span className="truncate leading-tight">{language === 'bn' ? 'প্লেব্যাক' : 'Playback'}</span>
-            </button>
+                  {/* 3. Playback Route History */}
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('playback')}
+                    className="py-2 px-1 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-200 font-bold text-[11px] flex flex-col items-center justify-center space-y-0.5 border border-slate-700/80 transition active:scale-95 shadow-sm"
+                    title="আজকের রুটের ট্রিপ হিস্টোরি"
+                  >
+                    <History className="w-4 h-4 text-blue-400 shrink-0" />
+                    <span className="truncate leading-tight">প্লেব্যাক</span>
+                  </button>
 
-            {/* 5. Dynamic Camera vs Geofence Security Button */}
-            {capabilities.hasCamera ? (
-              <button
-                type="button"
-                onClick={() => setActiveTab('surveillance')}
-                className="py-1.5 px-0.5 rounded-xl bg-purple-950/40 hover:bg-purple-900/50 border border-purple-500/40 text-purple-200 font-bold text-[10px] xs:text-[10.5px] flex flex-col items-center justify-center space-y-0.5 transition active:scale-95 shadow-sm"
-                title="লাইভ ক্যামেরা ও ভয়েস মনিটর"
-              >
-                <div className="flex items-center space-x-0.5">
-                  <Video className="w-3.5 h-3.5 text-purple-400 shrink-0" />
-                  <Mic className="w-2.5 h-2.5 text-pink-400 shrink-0" />
+                  {/* 4. Google Maps Navigation Route */}
+                  <button
+                    type="button"
+                    onClick={openGoogleMapsNavigation}
+                    className="py-2 px-1 rounded-xl bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-500/50 text-emerald-300 font-bold text-[11px] flex flex-col items-center justify-center space-y-0.5 transition active:scale-95 shadow-sm"
+                    title="গুগল ম্যাপে বাস রুট ও ট্রাফিক ট্র্যাক করুন"
+                  >
+                    <Route className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span className="truncate leading-tight">গুগল ম্যাপ</span>
+                  </button>
                 </div>
-                <span className="truncate leading-tight text-[9.5px] xs:text-[10px]">
-                  {language === 'bn' ? 'ক্যামেরা' : 'Camera'}
-                </span>
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setActiveTab('geofence')}
-                className="py-1.5 px-0.5 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-200 font-bold text-[10px] xs:text-[10.5px] flex flex-col items-center justify-center space-y-0.5 border border-slate-700/80 transition active:scale-95 shadow-sm"
-                title="নিরাপদ এরিয়া ও জিওফেন্স জোন"
-              >
-                <Shield className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                <span className="truncate leading-tight text-[9.5px] xs:text-[10px]">
-                  {language === 'bn' ? 'জিওফেন্স' : 'Geofence'}
-                </span>
-              </button>
-            )}
-          </div>
+              );
+            }
+
+            return (
+              <div className="grid grid-cols-5 gap-1">
+                {/* 1. Engine Cut / Resume Button */}
+                {isRelayCut ? (
+                  <button
+                    type="button"
+                    onClick={handleOpenResumeModal}
+                    disabled={commandPending !== 'idle' || commandStatus === 'not_executed'}
+                    className={`py-1.5 px-0.5 rounded-xl font-bold text-[10px] xs:text-[10.5px] flex flex-col items-center justify-center space-y-0.5 transition active:scale-95 shadow-md ${
+                      commandPending !== 'idle' || commandStatus === 'not_executed'
+                        ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed opacity-60'
+                        : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30'
+                    }`}
+                  >
+                    <Power className="w-3.5 h-3.5 shrink-0" />
+                    <span className="truncate leading-tight">{language === 'bn' ? 'ইঞ্জিন চালু' : 'Engine ON'}</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleOpenCutModal}
+                    disabled={commandPending !== 'idle' || commandStatus === 'not_executed'}
+                    className={`py-1.5 px-0.5 rounded-xl font-bold text-[10px] xs:text-[10.5px] flex flex-col items-center justify-center space-y-0.5 transition active:scale-95 shadow-md ${
+                      commandPending !== 'idle' || commandStatus === 'not_executed'
+                        ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed opacity-60'
+                        : 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-600/30'
+                    }`}
+                  >
+                    <Power className="w-3.5 h-3.5 shrink-0" />
+                    <span className="truncate leading-tight">{language === 'bn' ? 'ইঞ্জিন অফ' : 'Engine OFF'}</span>
+                  </button>
+                )}
+
+                {/* 2. Custom Command Menu Button */}
+                <button
+                  type="button"
+                  onClick={() => setIsCustomCmdModalOpen(true)}
+                  className="py-1.5 px-0.5 rounded-xl bg-amber-600/20 hover:bg-amber-600/35 border border-amber-500/40 text-amber-300 font-bold text-[10px] xs:text-[10.5px] flex flex-col items-center justify-center space-y-0.5 transition active:scale-95 shadow-sm"
+                  title="Custom Commands & Presets"
+                >
+                  <Terminal className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                  <span className="truncate leading-tight">{language === 'bn' ? 'কমান্ড' : 'Commands'}</span>
+                </button>
+
+                {/* 3. Reports & Fleet Health Button */}
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('reports')}
+                  className="py-1.5 px-0.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/35 border border-emerald-500/40 text-emerald-300 font-bold text-[10px] xs:text-[10.5px] flex flex-col items-center justify-center space-y-0.5 transition active:scale-95 shadow-sm"
+                  title="Reports, Fuel & Fleet Health Hub"
+                >
+                  <BarChart3 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                  <span className="truncate leading-tight">{language === 'bn' ? 'রিপোর্ট' : 'Reports'}</span>
+                </button>
+
+                {/* 4. Playback Route Button */}
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('playback')}
+                  className="py-1.5 px-0.5 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-200 font-bold text-[10px] xs:text-[10.5px] flex flex-col items-center justify-center space-y-0.5 border border-slate-700/80 transition active:scale-95 shadow-sm"
+                >
+                  <History className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                  <span className="truncate leading-tight">{language === 'bn' ? 'প্লেব্যাক' : 'Playback'}</span>
+                </button>
+
+                {/* 5. Dynamic Camera vs Geofence Security Button */}
+                {capabilities.hasCamera ? (
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('surveillance')}
+                    className="py-1.5 px-0.5 rounded-xl bg-purple-950/40 hover:bg-purple-900/50 border border-purple-500/40 text-purple-200 font-bold text-[10px] xs:text-[10.5px] flex flex-col items-center justify-center space-y-0.5 transition active:scale-95 shadow-sm"
+                    title="লাইভ ক্যামেরা ও ভয়েস মনিটর"
+                  >
+                    <div className="flex items-center space-x-0.5">
+                      <Video className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+                      <Mic className="w-2.5 h-2.5 text-pink-400 shrink-0" />
+                    </div>
+                    <span className="truncate leading-tight text-[9.5px] xs:text-[10px]">
+                      {language === 'bn' ? 'ক্যামেরা' : 'Camera'}
+                    </span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('geofence')}
+                    className="py-1.5 px-0.5 rounded-xl bg-indigo-950/40 hover:bg-indigo-900/50 border border-indigo-500/40 text-indigo-200 font-bold text-[10px] xs:text-[10.5px] flex flex-col items-center justify-center space-y-0.5 transition active:scale-95 shadow-sm"
+                    title="নিরাপদ এরিয়া জোন ও পার্কিং গার্ড"
+                  >
+                    <Shield className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                    <span className="truncate leading-tight text-[9.5px] xs:text-[10px]">
+                      {language === 'bn' ? 'জিওফেন্স' : 'Geofence'}
+                    </span>
+                  </button>
+                )}
+              </div>
+            );
+          })()}
 
           {/* Expanded Device Details & Dynamic Sensors Grid */}
           {isExpanded && (
