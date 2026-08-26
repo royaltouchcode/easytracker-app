@@ -37,12 +37,7 @@ import {
   Cpu,
   RotateCcw,
   PhoneCall,
-  Flame,
-  Fuel,
-  FileCheck,
-  User,
-  Bus,
-  BarChart3
+  Flame
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { APP_CONFIG } from '../../config/appConfig';
@@ -56,24 +51,14 @@ import { SellerQuotaAndLedgerManager } from './SellerQuotaAndLedgerManager';
 import { EnterpriseInventoryManager } from './EnterpriseInventoryManager';
 import { RescueTeamManager } from './RescueTeamManager';
 import { SmsGatewayManager } from './SmsGatewayManager';
-import { FuelTelematicsManager } from './FuelTelematicsManager';
-import { ComplianceDocumentVault } from './ComplianceDocumentVault';
-import { DriverPerformanceManager } from './DriverPerformanceManager';
-import { TransitCounterManager } from './TransitCounterManager';
 import { TelecomM2MConnector } from './TelecomM2MConnector';
 import { GovTechPoliceGateway } from './GovTechPoliceGateway';
-import { EnterpriseReportCenter } from './EnterpriseReportCenter';
 
 type AdminSectionType = 
   | 'overview'
   | 'server_sync'
   | 'govtech_api'
   | 'operator_m2m'
-  | 'fuel_analytics'
-  | 'compliance_vault'
-  | 'driver_roster'
-  | 'transit_counters'
-  | 'classified_reports'
   | 'rescue_hub'
   | 'sms_gateway'
   | 'device_inventory'
@@ -447,11 +432,6 @@ export const AdminDashboardView: React.FC = () => {
     { id: 'server_sync', labelBn: 'GPS সার্ভার ও সিঙ্ক হাব', labelEn: 'GPS Server & Sync', icon: Server, badge: 'Live', badgeColor: 'bg-emerald-500/20 text-emerald-300' },
     { id: 'govtech_api', labelBn: 'BRTA, BTRC ও পুলিশ 2-Way API', labelEn: 'GovTech & Police 2-Way APIs', icon: Globe, badge: 'GovTech', badgeColor: 'bg-rose-500/20 text-rose-300' },
     { id: 'operator_m2m', labelBn: 'টেলিকম M2M গেটওয়ে ও টেস্ট', labelEn: 'Telco M2M API & Ping', icon: Radio, badge: 'M2M IoT', badgeColor: 'bg-indigo-500/20 text-indigo-300' },
-    { id: 'fuel_analytics', labelBn: 'ফুয়েল চুরি ও ড্রেন অ্যানালিটিক্স', labelEn: 'Fuel Anti-Theft & Telematics', icon: Fuel, badge: 'Ultrasonic', badgeColor: 'bg-amber-500/20 text-amber-300' },
-    { id: 'compliance_vault', labelBn: 'BRTA ডকুমেন্টস ও ফিটনেস ভল্ট', labelEn: 'BRTA Compliance & Vault', icon: FileCheck, badge: 'Docs', badgeColor: 'bg-emerald-500/20 text-emerald-300' },
-    { id: 'driver_roster', labelBn: 'ড্রাইভার রোস্টার ও সেফটি স্কোরকার্ড', labelEn: 'Driver Roster & Scorecard', icon: User, badge: 'Eco-AI', badgeColor: 'bg-blue-500/20 text-blue-300' },
-    { id: 'transit_counters', labelBn: 'বাস কাউন্টার ও সুপারভাইজার হাব', labelEn: 'Bus & Transit Counters', icon: Bus, badge: 'Transit', badgeColor: 'bg-cyan-500/20 text-cyan-300' },
-    { id: 'classified_reports', labelBn: 'এন্টারপ্রাইজ ক্লাসিফায়েড রিপোর্টস', labelEn: 'Classified Audit Reports', icon: BarChart3, badge: 'Export', badgeColor: 'bg-indigo-500/20 text-indigo-300' },
     { id: 'rescue_hub', labelBn: 'রেসকিউ টিম ও ক্ষতিপূরণ রেট', labelEn: 'Rescue Squads & Rates', icon: Flame, badge: '24/7 Red', badgeColor: 'bg-rose-500/20 text-rose-300' },
     { id: 'sms_gateway', labelBn: 'এসএমএস গেটওয়ে হাব', labelEn: 'SMS Gateway Hub', icon: Smartphone, badge: 'BD SMS', badgeColor: 'bg-emerald-500/20 text-emerald-300' },
     { id: 'device_inventory', labelBn: 'ট্র্যাকার ডিভাইস ERP', labelEn: 'Device Inventory', icon: Cpu, badge: 'Hardware', badgeColor: 'bg-cyan-500/20 text-cyan-300' },
@@ -982,51 +962,6 @@ export const AdminDashboardView: React.FC = () => {
           {activeSection === 'operator_m2m' && (
             <div className="space-y-4 animate-in fade-in duration-150">
               <TelecomM2MConnector />
-            </div>
-          )}
-
-          {/* ========================================================================= */}
-          {/* VIEW: SMART FUEL TELEMATICS & ANTI-THEFT HUB                              */}
-          {/* ========================================================================= */}
-          {activeSection === 'fuel_analytics' && (
-            <div className="space-y-4 animate-in fade-in duration-150">
-              <FuelTelematicsManager />
-            </div>
-          )}
-
-          {/* ========================================================================= */}
-          {/* VIEW: BRTA LEGAL COMPLIANCE & DOCUMENT VAULT                              */}
-          {/* ========================================================================= */}
-          {activeSection === 'compliance_vault' && (
-            <div className="space-y-4 animate-in fade-in duration-150">
-              <ComplianceDocumentVault />
-            </div>
-          )}
-
-          {/* ========================================================================= */}
-          {/* VIEW: DRIVER ROSTER & PERFORMANCE SCORECARD                               */}
-          {/* ========================================================================= */}
-          {activeSection === 'driver_roster' && (
-            <div className="space-y-4 animate-in fade-in duration-150">
-              <DriverPerformanceManager />
-            </div>
-          )}
-
-          {/* ========================================================================= */}
-          {/* VIEW: BUS & TRANSIT COUNTER HUB                                           */}
-          {/* ========================================================================= */}
-          {activeSection === 'transit_counters' && (
-            <div className="space-y-4 animate-in fade-in duration-150">
-              <TransitCounterManager />
-            </div>
-          )}
-
-          {/* ========================================================================= */}
-          {/* VIEW: ENTERPRISE CLASSIFIED REPORTS CENTER                                */}
-          {/* ========================================================================= */}
-          {activeSection === 'classified_reports' && (
-            <div className="space-y-4 animate-in fade-in duration-150">
-              <EnterpriseReportCenter />
             </div>
           )}
 

@@ -135,7 +135,11 @@ export const INITIAL_SCHEDULES: BusTripSchedule[] = [
   }
 ];
 
-export const TransitCounterManager: React.FC = () => {
+interface TransitCounterManagerProps {
+  isCustomerScoped?: boolean;
+}
+
+export const TransitCounterManager: React.FC<TransitCounterManagerProps> = ({ isCustomerScoped = false }) => {
   const [counters, setCounters] = useState<TransitCounter[]>(() => {
     const saved = localStorage.getItem('gps_transit_counters');
     if (saved) {

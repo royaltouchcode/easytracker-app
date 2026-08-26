@@ -39,7 +39,8 @@ import {
   Fan,
   DoorClosed,
   FileCheck,
-  User
+  User,
+  Bus
 } from 'lucide-react';
 import { FuelRefillLog, Position } from '../../types/traccar';
 import { lookupVehicleMaintenanceSpec, VehicleMaintenanceSpec } from '../../utils/maintenanceAiService';
@@ -47,6 +48,9 @@ import { VehicleIcon } from '../../utils/vehicleIcons';
 import { traccarApi } from '../../services/traccarApi';
 import { ComplianceDocumentVault } from '../saas/ComplianceDocumentVault';
 import { DriverPerformanceManager } from '../saas/DriverPerformanceManager';
+import { FuelTelematicsManager } from '../saas/FuelTelematicsManager';
+import { TransitCounterManager } from '../saas/TransitCounterManager';
+import { EnterpriseReportCenter } from '../saas/EnterpriseReportCenter';
 
 interface ServicingHistoryEntry {
   id: string;
@@ -75,7 +79,8 @@ export const ReportsHubView: React.FC = () => {
     updateDeviceProfile
   } = useApp();
 
-  const [activeSubTab, setActiveSubTab] = useState<'hub' | 'fuel' | 'maintenance' | 'ai_manual' | 'running' | 'subscription' | 'compliance' | 'driver'>('hub');
+  const [activeSubTab, setActiveSubTab] = useState<'hub' | 'fuel' | 'compliance' | 'driver' | 'transit' | 'maintenance' | 'ai_manual' | 'running' | 'subscription'>('hub');
+  const [reportHubMode, setReportHubMode] = useState<'enterprise' | 'compact'>('enterprise');
   const [selectedReportType, setSelectedReportType] = useState<DetailedReportType>(null);
   const [reportDateFilter, setReportDateFilter] = useState<'today' | 'yesterday' | 'week' | 'month'>('today');
 
@@ -457,7 +462,7 @@ export const ReportsHubView: React.FC = () => {
           >
             <BarChart3 className="w-5 h-5 sm:w-4 sm:h-4 text-blue-300 shrink-0" />
             <span className="text-[10px] sm:text-xs leading-tight mt-1 sm:mt-0 font-bold block">
-              {language === 'bn' ? 'রিপোর্ট হাব' : 'Reports Hub'}
+              {language === 'bn' ? 'রিপোর্ট ও অডিট' : 'Reports Hub'}
             </span>
           </button>
 
@@ -466,13 +471,58 @@ export const ReportsHubView: React.FC = () => {
             onClick={() => setActiveSubTab('fuel')}
             className={`flex flex-col sm:flex-row items-center sm:space-x-2.5 p-2 sm:px-3 sm:py-2.5 rounded-2xl font-bold transition text-center sm:text-left ${
               activeSubTab === 'fuel'
-                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30 ring-1 ring-blue-400/50'
+                ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/30 ring-1 ring-amber-400/50'
                 : 'bg-slate-950/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
             }`}
           >
             <Fuel className="w-5 h-5 sm:w-4 sm:h-4 text-amber-300 shrink-0" />
             <span className="text-[10px] sm:text-xs leading-tight mt-1 sm:mt-0 font-bold block">
-              {language === 'bn' ? 'ফুয়েল ও মাইলেজ' : 'Fuel & Mileage'}
+              {language === 'bn' ? 'ফুয়েল ও চুরি হাব' : 'Fuel & Theft'}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveSubTab('compliance')}
+            className={`flex flex-col sm:flex-row items-center sm:space-x-2.5 p-2 sm:px-3 sm:py-2.5 rounded-2xl font-bold transition text-center sm:text-left ${
+              activeSubTab === 'compliance'
+                ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 ring-1 ring-emerald-400/50'
+                : 'bg-slate-950/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+            }`}
+          >
+            <FileCheck className="w-5 h-5 sm:w-4 sm:h-4 text-emerald-300 shrink-0" />
+            <span className="text-[10px] sm:text-xs leading-tight mt-1 sm:mt-0 font-bold block">
+              {language === 'bn' ? 'BRTA ভল্ট' : 'BRTA Docs'}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveSubTab('driver')}
+            className={`flex flex-col sm:flex-row items-center sm:space-x-2.5 p-2 sm:px-3 sm:py-2.5 rounded-2xl font-bold transition text-center sm:text-left ${
+              activeSubTab === 'driver'
+                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 ring-1 ring-indigo-400/50'
+                : 'bg-slate-950/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+            }`}
+          >
+            <User className="w-5 h-5 sm:w-4 sm:h-4 text-indigo-300 shrink-0" />
+            <span className="text-[10px] sm:text-xs leading-tight mt-1 sm:mt-0 font-bold block">
+              {language === 'bn' ? 'ড্রাইভার ইনফো' : 'Driver Profile'}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveSubTab('transit')}
+            className={`flex flex-col sm:flex-row items-center sm:space-x-2.5 p-2 sm:px-3 sm:py-2.5 rounded-2xl font-bold transition text-center sm:text-left ${
+              activeSubTab === 'transit'
+                ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-600/30 ring-1 ring-cyan-400/50'
+                : 'bg-slate-950/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+            }`}
+          >
+            <Bus className="w-5 h-5 sm:w-4 sm:h-4 text-cyan-300 shrink-0" />
+            <span className="text-[10px] sm:text-xs leading-tight mt-1 sm:mt-0 font-bold block">
+              {language === 'bn' ? 'বাস কাউন্টার' : 'Bus Counters'}
             </span>
           </button>
 
@@ -538,36 +588,6 @@ export const ReportsHubView: React.FC = () => {
               {language === 'bn' ? 'সাবস্ক্রিপশন' : 'Subscription'}
             </span>
           </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveSubTab('compliance')}
-            className={`flex flex-col sm:flex-row items-center sm:space-x-2.5 p-2 sm:px-3 sm:py-2.5 rounded-2xl font-bold transition text-center sm:text-left ${
-              activeSubTab === 'compliance'
-                ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 ring-1 ring-emerald-400/50'
-                : 'bg-slate-950/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
-            }`}
-          >
-            <FileCheck className="w-5 h-5 sm:w-4 sm:h-4 text-emerald-300 shrink-0" />
-            <span className="text-[10px] sm:text-xs leading-tight mt-1 sm:mt-0 font-bold block">
-              {language === 'bn' ? 'BRTA ভল্ট' : 'BRTA Docs'}
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveSubTab('driver')}
-            className={`flex flex-col sm:flex-row items-center sm:space-x-2.5 p-2 sm:px-3 sm:py-2.5 rounded-2xl font-bold transition text-center sm:text-left ${
-              activeSubTab === 'driver'
-                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30 ring-1 ring-blue-400/50'
-                : 'bg-slate-950/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
-            }`}
-          >
-            <User className="w-5 h-5 sm:w-4 sm:h-4 text-blue-300 shrink-0" />
-            <span className="text-[10px] sm:text-xs leading-tight mt-1 sm:mt-0 font-bold block">
-              {language === 'bn' ? 'ড্রাইভার ইনফো' : 'Driver Profile'}
-            </span>
-          </button>
         </aside>
 
         {/* Right Scrollable Content View */}
@@ -578,25 +598,66 @@ export const ReportsHubView: React.FC = () => {
         {/* TAB 0: 2-COLUMN VISUAL REPORTS HUB (MYGPS STYLE)    */}
         {/* =================================================== */}
         {activeSubTab === 'hub' && (
-          selectedReportType === null ? (
-            <div className="space-y-3 animate-in fade-in duration-150">
-              {/* Quick Vehicle Health Summary Card */}
-              <div className="bg-slate-900 border border-slate-800 p-3.5 rounded-3xl shadow-xl flex items-center justify-between">
-                <div>
-                  <span className="text-[10px] uppercase font-bold text-slate-400">ভেহিকেল স্ট্যাটাস সারাংশ</span>
-                  <div className="font-extrabold text-sm text-slate-100 mt-0.5">{selectedDevice?.name}</div>
-                  <div className="text-[10.5px] text-slate-400 mt-1">
-                    মবিল লাইফ: <strong className="text-amber-300 font-mono">{maintSpec?.engineOilGrade || '20W-50'}</strong> ({remainingOilKm} km বাকি)
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-xl font-mono font-black text-blue-300">{currentOdometer.toLocaleString()} km</div>
-                  <div className="text-[9.5px] text-emerald-400 font-bold">মোট ওডোমিটার</div>
-                </div>
+          <div className="space-y-3 animate-in fade-in duration-150">
+            {/* Report Mode Header Switcher */}
+            <div className="flex items-center justify-between bg-slate-900 border border-slate-800 p-2.5 rounded-3xl shadow-md">
+              <div className="flex items-center space-x-2 pl-1">
+                <BarChart3 className="w-4 h-4 text-blue-400" />
+                <span className="text-xs font-bold text-white">
+                  {language === 'bn' ? 'রিপোর্ট ভিউ মোড:' : 'Report View Mode:'}
+                </span>
               </div>
+              <div className="flex items-center space-x-1 bg-slate-950 p-1 rounded-2xl border border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setReportHubMode('enterprise');
+                    setSelectedReportType(null);
+                  }}
+                  className={`px-3 py-1 rounded-xl text-xs font-bold transition ${
+                    reportHubMode === 'enterprise'
+                      ? 'bg-blue-600 text-white shadow-md'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  {language === 'bn' ? '📊 ক্লাসিফায়েড অডিট' : 'Classified Audit'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setReportHubMode('compact')}
+                  className={`px-3 py-1 rounded-xl text-xs font-bold transition ${
+                    reportHubMode === 'compact'
+                      ? 'bg-blue-600 text-white shadow-md'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  {language === 'bn' ? '⚡ কুইক গ্রিড' : 'Quick Grid'}
+                </button>
+              </div>
+            </div>
 
-              {/* 2-Column Clean Report Grid Cards */}
-              <div className="grid grid-cols-2 gap-2.5">
+            {reportHubMode === 'enterprise' ? (
+              <EnterpriseReportCenter isCustomerScoped={true} />
+            ) : (
+              selectedReportType === null ? (
+                <div className="space-y-3 animate-in fade-in duration-150">
+                  {/* Quick Vehicle Health Summary Card */}
+                  <div className="bg-slate-900 border border-slate-800 p-3.5 rounded-3xl shadow-xl flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-slate-400">ভেহিকেল স্ট্যাটাস সারাংশ</span>
+                      <div className="font-extrabold text-sm text-slate-100 mt-0.5">{selectedDevice?.name}</div>
+                      <div className="text-[10.5px] text-slate-400 mt-1">
+                        মবিল লাইফ: <strong className="text-amber-300 font-mono">{maintSpec?.engineOilGrade || '20W-50'}</strong> ({remainingOilKm} km বাকি)
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xl font-mono font-black text-blue-300">{currentOdometer.toLocaleString()} km</div>
+                      <div className="text-[9.5px] text-emerald-400 font-bold">মোট ওডোমিটার</div>
+                    </div>
+                  </div>
+
+                  {/* 2-Column Clean Report Grid Cards */}
+                  <div className="grid grid-cols-2 gap-2.5">
                 {/* 1. Ignition Report */}
                 <button
                   onClick={() => setSelectedReportType('ignition')}
@@ -1306,13 +1367,17 @@ export const ReportsHubView: React.FC = () => {
                 </div>
               )}
             </div>
-          )
-        )}
+          ))}
+        </div>
+      )}
         {/* =================================================== */}
-        {/* TAB 1: FUEL & MILEAGE (ZERO DEMO DATA)              */}
+        {/* TAB 1: SMART FUEL TELEMATICS & THEFT HUB            */}
         {/* =================================================== */}
         {activeSubTab === 'fuel' && (
-          <div className="space-y-3 animate-in fade-in duration-150">
+          <div className="space-y-4 animate-in fade-in duration-150">
+            {/* Smart Ultrasonic Fuel Manager with Anti-Theft Alerts */}
+            <FuelTelematicsManager isCustomerScoped={true} />
+
             {/* If initial calibration is missing, show prompt card */}
             {initialFuelLiters === null && currentDeviceFuelLogs.length === 0 ? (
               <div className="bg-gradient-to-r from-blue-950/80 to-slate-900 border border-blue-500/40 rounded-3xl p-4 text-center space-y-3 shadow-xl">
@@ -1747,6 +1812,15 @@ export const ReportsHubView: React.FC = () => {
         {activeSubTab === 'driver' && (
           <div className="animate-in fade-in duration-150">
             <DriverPerformanceManager isCustomerScoped={true} />
+          </div>
+        )}
+
+        {/* =================================================== */}
+        {/* TAB 8: BUS & TRANSIT COUNTER HUB                    */}
+        {/* =================================================== */}
+        {activeSubTab === 'transit' && (
+          <div className="animate-in fade-in duration-150">
+            <TransitCounterManager isCustomerScoped={true} />
           </div>
         )}
         </main>
