@@ -606,6 +606,9 @@ export const DeviceSlidingSheet: React.FC = () => {
             const isDriver = isStaffUser && !isManager && (user?.role === 'driver' || user?.name?.includes('কুদ্দুস') || (user as any)?.assigned?.includes('ঢাকা মেট্রো-ব'));
             const isVehicleSupervisor = isStaffUser && !isManager && !isDriver && (user?.role === 'vehicle_supervisor' || user?.name?.includes('সুপারভাইজার') || user?.name?.includes('শফিকুল'));
 
+            const category = (selectedDevice?.category || '').toLowerCase();
+            const isCommercialFleet = category.includes('bus') || category.includes('truck') || category.includes('trailer') || category.includes('pickup') || (devices && devices.length > 1) || user?.email?.includes('owner') || user?.email?.includes('hanif') || user?.role === 'owner';
+
             if (isStaffUser) {
               return (
                 <div className="grid grid-cols-4 gap-1.5">
@@ -665,6 +668,28 @@ export const DeviceSlidingSheet: React.FC = () => {
             }
 
             return (
+              <div className="space-y-1.5">
+                {/* Enterprise Fleet Bus Live Status Bar for Owner */}
+                {isCommercialFleet && (
+                  <div className="bg-gradient-to-r from-cyan-950/60 via-slate-900 to-cyan-950/60 border border-cyan-500/40 rounded-2xl p-2.5 flex items-center justify-between text-xs gap-2 shadow-md">
+                    <div className="flex items-center space-x-2 truncate">
+                      <span className="px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 font-bold text-[9.5px] border border-cyan-500/40 shrink-0">
+                        👑 ফ্লিট বাস
+                      </span>
+                      <span className="text-slate-300 text-[11px] truncate">
+                        👨‍✈️ চালক: <strong className="text-white">কুদ্দুস</strong> • 🎫 গাইড: <strong className="text-amber-300">শফিকুল</strong> • 👥 অনবোর্ড: <strong className="text-emerald-300">৩৮/৪০ জন</strong>
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('fleet_transit')}
+                      className="px-2.5 py-1 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-black text-[10.5px] shrink-0 shadow-md shadow-cyan-600/30 transition active:scale-95 flex items-center space-x-1"
+                    >
+                      <Building2 className="w-3.5 h-3.5" />
+                      <span>ফ্লিট হাব ➔</span>
+                    </button>
+                  </div>
+                )}
               <div className="grid grid-cols-5 gap-1">
                 {/* 1. Engine Cut / Resume Button */}
                 {isRelayCut ? (
@@ -759,8 +784,9 @@ export const DeviceSlidingSheet: React.FC = () => {
                   </button>
                 )}
               </div>
-            );
-          })()}
+            </div>
+          );
+        })()}
 
           {/* Expanded Device Details & Dynamic Sensors Grid */}
           {isExpanded && (

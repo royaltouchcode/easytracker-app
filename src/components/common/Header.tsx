@@ -287,6 +287,8 @@ export const Header: React.FC = () => {
               isDriver ? 'বাস চালক' :
               isVehicleSupervisor ? 'বাস সুপারভাইজার' : 'কাউন্টার ইনচার্জ';
 
+            const isFleetOwner = !isStaffUser && currentRole === 'customer' && isCommercialFleet;
+
             return (
               <button
                 onClick={() => {
@@ -303,6 +305,7 @@ export const Header: React.FC = () => {
                     isVehicleSupervisor ? 'bg-amber-600/30 border-amber-500/60 text-amber-300' :
                     'bg-cyan-600/30 border-cyan-500/60 text-cyan-300'
                   ) :
+                  isFleetOwner ? 'bg-amber-600/30 border-amber-500/60 text-amber-300 shadow-sm shadow-amber-500/10' :
                   currentRole === 'super_admin' ? 'bg-amber-600/30 border-amber-500/60 text-amber-300' :
                   currentRole === 'sales' ? 'bg-emerald-600/30 border-emerald-500/60 text-emerald-300' :
                   currentRole === 'technician' ? 'bg-purple-600/30 border-purple-500/60 text-purple-300' :
@@ -317,6 +320,8 @@ export const Header: React.FC = () => {
                   isDriver ? <Bus className="w-3 h-3 text-emerald-400 shrink-0" /> :
                   isVehicleSupervisor ? <Users className="w-3 h-3 text-amber-400 shrink-0" /> :
                   <Building2 className="w-3 h-3 text-cyan-400 shrink-0" />
+                ) : isFleetOwner ? (
+                  <Crown className="w-3 h-3 text-amber-400 shrink-0" />
                 ) : currentRole === 'super_admin' ? (
                   <Crown className="w-3 h-3 text-amber-400 shrink-0" />
                 ) : currentRole === 'sales' ? (
@@ -333,6 +338,7 @@ export const Header: React.FC = () => {
                 <span className="capitalize font-extrabold">
                   {isStaffUser
                     ? staffRoleTitle
+                    : isFleetOwner ? 'ফ্লিট ওনার'
                     : currentRole === 'super_admin' ? 'অ্যাডমিন'
                     : currentRole === 'sales' ? 'সেলস'
                     : currentRole === 'technician' ? 'টেক'
