@@ -220,8 +220,12 @@ export interface UserSession {
   serverUrl: string;
   role?: SaasRole;
   approvedRoles?: SaasRole[];
+  tenantTier?: TenantTier;
   partnerId?: string;
   partnerBrandName?: string;
+  fleetCompanyId?: string;
+  fleetCompanyName?: string;
+  counterStationId?: string;
   serviceTier?: PartnerServiceTier;
   locationVerified?: boolean;
   locationVerifiedAt?: string;
@@ -235,7 +239,24 @@ export interface UserSession {
 
 export type MapLayerType = 'carto_positron' | 'google_roadmap' | 'google_satellite' | 'google_hybrid' | 'google_terrain' | 'osm' | 'baidu_dark';
 
-export type SaasRole = 'customer' | 'super_admin' | 'partner' | 'sales' | 'technician' | 'support' | 'rescue' | 'operations_manager' | 'support_lead';
+export type TenantTier = 'saas_core' | 'b2b_partner' | 'fleet_company' | 'retail_customer';
+
+export type SaasRole = 
+  | 'super_admin'
+  | 'operations_manager'
+  | 'support_lead'
+  | 'sales'
+  | 'technician'
+  | 'support'
+  | 'rescue'
+  | 'partner'
+  | 'partner_owner'
+  | 'fleet_owner'
+  | 'fleet_manager'
+  | 'counter_manager'
+  | 'driver'
+  | 'customer'
+  | 'viewer';
 
 export type WarrantyPolicyType = 'replacement_1yr' | 'service_2yr' | 'extended_3yr' | 'lifetime_service';
 export type WarrantyStatus = 'active' | 'expiring_soon' | 'expired' | 'void';

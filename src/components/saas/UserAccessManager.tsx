@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   ShieldCheck, 
   UserCheck, 
@@ -17,49 +17,47 @@ import {
   Sparkles,
   Bot,
   Eye,
-  Sliders,
-  AlertTriangle,
-  Lock,
-  Radio,
-  Copy,
-  Check,
-  Building2,
   Search,
-  Zap,
-  DollarSign,
-  Package,
-  FileText,
-  FileSpreadsheet,
-  Trash2,
-  Globe,
-  BellRing,
-  Users
+  Building2,
+  Server,
+  Users,
+  Receipt
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { SaasRole } from '../../types/traccar';
+import { SaasRole, TenantTier } from '../../types/traccar';
 
 export interface DetailedUserPermissions {
-  // 1. Device & Command Control
+  // 1. Server Cluster & Ingestion (SaaS & Partner Level)
+  canManageServerSync: boolean;
+  canManageM2M: boolean;
+  
+  // 2. Fleet & Mobility Operations (Fleet Level)
+  canManageTripDispatch: boolean;
+  canManageCounterTickets: boolean;
+  canManageFuelAudit: boolean;
+  canManageDriverLicenses: boolean;
+  
+  // 3. Device & Command Control
   canCutEngine: boolean;
   canTriggerAlarm: boolean;
   canConfigDevice: boolean;
   
-  // 2. Financial & Ledger Audit
+  // 4. Financial & Ledger Audit
   canViewRevenue: boolean;
   canManageDealerQuota: boolean;
   canApproveSales: boolean;
   
-  // 3. Warranty & Hardware Logistics
+  // 5. Warranty & Hardware Logistics
   canManageWarranty: boolean;
   canManageInventory: boolean;
   canApproveRMA: boolean;
   
-  // 4. Support & Rescue Ops
+  // 6. Support & Rescue Ops
   canDispatchTech: boolean;
   canViewSmsGateway: boolean;
   canAuditRescueClaims: boolean;
   
-  // 5. Data Privacy & Compliance
+  // 7. Data Privacy & Compliance
   canExportData: boolean;
   canAccessGovTech: boolean;
   canPurgeDemo: boolean;
@@ -72,16 +70,14 @@ export interface EnterpriseUser {
   email: string;
   department: string;
   status: 'active' | 'suspended';
+  tenantTier: TenantTier;
   primaryRole: SaasRole;
   approvedRoles: SaasRole[];
   customRoleTitle?: string;
-  shopName?: string;
-  shopAddress?: string;
-  geoLat?: number;
-  geoLng?: number;
-  googleMapsUrl?: string;
-  locationVerified?: boolean;
-  locationVerifiedAt?: string;
+  partnerBrandName?: string;
+  fleetCompanyName?: string;
+  counterStationName?: string;
+  assignedServerNodeId?: string;
   permissions: DetailedUserPermissions;
   lastLogin: string;
   createdAt: string;
@@ -90,6 +86,7 @@ export interface EnterpriseUser {
 export interface CustomRoleDefinition {
   id: string;
   titleBn: string;
+  tenantTier: TenantTier;
   baseRole: SaasRole;
   descriptionBn: string;
   accessibleSections: string[];
@@ -106,10 +103,18 @@ const DEFAULT_USERS: EnterpriseUser[] = [
     email: 'admin@easytracker.com',
     department: 'Executive Infrastructure',
     status: 'active',
+    tenantTier: 'saas_core',
     primaryRole: 'super_admin',
     approvedRoles: ['super_admin', 'sales', 'technician', 'support', 'rescue', 'customer'],
-    customRoleTitle: '👑 মাস্টার চিফ এক্সিকিউটিভ',
+    customRoleTitle: '👑 মাস্টার চিফ এক্সিকিউটিভ (Root Admin)',
+    assignedServerNodeId: 'srv-primary',
     permissions: {
+      canManageServerSync: true,
+      canManageM2M: true,
+      canManageTripDispatch: true,
+      canManageCounterTickets: true,
+      canManageFuelAudit: true,
+      canManageDriverLicenses: true,
       canCutEngine: true,
       canTriggerAlarm: true,
       canConfigDevice: true,
@@ -131,27 +136,35 @@ const DEFAULT_USERS: EnterpriseUser[] = [
   },
   {
     id: 'USR-102',
-    name: 'কামরুল হাসান (Kamrul Hasan)',
+    name: 'তানভীর আহমেদ (Tanveer Ahmed)',
     phone: '01712-334455',
-    email: 'kamrul.sales@easytracker.com',
-    department: 'Sales & Operations',
+    email: 'tanveer.ops@easytracker.com',
+    department: 'SaaS Central Operations',
     status: 'active',
-    primaryRole: 'sales',
-    approvedRoles: ['sales', 'customer'],
-    customRoleTitle: '🏢 রিজিওনাল অপারেশনস ও ডিলার অ্যাডমিন',
+    tenantTier: 'saas_core',
+    primaryRole: 'operations_manager',
+    approvedRoles: ['operations_manager', 'sales', 'support'],
+    customRoleTitle: '🏢 সেন্ট্রাল SaaS অপারেশনস হেড',
+    assignedServerNodeId: 'srv-primary',
     permissions: {
+      canManageServerSync: true,
+      canManageM2M: true,
+      canManageTripDispatch: false,
+      canManageCounterTickets: false,
+      canManageFuelAudit: true,
+      canManageDriverLicenses: true,
       canCutEngine: false,
-      canTriggerAlarm: false,
-      canConfigDevice: false,
+      canTriggerAlarm: true,
+      canConfigDevice: true,
       canViewRevenue: true,
       canManageDealerQuota: true,
       canApproveSales: true,
-      canManageWarranty: false,
+      canManageWarranty: true,
       canManageInventory: true,
-      canApproveRMA: false,
-      canDispatchTech: false,
-      canViewSmsGateway: false,
-      canAuditRescueClaims: false,
+      canApproveRMA: true,
+      canDispatchTech: true,
+      canViewSmsGateway: true,
+      canAuditRescueClaims: true,
       canExportData: true,
       canAccessGovTech: false,
       canPurgeDemo: false
@@ -160,240 +173,149 @@ const DEFAULT_USERS: EnterpriseUser[] = [
     createdAt: '15 Jan 2026'
   },
   {
-    id: 'USR-104',
-    name: 'সাদিয়া আফরোজ (Sadia Afroz)',
-    phone: '01799-887766',
-    email: 'sadia.support@easytracker.com',
-    department: 'Customer Care & Helpdesk',
+    id: 'USR-301',
+    name: 'হাজী মোঃ ইউনুস আলী (Hanif MD)',
+    phone: '01711-998877',
+    email: 'md@hanifparibahan.com',
+    department: 'Hanif Executive Board',
     status: 'active',
-    primaryRole: 'support',
-    approvedRoles: ['support', 'rescue', 'customer'],
-    customRoleTitle: '🎧 কাস্টমার সাপোর্ট অফিসার',
+    tenantTier: 'fleet_company',
+    primaryRole: 'fleet_owner',
+    approvedRoles: ['fleet_owner', 'fleet_manager'],
+    customRoleTitle: '🚌 ব্যবস্থাপনা পরিচালক (হানিফ এন্টারপ্রাইজ)',
+    fleetCompanyName: 'হানিফ এন্টারপ্রাইজ বাস ফ্লিট',
+    assignedServerNodeId: 'srv-primary',
     permissions: {
-      canCutEngine: false,
-      canTriggerAlarm: true,
-      canConfigDevice: false,
-      canViewRevenue: false,
-      canManageDealerQuota: false,
-      canApproveSales: false,
-      canManageWarranty: true,
-      canManageInventory: false,
-      canApproveRMA: true,
-      canDispatchTech: true,
-      canViewSmsGateway: true,
-      canAuditRescueClaims: true,
-      canExportData: true,
-      canAccessGovTech: false,
-      canPurgeDemo: false
-    },
-    lastLogin: 'আজ দুপুর ১২:০০',
-    createdAt: '01 Feb 2026'
-  },
-  {
-    id: 'USR-103',
-    name: 'আব্দুল করিম (Abdul Karim)',
-    phone: '01711-223344',
-    email: 'karim.tech@easytracker.com',
-    department: 'Field Installation & Wiring',
-    status: 'active',
-    primaryRole: 'technician',
-    approvedRoles: ['technician', 'sales', 'customer'],
-    customRoleTitle: '🔧 সিনিয়র ফিল্ড টেকনিশিয়ান',
-    permissions: {
+      canManageServerSync: false,
+      canManageM2M: false,
+      canManageTripDispatch: true,
+      canManageCounterTickets: true,
+      canManageFuelAudit: true,
+      canManageDriverLicenses: true,
       canCutEngine: true,
       canTriggerAlarm: true,
-      canConfigDevice: true,
-      canViewRevenue: false,
-      canManageDealerQuota: false,
-      canApproveSales: false,
-      canManageWarranty: true,
-      canManageInventory: false,
-      canApproveRMA: true,
-      canDispatchTech: false,
-      canViewSmsGateway: false,
-      canAuditRescueClaims: false,
-      canExportData: false,
-      canAccessGovTech: false,
-      canPurgeDemo: false
-    },
-    lastLogin: 'আজ সকাল ১০:৪৫',
-    createdAt: '20 Jan 2026'
-  }
-];
-
-const INITIAL_CUSTOM_ROLES: CustomRoleDefinition[] = [
-  {
-    id: 'role_support_lead',
-    titleBn: '🎧 কাস্টমার সাপোর্ট অফিসার',
-    baseRole: 'support',
-    descriptionBn: 'গ্রাহকদের সমস্যা সমাধান, লাইভ ট্র্যাকিং গাইডলাইন, এসএমএস লগ ও রেসকিউ টিম ক্লেইম হ্যান্ডেল করা।',
-    accessibleSections: ['রেসকিউ টিম ও ক্লেইম', 'এসএমএস গেটওয়ে হাব', 'ওয়ারেন্টি ও আরএমএ', 'ইনস্টলেশন হিস্ট্রি'],
-    permissions: {
-      canCutEngine: false,
-      canTriggerAlarm: true,
-      canConfigDevice: false,
-      canViewRevenue: false,
-      canManageDealerQuota: false,
-      canApproveSales: false,
-      canManageWarranty: true,
-      canManageInventory: false,
-      canApproveRMA: true,
-      canDispatchTech: true,
-      canViewSmsGateway: true,
-      canAuditRescueClaims: true,
-      canExportData: true,
-      canAccessGovTech: false,
-      canPurgeDemo: false
-    },
-    aiSecurityAuditBn: '✅ নিরাপদ: GovTech পুলিশ ডাটাবেজ ও টেলকো M2M গেটওয়ে অ্যাক্সেস স্বয়ংক্রিয়ভাবে সীমাবদ্ধ রাখা হয়েছে।',
-    createdAt: '2026-08-20'
-  },
-  {
-    id: 'role_ops_manager',
-    titleBn: '🏢 অপারেশনস ও ডিলার অ্যাডমিন',
-    baseRole: 'sales',
-    descriptionBn: 'নতুন ডিলার অনবোর্ডিং, ট্র্যাকার ও সিম ইনভেন্টরি ইস্যু, ডিলার পে-ওয়াল এবং B2B পার্টনারশিপ দেখাশোনা করা।',
-    accessibleSections: ['সেলস অনবোর্ডিং কিউ', 'ট্র্যাকার ডিভাইস ERP', 'টেলিমেটিক্স সিম ERP', 'ডিলার পে-ওয়াল ও লেজার', 'B2B পার্টনার'],
-    permissions: {
-      canCutEngine: false,
-      canTriggerAlarm: false,
       canConfigDevice: false,
       canViewRevenue: true,
-      canManageDealerQuota: true,
-      canApproveSales: true,
-      canManageWarranty: false,
-      canManageInventory: true,
+      canManageDealerQuota: false,
+      canApproveSales: false,
+      canManageWarranty: true,
+      canManageInventory: false,
       canApproveRMA: false,
       canDispatchTech: false,
-      canViewSmsGateway: false,
+      canViewSmsGateway: true,
       canAuditRescueClaims: false,
       canExportData: true,
-      canAccessGovTech: false,
+      canAccessGovTech: true,
       canPurgeDemo: false
     },
-    aiSecurityAuditBn: '✅ নিরাপদ: অর্থনৈতিক লেজার অনুমোদিত হলেও কোর জিপিএস ক্লাস্টার কনফিগারেশন লক করা রয়েছে।',
-    createdAt: '2026-08-22'
+    lastLogin: 'আজ দুপুর ১২:১০',
+    createdAt: '05 Feb 2026'
   }
 ];
 
 export const UserAccessManager: React.FC = () => {
-  const { currentRole, setCurrentRole, setActiveTab } = useApp();
-
-  const [users, setUsers] = useState<EnterpriseUser[]>(() => {
-    const saved = localStorage.getItem('gps_enterprise_rbac_users');
-    if (saved) {
-      try { return JSON.parse(saved); } catch (e) {}
-    }
-    return DEFAULT_USERS;
-  });
-
-  const [customRoles, setCustomRoles] = useState<CustomRoleDefinition[]>(() => {
-    const saved = localStorage.getItem('gps_custom_rbac_roles');
-    if (saved) {
-      try { return JSON.parse(saved); } catch (e) {}
-    }
-    return INITIAL_CUSTOM_ROLES;
-  });
-
+  const [selectedTierTab, setSelectedTierTab] = useState<'all' | TenantTier>('all');
   const [activeTabSubView, setActiveTabSubView] = useState<'users' | 'roles'>('users');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [users, setUsers] = useState<EnterpriseUser[]>(() => {
+    const saved = localStorage.getItem('gps_enterprise_rbac_users_v2');
+    return saved ? JSON.parse(saved) : DEFAULT_USERS;
+  });
+  const [customRoles] = useState<CustomRoleDefinition[]>([
+    {
+      id: 'CROLE-101',
+      titleBn: 'বাস কাউন্টার ম্যানেজার',
+      tenantTier: 'fleet_company',
+      baseRole: 'counter_manager',
+      descriptionBn: 'টিকিট বুকিং ও ডিপার্চার গেটপাস অনুমোদন।',
+      accessibleSections: ['বাস কাউন্টার', 'টিকেটিং'],
+      permissions: {
+        canManageServerSync: false, canManageM2M: false, canManageTripDispatch: false, canManageCounterTickets: true, canManageFuelAudit: false, canManageDriverLicenses: false,
+        canCutEngine: false, canTriggerAlarm: false, canConfigDevice: false, canViewRevenue: false, canManageDealerQuota: false, canApproveSales: false,
+        canManageWarranty: false, canManageInventory: false, canApproveRMA: false, canDispatchTech: false, canViewSmsGateway: false, canAuditRescueClaims: false,
+        canExportData: false, canAccessGovTech: false, canPurgeDemo: false
+      },
+      aiSecurityAuditBn: '🛡️ নিরাপত্তা অডিট: টিকিট কাউন্টার পারমিশন সুরক্ষিত।',
+      createdAt: '20 Aug 2026'
+    }
+  ]);
+
+  const saveUsers = (list: EnterpriseUser[]) => {
+    setUsers(list);
+    localStorage.setItem('gps_enterprise_rbac_users_v2', JSON.stringify(list));
+  };
+
   const [selectedUser, setSelectedUser] = useState<EnterpriseUser | null>(null);
   const [isNewUserModalOpen, setIsNewUserModalOpen] = useState(false);
-  const [isAiRoleModalOpen, setIsAiRoleModalOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-
-  // AI Role Builder State
-  const [aiRolePrompt, setAiRolePrompt] = useState('');
-  const [isAiGenerating, setIsAiGenerating] = useState(false);
-  const [generatedRole, setGeneratedRole] = useState<CustomRoleDefinition | null>(null);
-
-  // New User Form State
-  const [newUserName, setNewUserName] = useState('');
-  const [newUserPhone, setNewUserPhone] = useState('');
-  const [newUserEmail, setNewUserEmail] = useState('');
-  const [newUserDept, setNewUserDept] = useState('Customer Care');
-  const [newUserRole, setNewUserRole] = useState<SaasRole>('support');
-  const [newUserCustomTitle, setNewUserCustomTitle] = useState('');
-
-  // Edit User Form State
   const [editStatus, setEditStatus] = useState<'active' | 'suspended'>('active');
-  const [editPrimaryRole, setEditPrimaryRole] = useState<SaasRole>('sales');
-  const [editApprovedRoles, setEditApprovedRoles] = useState<SaasRole[]>([]);
+  const [editTier, setEditTier] = useState<TenantTier>('saas_core');
+  const [editPrimaryRole, setEditPrimaryRole] = useState<SaasRole>('super_admin');
   const [editPermissions, setEditPermissions] = useState<DetailedUserPermissions>({
-    canCutEngine: false,
-    canTriggerAlarm: false,
-    canConfigDevice: false,
-    canViewRevenue: false,
-    canManageDealerQuota: false,
-    canApproveSales: false,
-    canManageWarranty: false,
-    canManageInventory: false,
-    canApproveRMA: false,
-    canDispatchTech: false,
-    canViewSmsGateway: false,
-    canAuditRescueClaims: false,
-    canExportData: true,
-    canAccessGovTech: false,
-    canPurgeDemo: false
+    canManageServerSync: false, canManageM2M: false, canManageTripDispatch: false, canManageCounterTickets: false, canManageFuelAudit: false, canManageDriverLicenses: false,
+    canCutEngine: false, canTriggerAlarm: false, canConfigDevice: false, canViewRevenue: false, canManageDealerQuota: false, canApproveSales: false,
+    canManageWarranty: false, canManageInventory: false, canApproveRMA: false, canDispatchTech: false, canViewSmsGateway: false, canAuditRescueClaims: false,
+    canExportData: true, canAccessGovTech: false, canPurgeDemo: false
   });
+  const [activePermissionTab, setActivePermissionTab] = useState<'server_m2m' | 'fleet_dispatch' | 'commands' | 'finance' | 'compliance'>('server_m2m');
 
-  const [activePermissionTab, setActivePermissionTab] = useState<'commands' | 'finance' | 'warranty' | 'support' | 'compliance'>('commands');
-  const [aiAutoPresetMsg, setAiAutoPresetMsg] = useState<string | null>(null);
+  const filteredUsers = useMemo(() => {
+    return users.filter(u => {
+      const matchesTier = selectedTierTab === 'all' || u.tenantTier === selectedTierTab;
+      const matchesQuery = u.name.toLowerCase().includes(searchQuery.toLowerCase()) || u.phone.includes(searchQuery);
+      return matchesTier && matchesQuery;
+    });
+  }, [users, selectedTierTab, searchQuery]);
 
   const roleBadges: Record<SaasRole, { label: string; color: string; icon: any }> = {
-    super_admin: { label: 'সুপার অ্যাডমিন', color: 'bg-amber-500/20 text-amber-300 border-amber-500/40', icon: Crown },
-    customer: { label: 'কাস্টমার / ক্লায়েন্ট', color: 'bg-slate-700 text-slate-300 border-slate-600', icon: Smartphone },
-    sales: { label: 'সেলস ও ডিলার', color: 'bg-blue-500/20 text-blue-300 border-blue-500/40', icon: Briefcase },
-    technician: { label: 'ফিল্ড টেকনিশিয়ান', color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40', icon: Wrench },
-    support: { label: 'কাস্টমার সাপোর্ট', color: 'bg-purple-500/20 text-purple-300 border-purple-500/40', icon: Headphones },
-    operations_manager: { label: 'SaaS অপারেশনস ম্যানেজার', color: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40', icon: Building2 },
-    support_lead: { label: 'সাপোর্ট লিড', color: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40', icon: ShieldCheck },
-    partner: { label: 'B2B পার্টনার', color: 'bg-teal-500/20 text-teal-300 border-teal-500/40', icon: Users },
-    rescue: { label: '২৪/৭ রেসকিউ টিম', color: 'bg-rose-500/20 text-rose-300 border-rose-500/40', icon: Flame }
-  };
-
-  const handleOpenEditModal = (user: EnterpriseUser) => {
-    setSelectedUser(user);
-    setEditStatus(user.status);
-    setEditPrimaryRole(user.primaryRole);
-    setEditApprovedRoles([...user.approvedRoles]);
-    setEditPermissions({
-      canCutEngine: user.permissions?.canCutEngine || false,
-      canTriggerAlarm: user.permissions?.canTriggerAlarm || false,
-      canConfigDevice: user.permissions?.canConfigDevice || false,
-      canViewRevenue: user.permissions?.canViewRevenue || false,
-      canManageDealerQuota: user.permissions?.canManageDealerQuota || false,
-      canApproveSales: user.permissions?.canApproveSales || false,
-      canManageWarranty: user.permissions?.canManageWarranty || false,
-      canManageInventory: user.permissions?.canManageInventory || false,
-      canApproveRMA: user.permissions?.canApproveRMA || false,
-      canDispatchTech: user.permissions?.canDispatchTech || false,
-      canViewSmsGateway: user.permissions?.canViewSmsGateway || false,
-      canAuditRescueClaims: user.permissions?.canAuditRescueClaims || false,
-      canExportData: user.permissions?.canExportData ?? true,
-      canAccessGovTech: user.permissions?.canAccessGovTech || false,
-      canPurgeDemo: user.permissions?.canPurgeDemo || false
-    });
-    setAiAutoPresetMsg(null);
-  };
-
-  const handleToggleRole = (role: SaasRole) => {
-    if (editApprovedRoles.includes(role)) {
-      if (editApprovedRoles.length === 1) return;
-      const updated = editApprovedRoles.filter(r => r !== role);
-      setEditApprovedRoles(updated);
-      if (editPrimaryRole === role) {
-        setEditPrimaryRole(updated[0]);
-      }
-    } else {
-      setEditApprovedRoles([...editApprovedRoles, role]);
-    }
+    super_admin: { label: '👑 সুপার অ্যাডমিন', color: 'bg-amber-500/20 text-amber-300 border-amber-500/40', icon: Crown },
+    operations_manager: { label: '🏢 অপারেশনস', color: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40', icon: Building2 },
+    fleet_owner: { label: '🚌 ফ্লিট ওনার', color: 'bg-orange-500/20 text-orange-300 border-orange-500/40', icon: Building2 },
+    support_lead: { label: '🎖️ সাপোর্ট লিড', color: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40', icon: ShieldCheck },
+    sales: { label: '💼 সেলস', color: 'bg-blue-500/20 text-blue-300 border-blue-500/40', icon: Briefcase },
+    technician: { label: '🔧 টেকনিশিয়ান', color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40', icon: Wrench },
+    support: { label: '🎧 সাপোর্ট', color: 'bg-purple-500/20 text-purple-300 border-purple-500/40', icon: Headphones },
+    rescue: { label: '🚨 রেসকিউ', color: 'bg-rose-500/20 text-rose-300 border-rose-500/40', icon: Flame },
+    partner: { label: '🤝 পার্টনার', color: 'bg-teal-500/20 text-teal-300 border-teal-500/40', icon: Users },
+    partner_owner: { label: '💎 পার্টনার এমডি', color: 'bg-teal-500/20 text-teal-300 border-teal-500/40', icon: Crown },
+    fleet_manager: { label: '📋 ফ্লিট ম্যানেজার', color: 'bg-sky-500/20 text-sky-300 border-sky-500/40', icon: Briefcase },
+    counter_manager: { label: '🎫 কাউন্টার', color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40', icon: Users },
+    driver: { label: '👨‍✈️ ড্রাইভার', color: 'bg-slate-700 text-slate-300 border-slate-600', icon: Users },
+    customer: { label: '👤 কাস্টমার', color: 'bg-slate-700 text-slate-300 border-slate-600', icon: Smartphone },
+    viewer: { label: '👁️ ভিউয়ার', color: 'bg-slate-800 text-slate-400 border-slate-700', icon: Eye }
   };
 
   const handleTogglePermission = (key: keyof DetailedUserPermissions) => {
-    setEditPermissions(prev => ({
-      ...prev,
-      [key]: !prev[key]
-    }));
+    setEditPermissions(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const handleOpenEditModal = (u: EnterpriseUser) => {
+    setSelectedUser(u);
+    setEditStatus(u.status);
+    setEditTier(u.tenantTier || 'saas_core');
+    setEditPrimaryRole(u.primaryRole);
+    setEditPermissions({
+      canManageServerSync: u.permissions?.canManageServerSync || false,
+      canManageM2M: u.permissions?.canManageM2M || false,
+      canManageTripDispatch: u.permissions?.canManageTripDispatch || false,
+      canManageCounterTickets: u.permissions?.canManageCounterTickets || false,
+      canManageFuelAudit: u.permissions?.canManageFuelAudit || false,
+      canManageDriverLicenses: u.permissions?.canManageDriverLicenses || false,
+      canCutEngine: u.permissions?.canCutEngine || false,
+      canTriggerAlarm: u.permissions?.canTriggerAlarm || false,
+      canConfigDevice: u.permissions?.canConfigDevice || false,
+      canViewRevenue: u.permissions?.canViewRevenue || false,
+      canManageDealerQuota: u.permissions?.canManageDealerQuota || false,
+      canApproveSales: u.permissions?.canApproveSales || false,
+      canManageWarranty: u.permissions?.canManageWarranty || false,
+      canManageInventory: u.permissions?.canManageInventory || false,
+      canApproveRMA: u.permissions?.canApproveRMA || false,
+      canDispatchTech: u.permissions?.canDispatchTech || false,
+      canViewSmsGateway: u.permissions?.canViewSmsGateway || false,
+      canAuditRescueClaims: u.permissions?.canAuditRescueClaims || false,
+      canExportData: u.permissions?.canExportData ?? true,
+      canAccessGovTech: u.permissions?.canAccessGovTech || false,
+      canPurgeDemo: u.permissions?.canPurgeDemo || false
+    });
   };
 
   const handleAiAutoPreset = () => {
@@ -402,442 +324,143 @@ export const UserAccessManager: React.FC = () => {
 
     if (role === 'super_admin') {
       setEditPermissions({
-        canCutEngine: true,
-        canTriggerAlarm: true,
-        canConfigDevice: true,
-        canViewRevenue: true,
-        canManageDealerQuota: true,
-        canApproveSales: true,
-        canManageWarranty: true,
-        canManageInventory: true,
-        canApproveRMA: true,
-        canDispatchTech: true,
-        canViewSmsGateway: true,
-        canAuditRescueClaims: true,
-        canExportData: true,
-        canAccessGovTech: true,
-        canPurgeDemo: true
+        canManageServerSync: true, canManageM2M: true, canManageTripDispatch: true, canManageCounterTickets: true, canManageFuelAudit: true, canManageDriverLicenses: true,
+        canCutEngine: true, canTriggerAlarm: true, canConfigDevice: true, canViewRevenue: true, canManageDealerQuota: true, canApproveSales: true,
+        canManageWarranty: true, canManageInventory: true, canApproveRMA: true, canDispatchTech: true, canViewSmsGateway: true, canAuditRescueClaims: true,
+        canExportData: true, canAccessGovTech: true, canPurgeDemo: true
       });
-      setAiAutoPresetMsg('👑 সুপার অ্যাডমিনের জন্য ১৫টি পারমিশনের সবকটি এনাবল করা হলো।');
-    } else if (role === 'operations_manager') {
+    } else if (role === 'partner_owner' || role === 'partner') {
       setEditPermissions({
-        canCutEngine: false,
-        canTriggerAlarm: true,
-        canConfigDevice: true,
-        canViewRevenue: true,
-        canManageDealerQuota: true,
-        canApproveSales: true,
-        canManageWarranty: true,
-        canManageInventory: true,
-        canApproveRMA: true,
-        canDispatchTech: true,
-        canViewSmsGateway: true,
-        canAuditRescueClaims: true,
-        canExportData: true,
-        canAccessGovTech: false,
-        canPurgeDemo: false
+        canManageServerSync: true, canManageM2M: true, canManageTripDispatch: false, canManageCounterTickets: false, canManageFuelAudit: true, canManageDriverLicenses: false,
+        canCutEngine: false, canTriggerAlarm: false, canConfigDevice: true, canViewRevenue: true, canManageDealerQuota: true, canApproveSales: true,
+        canManageWarranty: true, canManageInventory: true, canApproveRMA: true, canDispatchTech: true, canViewSmsGateway: true, canAuditRescueClaims: false,
+        canExportData: true, canAccessGovTech: false, canPurgeDemo: false
       });
-      setAiAutoPresetMsg('🏢 SaaS অপারেশনস ম্যানেজারের জন্য সেন্ট্রাল ইনভেন্টরি, সিম, ডিলার কোটা ও ডিসপ্যাচ এনাবল করা হলো।');
-    } else if (role === 'support_lead') {
+    } else if (role === 'fleet_owner') {
       setEditPermissions({
-        canCutEngine: false,
-        canTriggerAlarm: true,
-        canConfigDevice: false,
-        canViewRevenue: false,
-        canManageDealerQuota: false,
-        canApproveSales: false,
-        canManageWarranty: true,
-        canManageInventory: false,
-        canApproveRMA: true,
-        canDispatchTech: true,
-        canViewSmsGateway: true,
-        canAuditRescueClaims: true,
-        canExportData: true,
-        canAccessGovTech: false,
-        canPurgeDemo: false
+        canManageServerSync: false, canManageM2M: false, canManageTripDispatch: true, canManageCounterTickets: true, canManageFuelAudit: true, canManageDriverLicenses: true,
+        canCutEngine: true, canTriggerAlarm: true, canConfigDevice: false, canViewRevenue: true, canManageDealerQuota: false, canApproveSales: false,
+        canManageWarranty: true, canManageInventory: false, canApproveRMA: false, canDispatchTech: false, canViewSmsGateway: true, canAuditRescueClaims: false,
+        canExportData: true, canAccessGovTech: true, canPurgeDemo: false
       });
-      setAiAutoPresetMsg('🎖️ সাপোর্ট লিডের জন্য হেল্পডেস্ক সুপারভিশন, টিকিট অডিট ও রেসকিউ ক্লেইম ভেরিফিকেশন এনাবল করা হলো।');
-    } else if (role === 'partner') {
+    } else if (role === 'fleet_manager') {
       setEditPermissions({
-        canCutEngine: false,
-        canTriggerAlarm: false,
-        canConfigDevice: false,
-        canViewRevenue: true,
-        canManageDealerQuota: false,
-        canApproveSales: true,
-        canManageWarranty: true,
-        canManageInventory: false,
-        canApproveRMA: false,
-        canDispatchTech: false,
-        canViewSmsGateway: false,
-        canAuditRescueClaims: false,
-        canExportData: true,
-        canAccessGovTech: false,
-        canPurgeDemo: false
+        canManageServerSync: false, canManageM2M: false, canManageTripDispatch: true, canManageCounterTickets: true, canManageFuelAudit: true, canManageDriverLicenses: true,
+        canCutEngine: false, canTriggerAlarm: true, canConfigDevice: false, canViewRevenue: false, canManageDealerQuota: false, canApproveSales: false,
+        canManageWarranty: false, canManageInventory: false, canApproveRMA: false, canDispatchTech: true, canViewSmsGateway: true, canAuditRescueClaims: false,
+        canExportData: true, canAccessGovTech: false, canPurgeDemo: false
       });
-      setAiAutoPresetMsg('🤝 B2B পার্টনারের জন্য সাব-ডোমেন ক্লায়েন্ট অনবোর্ডিং ও রেভিনিউ লেজার এনাবল করা হলো।');
-    } else if (role === 'sales') {
+    } else if (role === 'counter_manager') {
       setEditPermissions({
-        canCutEngine: false,
-        canTriggerAlarm: false,
-        canConfigDevice: false,
-        canViewRevenue: true,
-        canManageDealerQuota: true,
-        canApproveSales: true,
-        canManageWarranty: false,
-        canManageInventory: true,
-        canApproveRMA: false,
-        canDispatchTech: false,
-        canViewSmsGateway: false,
-        canAuditRescueClaims: false,
-        canExportData: true,
-        canAccessGovTech: false,
-        canPurgeDemo: false
+        canManageServerSync: false, canManageM2M: false, canManageTripDispatch: false, canManageCounterTickets: true, canManageFuelAudit: false, canManageDriverLicenses: false,
+        canCutEngine: false, canTriggerAlarm: false, canConfigDevice: false, canViewRevenue: false, canManageDealerQuota: false, canApproveSales: false,
+        canManageWarranty: false, canManageInventory: false, canApproveRMA: false, canDispatchTech: false, canViewSmsGateway: false, canAuditRescueClaims: false,
+        canExportData: false, canAccessGovTech: false, canPurgeDemo: false
       });
-      setAiAutoPresetMsg('💼 সেলস ও ডিলার অপারেশনের জন্য পারমিশন কনফিগার করা হলো।');
-    } else if (role === 'support') {
-      setEditPermissions({
-        canCutEngine: false,
-        canTriggerAlarm: true,
-        canConfigDevice: false,
-        canViewRevenue: false,
-        canManageDealerQuota: false,
-        canApproveSales: false,
-        canManageWarranty: true,
-        canManageInventory: false,
-        canApproveRMA: true,
-        canDispatchTech: true,
-        canViewSmsGateway: true,
-        canAuditRescueClaims: true,
-        canExportData: true,
-        canAccessGovTech: false,
-        canPurgeDemo: false
-      });
-      setAiAutoPresetMsg('🎧 কাস্টমার সাপোর্ট ও হেল্পডেস্কের জন্য নিরাপদ পারমিশন প্রি-সেট সম্পন্ন।');
-    } else if (role === 'technician') {
-      setEditPermissions({
-        canCutEngine: true,
-        canTriggerAlarm: true,
-        canConfigDevice: true,
-        canViewRevenue: false,
-        canManageDealerQuota: false,
-        canApproveSales: false,
-        canManageWarranty: true,
-        canManageInventory: false,
-        canApproveRMA: true,
-        canDispatchTech: false,
-        canViewSmsGateway: false,
-        canAuditRescueClaims: false,
-        canExportData: false,
-        canAccessGovTech: false,
-        canPurgeDemo: false
-      });
-      setAiAutoPresetMsg('🔧 টেকনিশিয়ানের জন্য রিমোট কাটঅফ টেস্ট ও সার্ভিস পার্টস কার্ড এনাবল করা হলো।');
-    } else if (role === 'rescue') {
-      setEditPermissions({
-        canCutEngine: true,
-        canTriggerAlarm: true,
-        canConfigDevice: false,
-        canViewRevenue: false,
-        canManageDealerQuota: false,
-        canApproveSales: false,
-        canManageWarranty: false,
-        canManageInventory: false,
-        canApproveRMA: false,
-        canDispatchTech: true,
-        canViewSmsGateway: true,
-        canAuditRescueClaims: true,
-        canExportData: true,
-        canAccessGovTech: false,
-        canPurgeDemo: false
-      });
-      setAiAutoPresetMsg('🚒 রেসকিউ টিমের জন্য ইমার্জেন্সি ইঞ্জিন কাটঅফ ও ৫০,০০০৳ ক্লেইম অডিট এনাবল করা হলো।');
     } else if (role === 'customer') {
       setEditPermissions({
-        canCutEngine: false,
-        canTriggerAlarm: false,
-        canConfigDevice: false,
-        canViewRevenue: false,
-        canManageDealerQuota: false,
-        canApproveSales: false,
-        canManageWarranty: false,
-        canManageInventory: false,
-        canApproveRMA: false,
-        canDispatchTech: false,
-        canViewSmsGateway: false,
-        canAuditRescueClaims: false,
-        canExportData: true,
-        canAccessGovTech: false,
-        canPurgeDemo: false
+        canManageServerSync: false, canManageM2M: false, canManageTripDispatch: false, canManageCounterTickets: false, canManageFuelAudit: false, canManageDriverLicenses: false,
+        canCutEngine: true, canTriggerAlarm: true, canConfigDevice: false, canViewRevenue: false, canManageDealerQuota: false, canApproveSales: false,
+        canManageWarranty: false, canManageInventory: false, canApproveRMA: false, canDispatchTech: false, canViewSmsGateway: false, canAuditRescueClaims: false,
+        canExportData: true, canAccessGovTech: false, canPurgeDemo: false
       });
-      setAiAutoPresetMsg('📱 কাস্টমার ও সাবস্ক্রাইবারের জন্য বেসিক পোর্টাল পারমিশন প্রি-সেট সম্পন্ন।');
     }
   };
 
   const handleSaveUserPermissions = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedUser) return;
-
-    const updatedUsers = users.map(u => {
+    const updated = users.map(u => {
       if (u.id === selectedUser.id) {
         return {
           ...u,
           status: editStatus,
+          tenantTier: editTier,
           primaryRole: editPrimaryRole,
-          approvedRoles: editApprovedRoles,
           permissions: editPermissions
         };
       }
       return u;
     });
-
-    setUsers(updatedUsers);
-    localStorage.setItem('gps_enterprise_rbac_users', JSON.stringify(updatedUsers));
+    saveUsers(updated);
     setSelectedUser(null);
+    alert('✅ পারমিশন সফলভাবে সেভ হয়েছে!');
   };
-
-  // AI Role Permission Recommendation Engine
-  const handleGenerateAiRole = () => {
-    if (!aiRolePrompt.trim()) return;
-    setIsAiGenerating(true);
-
-    setTimeout(() => {
-      const q = aiRolePrompt.toLowerCase();
-      let base: SaasRole = 'support';
-      let sections: string[] = [];
-      let perms: DetailedUserPermissions = {
-        canCutEngine: false,
-        canTriggerAlarm: true,
-        canConfigDevice: false,
-        canViewRevenue: false,
-        canManageDealerQuota: false,
-        canApproveSales: false,
-        canManageWarranty: true,
-        canManageInventory: false,
-        canApproveRMA: true,
-        canDispatchTech: true,
-        canViewSmsGateway: true,
-        canAuditRescueClaims: true,
-        canExportData: true,
-        canAccessGovTech: false,
-        canPurgeDemo: false
-      };
-      let audit = '✅ নিরাপদ: সংবেদনশীল সার্ভার ও পুলিশ API সুরক্ষিত রাখা হয়েছে।';
-
-      if (q.includes('support') || q.includes('care') || q.includes('help') || q.includes('কাস্টমার') || q.includes('সাপোর্ট')) {
-        base = 'support';
-        sections = ['রেসকিউ টিম ও ক্লেইম', 'এসএমএস গেটওয়ে হাব', 'ওয়ারেন্টি ও আরএমএ', 'ইনস্টলেশন হিস্ট্রি'];
-        perms.canDispatchTech = true;
-        perms.canManageWarranty = true;
-        audit = '✅ AI অডিট: কাস্টমার সাপোর্ট রোলের জন্য GovTech ও M2M গেটওয়ে ব্লক করা হয়েছে।';
-      } else if (q.includes('sales') || q.includes('dealer') || q.includes('অপারেশন') || q.includes('ম্যানেজার') || q.includes('সেলস')) {
-        base = 'sales';
-        sections = ['সেলস অনবোর্ডিং কিউ', 'ট্র্যাকার ডিভাইস ERP', 'টেলিমেটিক্স সিম ERP', 'ডিলার পে-ওয়াল', 'B2B পার্টনার'];
-        perms.canViewRevenue = true;
-        perms.canManageDealerQuota = true;
-        perms.canApproveSales = true;
-        perms.canManageInventory = true;
-        audit = '✅ AI অডিট: সেলস ও ইনভেন্টরি রাইটস মঞ্জুর করা হয়েছে। ইঞ্জিন কাটঅফ ক্ষমতা সীমাবদ্ধ।';
-      } else if (q.includes('tech') || q.includes('মেকানিক') || q.includes('ইনস্টল') || q.includes('টেকনিশিয়ান')) {
-        base = 'technician';
-        sections = ['সার্ভিস রেট ও পার্টস কার্ড', 'AI ভেহিকেল ক্যাটালগ', 'ওয়ারেন্টি ও আরএমএ'];
-        perms.canCutEngine = true;
-        perms.canTriggerAlarm = true;
-        perms.canConfigDevice = true;
-        perms.canManageWarranty = true;
-        perms.canApproveRMA = true;
-        audit = '✅ AI অডিট: টেকনিশিয়ানের জন্য ওয়ারেন্টি ও রিমোট টেস্ট কাটঅফ এনাবল করা হয়েছে।';
-      } else if (q.includes('rescue') || q.includes('তারেক') || q.includes('জরুরি') || q.includes('রেসকিউ')) {
-        base = 'rescue';
-        sections = ['রেসকিউ টিম ও ক্ষতিপূরণ ক্লেইম', 'এসএমএস গেটওয়ে হাব'];
-        perms.canCutEngine = true;
-        perms.canTriggerAlarm = true;
-        perms.canDispatchTech = true;
-        perms.canAuditRescueClaims = true;
-        audit = '🚨 AI অডিট: রেসকিউ রোলে হাই-প্রায়োরিটি ইমার্জেন্সি ইন্টারসেপ্ট পারমিশন দেওয়া হয়েছে।';
-      } else {
-        base = 'sales';
-        sections = ['সেলস অনবোর্ডিং কিউ', 'ডিলার পে-ওয়াল'];
-      }
-
-      const generated: CustomRoleDefinition = {
-        id: `role_${Date.now().toString().slice(-4)}`,
-        titleBn: aiRolePrompt.trim(),
-        baseRole: base,
-        descriptionBn: `AI স্বয়ংক্রিয়ভাবে নির্ধারিত পারমিশন সেট। (${aiRolePrompt.trim()})`,
-        accessibleSections: sections,
-        permissions: perms,
-        aiSecurityAuditBn: audit,
-        createdAt: new Date().toISOString().slice(0, 10)
-      };
-
-      setGeneratedRole(generated);
-      setIsAiGenerating(false);
-    }, 800);
-  };
-
-  const handleSaveCustomRole = () => {
-    if (!generatedRole) return;
-    const updated = [generatedRole, ...customRoles];
-    setCustomRoles(updated);
-    localStorage.setItem('gps_custom_rbac_roles', JSON.stringify(updated));
-    setIsAiRoleModalOpen(false);
-    setGeneratedRole(null);
-    setAiRolePrompt('');
-  };
-
-  const handleSaveNewUser = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newUserName.trim() || !newUserPhone.trim()) return;
-
-    const newUser: EnterpriseUser = {
-      id: `USR-${Math.floor(100 + Math.random() * 900)}`,
-      name: newUserName.trim(),
-      phone: newUserPhone.trim(),
-      email: newUserEmail.trim() || `${newUserName.toLowerCase().replace(/\s+/g, '')}@easytracker.com`,
-      department: newUserDept.trim() || 'অপারেশনস ও সাপোর্ট',
-      status: 'active',
-      primaryRole: newUserRole,
-      approvedRoles: [newUserRole, 'customer'],
-      customRoleTitle: newUserCustomTitle.trim() || undefined,
-      permissions: {
-        canCutEngine: newUserRole === 'technician' || newUserRole === 'rescue' || newUserRole === 'super_admin',
-        canTriggerAlarm: newUserRole !== 'customer' && newUserRole !== 'sales' && newUserRole !== 'partner',
-        canConfigDevice: newUserRole === 'technician' || newUserRole === 'operations_manager' || newUserRole === 'super_admin',
-        canViewRevenue: newUserRole === 'sales' || newUserRole === 'operations_manager' || newUserRole === 'partner' || newUserRole === 'super_admin',
-        canManageDealerQuota: newUserRole === 'sales' || newUserRole === 'operations_manager' || newUserRole === 'super_admin',
-        canApproveSales: newUserRole === 'sales' || newUserRole === 'operations_manager' || newUserRole === 'partner' || newUserRole === 'super_admin',
-        canManageWarranty: newUserRole === 'support' || newUserRole === 'support_lead' || newUserRole === 'technician' || newUserRole === 'operations_manager' || newUserRole === 'partner' || newUserRole === 'super_admin',
-        canManageInventory: newUserRole === 'sales' || newUserRole === 'operations_manager' || newUserRole === 'super_admin',
-        canApproveRMA: newUserRole === 'support' || newUserRole === 'support_lead' || newUserRole === 'technician' || newUserRole === 'operations_manager' || newUserRole === 'super_admin',
-        canDispatchTech: newUserRole === 'support' || newUserRole === 'support_lead' || newUserRole === 'rescue' || newUserRole === 'operations_manager' || newUserRole === 'super_admin',
-        canViewSmsGateway: newUserRole === 'support' || newUserRole === 'support_lead' || newUserRole === 'rescue' || newUserRole === 'operations_manager' || newUserRole === 'super_admin',
-        canAuditRescueClaims: newUserRole === 'support' || newUserRole === 'support_lead' || newUserRole === 'rescue' || newUserRole === 'operations_manager' || newUserRole === 'super_admin',
-        canExportData: true,
-        canAccessGovTech: newUserRole === 'super_admin',
-        canPurgeDemo: newUserRole === 'super_admin'
-      },
-      lastLogin: 'এখনই তৈরি',
-      createdAt: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
-    };
-
-    const updated = [newUser, ...users];
-    setUsers(updated);
-    localStorage.setItem('gps_enterprise_rbac_users', JSON.stringify(updated));
-    setIsNewUserModalOpen(false);
-    setNewUserName('');
-    setNewUserPhone('');
-    setNewUserEmail('');
-    setNewUserDept('');
-    setNewUserCustomTitle('');
-  };
-
-  const filteredUsers = users.filter(u => {
-    if (!searchQuery.trim()) return true;
-    const q = searchQuery.toLowerCase();
-    return u.name.toLowerCase().includes(q) || u.phone.includes(q) || u.department.toLowerCase().includes(q);
-  });
 
   return (
-    <div className="space-y-4 select-none">
-      
-      {/* Super Admin God-Mode Banner */}
-      <div className="bg-gradient-to-r from-slate-900 via-amber-950/40 to-slate-900 border border-amber-500/40 rounded-3xl p-4 sm:p-5 shadow-2xl space-y-3">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+    <div className="space-y-4 animate-in fade-in duration-150">
+
+      {/* 1. TOP 4-TIER SCOPED HEADER & STATS */}
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl space-y-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
           <div className="flex items-center space-x-3">
-            <div className="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center justify-center shadow-lg shrink-0">
-              <Crown className="w-6 h-6" />
+            <div className="w-10 h-10 rounded-2xl bg-indigo-600/20 border border-indigo-500/40 flex items-center justify-center text-indigo-400 shadow-sm">
+              <ShieldCheck className="w-5 h-5" />
             </div>
             <div>
-              <div className="flex items-center space-x-2 flex-wrap">
-                <h3 className="font-extrabold text-base text-white">
-                  👑 স্টাফ রোল ডিস্ট্রিবিউশন ও গ্র্যানুলার পারমিশন হাব (Granular RBAC Matrix)
-                </h3>
-                <span className="text-[9px] font-mono px-2 py-0.5 rounded-full font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                  OMNI-ACCESS ACTIVE
+              <h3 className="font-extrabold text-sm text-white flex items-center space-x-2">
+                <span>Multi-Tenant Enterprise RBAC & Role Manager</span>
+                <span className="text-[10px] bg-indigo-500/20 text-indigo-300 font-bold px-2 py-0.5 rounded-full border border-indigo-500/30">
+                  ৪-টিয়ার নিরাপত্তা
                 </span>
-                <span className="text-[9px] font-mono px-2 py-0.5 rounded-full font-bold bg-purple-500/20 text-purple-300 border border-purple-500/40">
-                  15 GRANULAR CONTROLS
-                </span>
-              </div>
-              <p className="text-xs text-slate-300 mt-0.5">
-                প্রতিটি রোলের ভেতরের কমান্ড, ফিন্যান্স, ওয়ারেন্টি, সাপোর্ট ও ডাটা সিকিউরিটি পারমিশন সূক্ষ্মভাবে নিয়ন্ত্রণ করুন।
+              </h3>
+              <p className="text-[11px] text-slate-400">
+                SaaS স্টাফ, B2B বিজনেস পার্টনার, ট্রান্সপোর্টেশন ফ্লিট কোম্পানি ও রিটেইল গ্রাহকদের স্কোপড পারমিশন কন্ট্রোল
               </p>
             </div>
           </div>
 
-          <div className="flex items-center space-x-2">
-            <button
-              type="button"
-              onClick={() => setIsAiRoleModalOpen(true)}
-              className="px-3.5 py-2 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 text-white font-extrabold text-xs shadow-lg shadow-purple-600/30 flex items-center space-x-1.5 transition active:scale-95 shrink-0"
-            >
-              <Bot className="w-4 h-4 text-purple-200" />
-              <span>🤖 AI রোল ক্রিয়েটর</span>
-            </button>
-
+          <div className="flex items-center space-x-2 w-full sm:w-auto">
             <button
               type="button"
               onClick={() => setIsNewUserModalOpen(true)}
-              className="px-3.5 py-2 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 text-white font-extrabold text-xs shadow-lg shadow-emerald-600/30 flex items-center space-x-1.5 transition active:scale-95 shrink-0"
+              className="flex-1 sm:flex-initial px-4 py-2 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-xs shadow-lg shadow-emerald-600/30 flex items-center justify-center space-x-1.5 transition active:scale-95"
             >
               <Plus className="w-4 h-4" />
-              <span>+ নতুন স্টাফ ইউজার</span>
+              <span>নতুন ইউজার তৈরি করুন</span>
             </button>
           </div>
         </div>
 
-        {/* 1-Click Super Admin Role Switcher Pills */}
-        <div className="pt-2 border-t border-slate-800 flex flex-wrap items-center gap-2 text-xs">
-          <span className="text-slate-400 font-bold text-[11px] flex items-center space-x-1">
-            <Eye className="w-3.5 h-3.5 text-amber-400" />
-            <span>সুপার অ্যাডমিন টেস্ট ভিউ:</span>
-          </span>
-
-          <button
-            type="button"
-            onClick={() => { setCurrentRole('support'); }}
-            className="px-2.5 py-1 rounded-xl bg-purple-950/60 hover:bg-purple-900/60 text-purple-300 border border-purple-600/50 font-bold text-[11px] transition"
-          >
-            🎧 সাপোর্ট ভিউ
-          </button>
-
-          <button
-            type="button"
-            onClick={() => { setCurrentRole('sales'); }}
-            className="px-2.5 py-1 rounded-xl bg-blue-950/60 hover:bg-blue-900/60 text-blue-300 border border-blue-600/50 font-bold text-[11px] transition"
-          >
-            🏢 অপারেশনস / সেলস ভিউ
-          </button>
-
-          <button
-            type="button"
-            onClick={() => { setCurrentRole('technician'); }}
-            className="px-2.5 py-1 rounded-xl bg-emerald-950/60 hover:bg-emerald-900/60 text-emerald-300 border border-emerald-600/50 font-bold text-[11px] transition"
-          >
-            🔧 টেকনিশিয়ান ভিউ
-          </button>
-
-          <button
-            type="button"
-            onClick={() => { setCurrentRole('rescue'); }}
-            className="px-2.5 py-1 rounded-xl bg-rose-950/60 hover:bg-rose-900/60 text-rose-300 border border-rose-600/50 font-bold text-[11px] transition"
-          >
-            🚒 রেসকিউ টিম ভিউ
-          </button>
-
-          <button
-            type="button"
-            onClick={() => { setCurrentRole('super_admin'); }}
-            className="px-2.5 py-1 rounded-xl bg-amber-600 text-white font-extrabold text-[11px] shadow-md ml-auto"
-          >
-            👑 মাস্টার মোডে ফিরুন
-          </button>
+        {/* 4-Tier Scoped Category Switcher Tabs */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-2 pt-1 text-xs">
+          {[
+            { id: 'all' as const, labelBn: '🌐 সকল ইউজার', count: users.length, desc: 'সেন্ট্রাল ডাটাবেস' },
+            { id: 'saas_core' as const, labelBn: '🏛️ SaaS কোর স্টাফ', count: users.filter(u => u.tenantTier === 'saas_core').length, desc: 'সুপার এডমিন, অপস ও সাপোর্ট' },
+            { id: 'b2b_partner' as const, labelBn: '🤝 B2B বিজনেস পার্টনার্স', count: users.filter(u => u.tenantTier === 'b2b_partner').length, desc: 'রিসেলার ডিলার ও ফ্র্যাঞ্চাইজি' },
+            { id: 'fleet_company' as const, labelBn: '🚌 ফ্লিট ও ট্রান্সপোর্টেশন', count: users.filter(u => u.tenantTier === 'fleet_company').length, desc: 'বাস, কার্গো ও কুরিয়ার কোম্পানি' },
+            { id: 'retail_customer' as const, labelBn: '👤 রিটেইল গ্রাহক', count: users.filter(u => u.tenantTier === 'retail_customer').length, desc: 'ব্যক্তিগত গাড়ি/বাইক গ্রাহক' }
+          ].map(tab => {
+            const isAct = selectedTierTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setSelectedTierTab(tab.id)}
+                className={`p-3 rounded-2xl border text-left transition flex flex-col justify-between ${
+                  isAct 
+                    ? 'bg-indigo-600 text-white border-indigo-500 shadow-md ring-2 ring-indigo-500/30' 
+                    : 'bg-slate-950/80 border-slate-800 hover:border-slate-700 text-slate-300 hover:bg-slate-850'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-extrabold text-[11px] leading-tight truncate">{tab.labelBn}</span>
+                  <span className={`px-1.5 py-0.2 rounded-full font-mono text-[10px] font-black ${
+                    isAct ? 'bg-white text-indigo-700' : 'bg-slate-800 text-slate-300'
+                  }`}>
+                    {tab.count}
+                  </span>
+                </div>
+                <span className={`text-[9.5px] mt-1 truncate ${isAct ? 'text-indigo-100' : 'text-slate-500'}`}>
+                  {tab.desc}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* 2 Tabs: Users List & AI Custom Roles */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-900 border border-slate-800 p-2.5 rounded-2xl">
+      {/* 2. SUB-VIEW TABS & SEARCH FILTER */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-900 border border-slate-800 p-3 rounded-2xl shadow-md">
         <div className="flex space-x-2 text-xs">
           <button
             type="button"
@@ -846,8 +469,9 @@ export const UserAccessManager: React.FC = () => {
               activeTabSubView === 'users' ? 'bg-indigo-600 text-white border-indigo-500 shadow-md' : 'bg-slate-950 text-slate-400 border-slate-800'
             }`}
           >
-            👥 SaaS কর্মকর্তা ও সাবস্ক্রাইবার ({users.length})
+            👥 অ্যাক্টিভ ইউজার তালিকা ({filteredUsers.length})
           </button>
+
           <button
             type="button"
             onClick={() => setActiveTabSubView('roles')}
@@ -856,105 +480,138 @@ export const UserAccessManager: React.FC = () => {
             }`}
           >
             <Bot className="w-3.5 h-3.5 text-purple-300" />
-            <span>🤖 AI কাস্টম SaaS রোলস ({customRoles.length})</span>
+            <span>🤖 AI কাস্টম রোল ডেফিনিশন ({customRoles.length})</span>
           </button>
         </div>
 
         {activeTabSubView === 'users' && (
-          <div className="relative w-full sm:w-60">
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
+          <div className="relative w-full sm:w-72">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="স্টাফ নাম বা ডিপার্টমেন্ট..."
-              className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-8 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+              placeholder="নাম, ফোন, কোম্পানি বা রোল দিয়ে ফিল্টার..."
+              className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-9 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
             />
           </div>
         )}
       </div>
 
-      {/* 1. USERS LIST VIEW */}
+      {/* 3. USER GRID VIEW (4-TIER SCOPED CARDS) */}
       {activeTabSubView === 'users' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
           {filteredUsers.map((u) => {
-            const badge = roleBadges[u.primaryRole] || roleBadges.support || { label: u.primaryRole, color: 'bg-slate-700 text-slate-300 border-slate-600', icon: UserCheck };
+            const badge = roleBadges[u.primaryRole] || roleBadges.support;
             const BadgeIcon = badge.icon || UserCheck;
 
             return (
-              <div key={u.id} className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl space-y-3 flex flex-col justify-between">
+              <div key={u.id} className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl space-y-3 flex flex-col justify-between hover:border-slate-700 transition">
                 <div>
-                  <div className="flex items-start justify-between">
+                  {/* Top Role & Tier Badges */}
+                  <div className="flex items-start justify-between gap-2">
                     <div>
                       <div className="flex items-center space-x-2">
                         <span className="text-xs font-black text-white">{u.name}</span>
                         <span className="text-[10px] font-mono text-slate-400">({u.id})</span>
                       </div>
-                      <span className="text-[11px] text-cyan-400 font-bold block mt-0.5">{u.customRoleTitle || u.department}</span>
+                      
+                      <span className="text-[11px] text-cyan-400 font-bold block mt-0.5">
+                        {u.customRoleTitle || u.department}
+                      </span>
                     </div>
 
-                    <span className={`text-[9.5px] font-mono font-bold px-2 py-0.5 rounded-full border flex items-center space-x-1 ${badge.color}`}>
-                      <BadgeIcon className="w-3 h-3" />
-                      <span>{badge.label}</span>
-                    </span>
+                    <div className="flex flex-col items-end gap-1 shrink-0">
+                      <span className={`text-[9.5px] font-bold px-2 py-0.5 rounded-full border flex items-center space-x-1 ${badge.color}`}>
+                        <BadgeIcon className="w-3 h-3" />
+                        <span>{badge.label}</span>
+                      </span>
+
+                      <span className="text-[8.5px] font-mono px-1.5 py-0.2 rounded bg-slate-950 text-slate-400 border border-slate-800">
+                        {u.tenantTier === 'saas_core' ? '🏛️ SaaS Root' : u.tenantTier === 'b2b_partner' ? '🤝 B2B Partner' : u.tenantTier === 'fleet_company' ? '🚌 Fleet Enterprise' : '👤 Retail Client'}
+                      </span>
+                    </div>
                   </div>
+
+                  {/* Scoped Entity Details (Company / Partner / Counter) */}
+                  {(u.partnerBrandName || u.fleetCompanyName || u.counterStationName) && (
+                    <div className="mt-2 p-2 rounded-xl bg-slate-950/90 border border-slate-800 text-[10.5px] space-y-0.5">
+                      {u.partnerBrandName && (
+                        <div className="text-teal-300 font-bold flex items-center space-x-1">
+                          <span>🏢 পার্টনার ব্র্যান্ড:</span>
+                          <span className="text-white">{u.partnerBrandName}</span>
+                        </div>
+                      )}
+                      {u.fleetCompanyName && (
+                        <div className="text-amber-300 font-bold flex items-center space-x-1">
+                          <span>🚌 ফ্লিট কোম্পানি:</span>
+                          <span className="text-white">{u.fleetCompanyName}</span>
+                        </div>
+                      )}
+                      {u.counterStationName && (
+                        <div className="text-emerald-300 font-bold flex items-center space-x-1">
+                          <span>🎫 স্টেশন কাউন্টার:</span>
+                          <span className="text-white">{u.counterStationName}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* Active Granular Permissions Chips */}
                   <div className="flex flex-wrap gap-1 mt-2.5">
+                    {u.permissions?.canManageServerSync && (
+                      <span className="text-[9px] font-bold bg-blue-950/70 text-blue-300 px-1.5 py-0.5 rounded border border-blue-800/60">🌐 সার্ভার ক্লাস্টার</span>
+                    )}
+                    {u.permissions?.canManageM2M && (
+                      <span className="text-[9px] font-bold bg-purple-950/70 text-purple-300 px-1.5 py-0.5 rounded border border-purple-800/60">📶 M2M টেলিকম</span>
+                    )}
+                    {u.permissions?.canManageTripDispatch && (
+                      <span className="text-[9px] font-bold bg-sky-950/70 text-sky-300 px-1.5 py-0.5 rounded border border-sky-800/60">📋 ট্রিপ ডিসপ্যাচ</span>
+                    )}
+                    {u.permissions?.canManageCounterTickets && (
+                      <span className="text-[9px] font-bold bg-emerald-950/70 text-emerald-300 px-1.5 py-0.5 rounded border border-emerald-800/60">🎫 কাউন্টার টিকিট</span>
+                    )}
+                    {u.permissions?.canManageFuelAudit && (
+                      <span className="text-[9px] font-bold bg-amber-950/70 text-amber-300 px-1.5 py-0.5 rounded border border-amber-800/60">⛽ ফুয়েল অডিট</span>
+                    )}
                     {u.permissions?.canCutEngine && (
                       <span className="text-[9px] font-bold bg-rose-950/70 text-rose-300 px-1.5 py-0.5 rounded border border-rose-800/60">⚡ ইঞ্জিন কাটঅফ</span>
                     )}
                     {u.permissions?.canViewRevenue && (
-                      <span className="text-[9px] font-bold bg-amber-950/70 text-amber-300 px-1.5 py-0.5 rounded border border-amber-800/60">💰 রেভিনিউ ভিউ</span>
-                    )}
-                    {u.permissions?.canManageDealerQuota && (
-                      <span className="text-[9px] font-bold bg-blue-950/70 text-blue-300 px-1.5 py-0.5 rounded border border-blue-800/60">💳 ডিলার কোটা</span>
-                    )}
-                    {u.permissions?.canManageWarranty && (
-                      <span className="text-[9px] font-bold bg-emerald-950/70 text-emerald-300 px-1.5 py-0.5 rounded border border-emerald-800/60">🛡️ ওয়ারেন্টি RMA</span>
-                    )}
-                    {u.permissions?.canDispatchTech && (
-                      <span className="text-[9px] font-bold bg-purple-950/70 text-purple-300 px-1.5 py-0.5 rounded border border-purple-800/60">🔧 টেকনিশিয়ান ডিসপ্যাচ</span>
-                    )}
-                    {u.permissions?.canViewSmsGateway && (
-                      <span className="text-[9px] font-bold bg-sky-950/70 text-sky-300 px-1.5 py-0.5 rounded border border-sky-800/60">📱 SMS গেটওয়ে</span>
-                    )}
-                    {u.permissions?.canAccessGovTech && (
-                      <span className="text-[9px] font-bold bg-teal-950/70 text-teal-300 px-1.5 py-0.5 rounded border border-teal-800/60">🌐 GovTech পুলিশ</span>
+                      <span className="text-[9px] font-bold bg-emerald-950/70 text-emerald-300 px-1.5 py-0.5 rounded border border-emerald-800/60">💰 রেভিনিউ লেজার</span>
                     )}
                   </div>
 
-                  <div className="bg-slate-950 p-2.5 rounded-2xl border border-slate-800 space-y-1.5 text-xs mt-3">
+                  {/* Contact & Meta info */}
+                  <div className="bg-slate-950 p-2.5 rounded-2xl border border-slate-800 space-y-1 text-xs mt-2.5 font-mono">
                     <div className="flex justify-between">
-                      <span className="text-slate-400 text-[10px]">মোবাইল:</span>
-                      <span className="font-mono text-indigo-300">{u.phone}</span>
+                      <span className="text-slate-400 text-[10px] font-sans">মোবাইল:</span>
+                      <span className="text-indigo-300 font-bold">{u.phone}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-slate-400 text-[10px]">ইমেইল:</span>
-                      <span className="font-mono text-slate-300 text-[10px]">{u.email}</span>
+                      <span className="text-slate-400 text-[10px] font-sans">ইমেইল:</span>
+                      <span className="text-slate-300 text-[10px] truncate max-w-[170px]">{u.email}</span>
                     </div>
-                    <div className="flex justify-between items-center pt-1 border-t border-slate-800/80">
-                      <span className="text-slate-400 text-[10px]">অনুমোদিত রোলসমূহ:</span>
-                      <div className="flex flex-wrap gap-1">
-                        {u.approvedRoles.map(r => (
-                          <span key={r} className="text-[9px] font-mono bg-slate-900 text-slate-300 px-1.5 py-0.2 rounded border border-slate-800">
-                            {r}
-                          </span>
-                        ))}
+                    {u.assignedServerNodeId && (
+                      <div className="flex justify-between text-[10px]">
+                        <span className="text-slate-400 font-sans">সার্ভার নোড:</span>
+                        <span className="text-cyan-300 font-bold">{u.assignedServerNodeId}</span>
                       </div>
-                    </div>
+                    )}
                   </div>
                 </div>
 
-                <div className="pt-2 flex items-center justify-between border-t border-slate-800/80 text-[10.5px]">
+                {/* Footer Action Buttons */}
+                <div className="pt-2 flex items-center justify-between border-t border-slate-800 text-[10.5px]">
                   <span className="text-slate-400 font-mono">{u.lastLogin}</span>
+
                   <button
                     type="button"
                     onClick={() => handleOpenEditModal(u)}
-                    className="px-3 py-1 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 font-bold flex items-center space-x-1 border border-indigo-500/40 transition"
+                    className="px-3 py-1.5 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 hover:text-white font-bold transition flex items-center space-x-1 border border-indigo-500/30"
                   >
-                    <Edit3 className="w-3 h-3" />
-                    <span>বিস্তারিত পারমিশন এডিট</span>
+                    <Edit3 className="w-3.5 h-3.5" />
+                    <span>পারমিশন এডিট</span>
                   </button>
                 </div>
               </div>
@@ -1164,11 +821,33 @@ export const UserAccessManager: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-black text-slate-200 flex items-center space-x-1.5">
                     <Sliders className="w-3.5 h-3.5 text-indigo-400" />
-                    <span>১৫টি গ্র্যানুলার পারমিশন কন্ট্রোল (Category Matrix)</span>
+                    <span>২১টি গ্র্যানুলার পারমিশন কন্ট্রোল (Category Matrix)</span>
                   </span>
                 </div>
 
                 <div className="flex flex-wrap gap-1 bg-slate-950 p-1 rounded-2xl border border-slate-800 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setActivePermissionTab('server_m2m')}
+                    className={`px-2.5 py-1 rounded-xl font-bold transition flex items-center space-x-1 ${
+                      activePermissionTab === 'server_m2m' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    <Server className="w-3 h-3" />
+                    <span>সার্ভার ও M2M</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setActivePermissionTab('fleet_dispatch')}
+                    className={`px-2.5 py-1 rounded-xl font-bold transition flex items-center space-x-1 ${
+                      activePermissionTab === 'fleet_dispatch' ? 'bg-sky-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    <Building2 className="w-3 h-3" />
+                    <span>ফ্লিট ও টিকেটিং</span>
+                  </button>
+
                   <button
                     type="button"
                     onClick={() => setActivePermissionTab('commands')}
@@ -1224,6 +903,124 @@ export const UserAccessManager: React.FC = () => {
                     <span>গভটেক ও ডাটা</span>
                   </button>
                 </div>
+
+                {/* 0. SERVER & M2M TAB */}
+                {activePermissionTab === 'server_m2m' && (
+                  <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-2 animate-in fade-in">
+                    <label className="flex items-start justify-between p-2 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 cursor-pointer">
+                      <div>
+                        <span className="font-extrabold text-slate-200 block text-xs flex items-center space-x-1.5">
+                          <Server className="w-3.5 h-3.5 text-blue-400" />
+                          <span>GPS সার্ভার নোড ও ক্লাস্টার সিঙ্ক (Server Cluster Sync)</span>
+                        </span>
+                        <span className="text-[10px] text-slate-400 block mt-0.5">
+                          Traccar জিপিএস সার্ভার নোড কানেক্ট, ইনজেশন পোর্ট ও বাল্ক সিঙ্ক করার অনুমতি।
+                        </span>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={editPermissions.canManageServerSync}
+                        onChange={() => handleTogglePermission('canManageServerSync')}
+                        className="w-4 h-4 rounded text-blue-600 mt-1 cursor-pointer"
+                      />
+                    </label>
+
+                    <label className="flex items-start justify-between p-2 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 cursor-pointer">
+                      <div>
+                        <span className="font-extrabold text-slate-200 block text-xs flex items-center space-x-1.5">
+                          <Users className="w-3.5 h-3.5 text-purple-400" />
+                          <span>টেলিকম M2M সিম ও APN গেটওয়ে (M2M IoT Gateway)</span>
+                        </span>
+                        <span className="text-[10px] text-slate-400 block mt-0.5">
+                          GP/Robi/BL M2M সিম পুল, ব্যালেন্স চেক ও APN কনফিগারেশনের অনুমতি।
+                        </span>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={editPermissions.canManageM2M}
+                        onChange={() => handleTogglePermission('canManageM2M')}
+                        className="w-4 h-4 rounded text-purple-600 mt-1 cursor-pointer"
+                      />
+                    </label>
+                  </div>
+                )}
+
+                {/* 0.5. FLEET & DISPATCH TAB */}
+                {activePermissionTab === 'fleet_dispatch' && (
+                  <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-2 animate-in fade-in">
+                    <label className="flex items-start justify-between p-2 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 cursor-pointer">
+                      <div>
+                        <span className="font-extrabold text-slate-200 block text-xs flex items-center space-x-1.5">
+                          <Building2 className="w-3.5 h-3.5 text-sky-400" />
+                          <span>ফ্লিট ট্রিপ ডিসপ্যাচ ও শিডিউলার (Trip Dispatching)</span>
+                        </span>
+                        <span className="text-[10px] text-slate-400 block mt-0.5">
+                          বাস, কার্গো ও কুরিয়ার ট্রিপ শিডিউল, রুট অ্যাসাইন ও চালক নির্ধারণ করার ক্ষমতা।
+                        </span>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={editPermissions.canManageTripDispatch}
+                        onChange={() => handleTogglePermission('canManageTripDispatch')}
+                        className="w-4 h-4 rounded text-sky-600 mt-1 cursor-pointer"
+                      />
+                    </label>
+
+                    <label className="flex items-start justify-between p-2 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 cursor-pointer">
+                      <div>
+                        <span className="font-extrabold text-slate-200 block text-xs flex items-center space-x-1.5">
+                          <Receipt className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>বাস কাউন্টার টিকেটিং ও গেটপাস (Counter Ticketing)</span>
+                        </span>
+                        <span className="text-[10px] text-slate-400 block mt-0.5">
+                          বাস কাউন্টার থেকে টিকিট বুকিং, সিট চার্ট ও ডিপার্চার গেটপাস ইস্যুর অনুমতি।
+                        </span>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={editPermissions.canManageCounterTickets}
+                        onChange={() => handleTogglePermission('canManageCounterTickets')}
+                        className="w-4 h-4 rounded text-emerald-600 mt-1 cursor-pointer"
+                      />
+                    </label>
+
+                    <label className="flex items-start justify-between p-2 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 cursor-pointer">
+                      <div>
+                        <span className="font-extrabold text-slate-200 block text-xs flex items-center space-x-1.5">
+                          <DollarSign className="w-3.5 h-3.5 text-amber-400" />
+                          <span>ফুয়েল ও মাইলেজ অডিট লেজার (Fuel & Trip Ledger)</span>
+                        </span>
+                        <span className="text-[10px] text-slate-400 block mt-0.5">
+                          ডিজেল রিফিল, টোল ও প্রতি ট্রিপের নিট লাভ/ক্ষতি হিসাব পর্যবেক্ষণ।
+                        </span>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={editPermissions.canManageFuelAudit}
+                        onChange={() => handleTogglePermission('canManageFuelAudit')}
+                        className="w-4 h-4 rounded text-amber-600 mt-1 cursor-pointer"
+                      />
+                    </label>
+
+                    <label className="flex items-start justify-between p-2 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 cursor-pointer">
+                      <div>
+                        <span className="font-extrabold text-slate-200 block text-xs flex items-center space-x-1.5">
+                          <ShieldCheck className="w-3.5 h-3.5 text-teal-400" />
+                          <span>ড্রাইভার লাইসেন্স ও লিগ্যাল ভল্ট (Driver BRTA License Vault)</span>
+                        </span>
+                        <span className="text-[10px] text-slate-400 block mt-0.5">
+                          চালক লাইসেন্স মেয়াদ ও যানবাহনের ফিটনেস সার্টিফিকেট ভেরিফিকেশন।
+                        </span>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={editPermissions.canManageDriverLicenses}
+                        onChange={() => handleTogglePermission('canManageDriverLicenses')}
+                        className="w-4 h-4 rounded text-teal-600 mt-1 cursor-pointer"
+                      />
+                    </label>
+                  </div>
+                )}
 
                 {/* 1. COMMANDS & ENGINE TAB */}
                 {activePermissionTab === 'commands' && (
