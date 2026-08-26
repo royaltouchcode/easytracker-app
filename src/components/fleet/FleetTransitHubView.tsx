@@ -169,10 +169,12 @@ export const FleetTransitHubView: React.FC = () => {
     user?.email?.includes('fleetstaff') || 
     user?.role === 'supervisor' || 
     user?.role === 'driver' || 
+    user?.role === 'lineman' ||
     (user as any)?.assigned ||
     /^[0-9\-\+]+@/.test(user?.email || '')
   );
   const isDriver = isStaffUser && (user?.role === 'driver' || user?.name?.includes('কুদ্দুস') || (user as any)?.assigned?.includes('ঢাকা মেট্রো-ব'));
+  const isLineman = isStaffUser && !isDriver && (user?.role === 'lineman' || user?.name?.includes('লাইনম্যান') || user?.name?.includes('শফিকুল'));
   const staffTerminalOrBus = (user as any)?.assigned || (isDriver ? 'হানিফ এন্টারপ্রাইজ Hino 1J (ঢাকা মেট্রো-ব ১৪-৯৯০১)' : 'গাবতলী সেন্ট্রাল বাস টার্মিনাল');
 
   // =========================================================================
@@ -802,14 +804,17 @@ export const FleetTransitHubView: React.FC = () => {
                   >
                     <span>🔄 এভেইলেবল চালক ও গাড়ি অ্যাসাইন</span>
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsCrashAlertModalOpen(true)}
-                    className="py-1.5 px-3 rounded-xl bg-rose-950/70 border border-rose-500/50 text-rose-300 font-bold text-xs flex items-center space-x-1 transition"
-                  >
-                    <AlertCircle className="w-3.5 h-3.5 text-rose-400" />
-                    <span>এক্সসিডেন্ট এলার্ট ভিউয়ার</span>
-                  </button>
+                  {!isLineman && (
+                    <button
+                      type="button"
+                      onClick={() => setIsCrashAlertModalOpen(true)}
+                      className="py-1.5 px-3 rounded-xl bg-rose-950/70 hover:bg-rose-900/80 border border-rose-500/50 text-rose-300 font-bold text-xs flex items-center space-x-1 transition shadow-sm"
+                      title="জরুরি দুর্ঘটনার ভিডিও অডিট"
+                    >
+                      <AlertCircle className="w-3.5 h-3.5 text-rose-400" />
+                      <span>🚨 এক্সসিডেন্ট এলার্ট ভিউয়ার</span>
+                    </button>
+                  )}
                 </div>
               </div>
 
