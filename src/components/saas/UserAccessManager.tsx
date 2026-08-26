@@ -340,11 +340,14 @@ export const UserAccessManager: React.FC = () => {
 
   const roleBadges: Record<SaasRole, { label: string; color: string; icon: any }> = {
     super_admin: { label: 'সুপার অ্যাডমিন', color: 'bg-amber-500/20 text-amber-300 border-amber-500/40', icon: Crown },
-    sales: { label: 'সেলস / ডিলার', color: 'bg-blue-500/20 text-blue-300 border-blue-500/40', icon: Briefcase },
-    technician: { label: 'টেকনিশিয়ান', color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40', icon: Wrench },
+    customer: { label: 'কাস্টমার / ক্লায়েন্ট', color: 'bg-slate-700 text-slate-300 border-slate-600', icon: Smartphone },
+    sales: { label: 'সেলস ও ডিলার', color: 'bg-blue-500/20 text-blue-300 border-blue-500/40', icon: Briefcase },
+    technician: { label: 'ফিল্ড টেকনিশিয়ান', color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40', icon: Wrench },
     support: { label: 'কাস্টমার সাপোর্ট', color: 'bg-purple-500/20 text-purple-300 border-purple-500/40', icon: Headphones },
-    rescue: { label: 'রেসকিউ টিম', color: 'bg-rose-500/20 text-rose-300 border-rose-500/40', icon: Flame },
-    customer: { label: 'ক্লায়েন্ট পোর্টাল', color: 'bg-slate-700 text-slate-300 border-slate-600', icon: Smartphone }
+    operations_manager: { label: 'SaaS অপারেশনস ম্যানেজার', color: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40', icon: Building2 },
+    support_lead: { label: 'সাপোর্ট লিড', color: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40', icon: ShieldCheck },
+    partner: { label: 'B2B পার্টনার', color: 'bg-teal-500/20 text-teal-300 border-teal-500/40', icon: Users },
+    rescue: { label: '২৪/৭ রেসকিউ টিম', color: 'bg-rose-500/20 text-rose-300 border-rose-500/40', icon: Flame }
   };
 
   const handleOpenEditModal = (user: EnterpriseUser) => {
@@ -415,6 +418,63 @@ export const UserAccessManager: React.FC = () => {
         canPurgeDemo: true
       });
       setAiAutoPresetMsg('👑 সুপার অ্যাডমিনের জন্য ১৫টি পারমিশনের সবকটি এনাবল করা হলো।');
+    } else if (role === 'operations_manager') {
+      setEditPermissions({
+        canCutEngine: false,
+        canTriggerAlarm: true,
+        canConfigDevice: true,
+        canViewRevenue: true,
+        canManageDealerQuota: true,
+        canApproveSales: true,
+        canManageWarranty: true,
+        canManageInventory: true,
+        canApproveRMA: true,
+        canDispatchTech: true,
+        canViewSmsGateway: true,
+        canAuditRescueClaims: true,
+        canExportData: true,
+        canAccessGovTech: false,
+        canPurgeDemo: false
+      });
+      setAiAutoPresetMsg('🏢 SaaS অপারেশনস ম্যানেজারের জন্য সেন্ট্রাল ইনভেন্টরি, সিম, ডিলার কোটা ও ডিসপ্যাচ এনাবল করা হলো।');
+    } else if (role === 'support_lead') {
+      setEditPermissions({
+        canCutEngine: false,
+        canTriggerAlarm: true,
+        canConfigDevice: false,
+        canViewRevenue: false,
+        canManageDealerQuota: false,
+        canApproveSales: false,
+        canManageWarranty: true,
+        canManageInventory: false,
+        canApproveRMA: true,
+        canDispatchTech: true,
+        canViewSmsGateway: true,
+        canAuditRescueClaims: true,
+        canExportData: true,
+        canAccessGovTech: false,
+        canPurgeDemo: false
+      });
+      setAiAutoPresetMsg('🎖️ সাপোর্ট লিডের জন্য হেল্পডেস্ক সুপারভিশন, টিকিট অডিট ও রেসকিউ ক্লেইম ভেরিফিকেশন এনাবল করা হলো।');
+    } else if (role === 'partner') {
+      setEditPermissions({
+        canCutEngine: false,
+        canTriggerAlarm: false,
+        canConfigDevice: false,
+        canViewRevenue: true,
+        canManageDealerQuota: false,
+        canApproveSales: true,
+        canManageWarranty: true,
+        canManageInventory: false,
+        canApproveRMA: false,
+        canDispatchTech: false,
+        canViewSmsGateway: false,
+        canAuditRescueClaims: false,
+        canExportData: true,
+        canAccessGovTech: false,
+        canPurgeDemo: false
+      });
+      setAiAutoPresetMsg('🤝 B2B পার্টনারের জন্য সাব-ডোমেন ক্লায়েন্ট অনবোর্ডিং ও রেভিনিউ লেজার এনাবল করা হলো।');
     } else if (role === 'sales') {
       setEditPermissions({
         canCutEngine: false,
@@ -433,7 +493,7 @@ export const UserAccessManager: React.FC = () => {
         canAccessGovTech: false,
         canPurgeDemo: false
       });
-      setAiAutoPresetMsg('🏢 সেলস ও ডিলার অপারেশনের জন্য পারমিশন কনফিগার করা হলো।');
+      setAiAutoPresetMsg('💼 সেলস ও ডিলার অপারেশনের জন্য পারমিশন কনফিগার করা হলো।');
     } else if (role === 'support') {
       setEditPermissions({
         canCutEngine: false,
@@ -471,7 +531,7 @@ export const UserAccessManager: React.FC = () => {
         canAccessGovTech: false,
         canPurgeDemo: false
       });
-      setAiAutoPresetMsg('🔧 টেকনিশিয়ানের জন্য রিমোট কাটঅফ টেস্ট ও ওয়ারেন্টি আরএমএ এনাবল করা হলো।');
+      setAiAutoPresetMsg('🔧 টেকনিশিয়ানের জন্য রিমোট কাটঅফ টেস্ট ও সার্ভিস পার্টস কার্ড এনাবল করা হলো।');
     } else if (role === 'rescue') {
       setEditPermissions({
         canCutEngine: true,
@@ -490,7 +550,26 @@ export const UserAccessManager: React.FC = () => {
         canAccessGovTech: false,
         canPurgeDemo: false
       });
-      setAiAutoPresetMsg('🚒 রেসকিউ টিমের জন্য ইমার্জেন্সি ইঞ্জিন কাটঅফ ও এসওএস অডিট এনাবল করা হলো।');
+      setAiAutoPresetMsg('🚒 রেসকিউ টিমের জন্য ইমার্জেন্সি ইঞ্জিন কাটঅফ ও ৫০,০০০৳ ক্লেইম অডিট এনাবল করা হলো।');
+    } else if (role === 'customer') {
+      setEditPermissions({
+        canCutEngine: false,
+        canTriggerAlarm: false,
+        canConfigDevice: false,
+        canViewRevenue: false,
+        canManageDealerQuota: false,
+        canApproveSales: false,
+        canManageWarranty: false,
+        canManageInventory: false,
+        canApproveRMA: false,
+        canDispatchTech: false,
+        canViewSmsGateway: false,
+        canAuditRescueClaims: false,
+        canExportData: true,
+        canAccessGovTech: false,
+        canPurgeDemo: false
+      });
+      setAiAutoPresetMsg('📱 কাস্টমার ও সাবস্ক্রাইবারের জন্য বেসিক পোর্টাল পারমিশন প্রি-সেট সম্পন্ন।');
     }
   };
 
@@ -615,27 +694,27 @@ export const UserAccessManager: React.FC = () => {
       name: newUserName.trim(),
       phone: newUserPhone.trim(),
       email: newUserEmail.trim() || `${newUserName.toLowerCase().replace(/\s+/g, '')}@easytracker.com`,
-      department: newUserDept.trim(),
+      department: newUserDept.trim() || 'অপারেশনস ও সাপোর্ট',
       status: 'active',
       primaryRole: newUserRole,
       approvedRoles: [newUserRole, 'customer'],
       customRoleTitle: newUserCustomTitle.trim() || undefined,
       permissions: {
-        canCutEngine: newUserRole === 'technician' || newUserRole === 'rescue',
-        canTriggerAlarm: true,
-        canConfigDevice: newUserRole === 'technician',
-        canViewRevenue: newUserRole === 'sales' || newUserRole === 'super_admin',
-        canManageDealerQuota: newUserRole === 'sales',
-        canApproveSales: newUserRole === 'sales',
-        canManageWarranty: newUserRole === 'support' || newUserRole === 'technician',
-        canManageInventory: newUserRole === 'sales',
-        canApproveRMA: newUserRole === 'support' || newUserRole === 'technician',
-        canDispatchTech: newUserRole === 'support' || newUserRole === 'rescue',
-        canViewSmsGateway: newUserRole === 'support',
-        canAuditRescueClaims: newUserRole === 'support' || newUserRole === 'rescue',
+        canCutEngine: newUserRole === 'technician' || newUserRole === 'rescue' || newUserRole === 'super_admin',
+        canTriggerAlarm: newUserRole !== 'customer' && newUserRole !== 'sales' && newUserRole !== 'partner',
+        canConfigDevice: newUserRole === 'technician' || newUserRole === 'operations_manager' || newUserRole === 'super_admin',
+        canViewRevenue: newUserRole === 'sales' || newUserRole === 'operations_manager' || newUserRole === 'partner' || newUserRole === 'super_admin',
+        canManageDealerQuota: newUserRole === 'sales' || newUserRole === 'operations_manager' || newUserRole === 'super_admin',
+        canApproveSales: newUserRole === 'sales' || newUserRole === 'operations_manager' || newUserRole === 'partner' || newUserRole === 'super_admin',
+        canManageWarranty: newUserRole === 'support' || newUserRole === 'support_lead' || newUserRole === 'technician' || newUserRole === 'operations_manager' || newUserRole === 'partner' || newUserRole === 'super_admin',
+        canManageInventory: newUserRole === 'sales' || newUserRole === 'operations_manager' || newUserRole === 'super_admin',
+        canApproveRMA: newUserRole === 'support' || newUserRole === 'support_lead' || newUserRole === 'technician' || newUserRole === 'operations_manager' || newUserRole === 'super_admin',
+        canDispatchTech: newUserRole === 'support' || newUserRole === 'support_lead' || newUserRole === 'rescue' || newUserRole === 'operations_manager' || newUserRole === 'super_admin',
+        canViewSmsGateway: newUserRole === 'support' || newUserRole === 'support_lead' || newUserRole === 'rescue' || newUserRole === 'operations_manager' || newUserRole === 'super_admin',
+        canAuditRescueClaims: newUserRole === 'support' || newUserRole === 'support_lead' || newUserRole === 'rescue' || newUserRole === 'operations_manager' || newUserRole === 'super_admin',
         canExportData: true,
-        canAccessGovTech: false,
-        canPurgeDemo: false
+        canAccessGovTech: newUserRole === 'super_admin',
+        canPurgeDemo: newUserRole === 'super_admin'
       },
       lastLogin: 'এখনই তৈরি',
       createdAt: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
@@ -648,6 +727,8 @@ export const UserAccessManager: React.FC = () => {
     setNewUserName('');
     setNewUserPhone('');
     setNewUserEmail('');
+    setNewUserDept('');
+    setNewUserCustomTitle('');
   };
 
   const filteredUsers = users.filter(u => {
@@ -1033,11 +1114,15 @@ export const UserAccessManager: React.FC = () => {
                     onChange={(e) => setEditPrimaryRole(e.target.value as any)}
                     className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-white font-bold focus:border-indigo-500 focus:outline-none"
                   >
-                    <option value="sales">🏢 সেলস ও অপারেশনস</option>
+                    <option value="super_admin">👑 সুপার অ্যাডমিন (Master Admin)</option>
+                    <option value="operations_manager">🏢 SaaS অপারেশনস ম্যানেজার</option>
+                    <option value="support_lead">🎖️ সাপোর্ট লিড / হেল্পডেস্ক লিড</option>
+                    <option value="sales">💼 সেলস ও ডিলার অ্যাডমিন</option>
+                    <option value="technician">🔧 ফিল্ড টেকনিশিয়ান</option>
                     <option value="support">🎧 কাস্টমার সাপোর্ট</option>
-                    <option value="technician">🔧 টেকনিশিয়ান</option>
-                    <option value="rescue">🚒 রেসকিউ টিম</option>
-                    <option value="super_admin">👑 সুপার অ্যাডমিন</option>
+                    <option value="partner">🤝 B2B ব্র্যান্ড পার্টনার</option>
+                    <option value="rescue">🚒 ২৪/৭ রেসকিউ টিম</option>
+                    <option value="customer">📱 কাস্টমার / ক্লায়েন্ট</option>
                   </select>
                 </div>
               </div>
@@ -1047,8 +1132,8 @@ export const UserAccessManager: React.FC = () => {
                 <label className="text-[10.5px] font-bold text-slate-300 block mb-1.5">
                   অনুমোদিত রোলসমূহ (Multi-Role Scope):
                 </label>
-                <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
-                  {(['sales', 'technician', 'support', 'rescue', 'customer', 'super_admin'] as SaasRole[]).map(role => {
+                <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5">
+                  {(['super_admin', 'operations_manager', 'support_lead', 'sales', 'technician', 'support', 'partner', 'rescue', 'customer'] as SaasRole[]).map(role => {
                     const b = roleBadges[role];
                     const isChecked = editApprovedRoles.includes(role);
                     return (
@@ -1587,16 +1672,21 @@ export const UserAccessManager: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[10.5px] font-bold text-slate-300 block mb-1">বেস রোল</label>
+                  <label className="text-[10.5px] font-bold text-slate-300 block mb-1">বেস রোল *</label>
                   <select
                     value={newUserRole}
                     onChange={(e) => setNewUserRole(e.target.value as any)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white focus:border-emerald-500 focus:outline-none"
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-bold focus:border-emerald-500 focus:outline-none"
                   >
                     <option value="support">🎧 কাস্টমার সাপোর্ট</option>
-                    <option value="sales">🏢 অপারেশনস ও ডিলার</option>
-                    <option value="technician">🔧 টেকনিশিয়ান</option>
-                    <option value="rescue">🚒 রেসকিউ টিম</option>
+                    <option value="support_lead">🎖️ সাপোর্ট লিড / হেল্পডেস্ক লিড</option>
+                    <option value="sales">💼 সেলস ও ডিলার অ্যাডমিন</option>
+                    <option value="technician">🔧 ফিল্ড টেকনিশিয়ান</option>
+                    <option value="operations_manager">🏢 SaaS অপারেশনস ম্যানেজার</option>
+                    <option value="partner">🤝 B2B ব্র্যান্ড পার্টনার</option>
+                    <option value="rescue">🚒 ২৪/৭ রেসকিউ টিম</option>
+                    <option value="customer">📱 কাস্টমার / ক্লায়েন্ট</option>
+                    <option value="super_admin">👑 সুপার অ্যাডমিন</option>
                   </select>
                 </div>
                 <div>
@@ -1605,11 +1695,93 @@ export const UserAccessManager: React.FC = () => {
                     type="text"
                     value={newUserCustomTitle}
                     onChange={(e) => setNewUserCustomTitle(e.target.value)}
-                    placeholder="যেমন: হেল্পডেস্ক লিড"
+                    placeholder="যেমন: সিনিয়র সাপোর্ট স্পেশালিস্ট"
                     className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white focus:border-emerald-500 focus:outline-none"
                   />
                 </div>
               </div>
+
+              {/* 🤖 AI Role & Permissions Assistant Live Panel */}
+              {(() => {
+                const roleHelper: Record<SaasRole, { sections: string[]; audit: string; color: string }> = {
+                  super_admin: {
+                    sections: ['মাস্টার কন্ট্রোল প্যানেল', 'ফুল সিস্টেম কনফিগ', 'GovTech পুলিশ গেটওয়ে', 'টেলিকম ও ডিভাইস ERP', 'সার্ভিস ও বিলিং'],
+                    audit: '👑 অমনি-পোটেন্ট: সম্পূর্ণ প্ল্যাটফর্ম, ডাটাবেস ও ফাইন্যান্সিয়াল অডিট এক্সেস এনাবল্ড।',
+                    color: 'text-amber-300 border-amber-500/40 bg-amber-950/40'
+                  },
+                  operations_manager: {
+                    sections: ['ডিভাইস ও সিম ERP', 'টেকনিশিয়ান শিডিউলিং', 'ডিলার কোটা অ্যাপ্রুভাল', 'বাল্ক ইনভেন্টরি', 'টেলিমেটিক্স গেটওয়ে'],
+                    audit: '🏢 সেন্ট্রাল অপারেশনস: ট্র্যাকার স্টক ও ডিলার ম্যানেজমেন্ট এনাবল্ড। ডাটাবেস ডিরেক্ট কোর লকড।',
+                    color: 'text-cyan-300 border-cyan-500/40 bg-cyan-950/40'
+                  },
+                  support_lead: {
+                    sections: ['কাস্টমার হেল্পডেস্ক', 'এসএমএস গেটওয়ে লগ', 'টিকিট এসকেলেশন', 'ওয়ারেন্টি ও আরএমএ', 'রেসকিউ ক্লেইম ভেরিফিকেশন'],
+                    audit: '🎖️ সুপারভাইজরি: হেল্পডেস্ক টিম অডিট ও জরুরি ক্লেইম ক্লিয়ারেন্স। ইঞ্জিন রিমোট কাটঅফ লকড।',
+                    color: 'text-indigo-300 border-indigo-500/40 bg-indigo-950/40'
+                  },
+                  sales: {
+                    sections: ['সেলস অনবোর্ডিং কিউ', 'ডিলার পে-ওয়াল ও লেজার', 'নতুন ক্লায়েন্ট একাউন্ট', 'ডিভাইস ইস্যু', 'রেভিনিউ রিপোর্ট'],
+                    audit: '💼 বাণিজ্যিক: ক্লায়েন্ট অনবোর্ডিং ও লেজার অডিট। টেকনিক্যাল ইঞ্জিন কমান্ড ব্লকড।',
+                    color: 'text-blue-300 border-blue-500/40 bg-blue-950/40'
+                  },
+                  technician: {
+                    sections: ['সার্ভিস রেট ও পার্টস কার্ড', 'ওয়্যারিং পিনআউট', 'টেস্ট ইঞ্জিন কাটঅফ', 'সেন্সর ক্যালিব্রেশন', 'ওয়ারেন্টি আরএমএ'],
+                    audit: '🔧 টেকনিক্যাল ফিল্ড: ইনস্টলেশন টেস্ট ও সেন্সর কনফিগারেশন। ফিনান্সিয়াল লেজার লকড।',
+                    color: 'text-emerald-300 border-emerald-500/40 bg-emerald-950/40'
+                  },
+                  support: {
+                    sections: ['লাইভ কাস্টমার অ্যাসিস্ট্যান্স', 'এসএমএস গেটওয়ে', 'টিকিট ম্যানেজমেন্ট', 'ওয়ারেন্টি মেয়াদ চেক', 'রেসকিউ টিম ফলোআপ'],
+                    audit: '🎧 হেল্পডেস্ক: কাস্টমার সাপোর্ট ও নোটিফিকেশন। সংবেদনশীল ইঞ্জিন লক ও গভটেক সীমাবদ্ধ।',
+                    color: 'text-purple-300 border-purple-500/40 bg-purple-950/40'
+                  },
+                  partner: {
+                    sections: ['কো-ব্র্যান্ডেড সাব-ডোমেন', 'ফ্র্যাঞ্চাইজি ক্লায়েন্ট অনবোর্ডিং', 'কমিশন লেজার', 'বাল্ক টেলিমেটিক্স API'],
+                    audit: '🤝 পার্টনারশিপ: নিজস্ব ফ্র্যাঞ্চাইজির গাড়ি ও ক্লায়েন্ট ভিউ। অন্যান্য পার্টনার ডাটা আইসোলেটেড।',
+                    color: 'text-teal-300 border-teal-500/40 bg-teal-950/40'
+                  },
+                  rescue: {
+                    sections: ['ইমার্জেন্সি ইন্টারসেপ্ট', '২৪/৭ রেসকিউ মোড', 'পুলিশ কো-অর্ডিনেশন', '৫০,০০০৳ ক্লেইম অডিট', 'লাইভ সিকিউর'],
+                    audit: '🚒 ইমার্জেন্সি: হাই-প্রায়োরিটি এসওএস ট্র্যাকিং ও ইমার্জেন্সি রিমোট ইঞ্জিন লক এনাবল্ড।',
+                    color: 'text-rose-300 border-rose-500/40 bg-rose-950/40'
+                  },
+                  customer: {
+                    sections: ['লাইভ ভেহিকেল ট্র্যাকিং', 'স্পিড ও ট্রিপ প্লেব্যাক', 'মাইলেজ ও ফুয়েল সামারি', 'ইঞ্জিন লক/আনলক', 'লাইভ ক্যামেরা'],
+                    audit: '📱 এন্ড-ইউজার: শুধুমাত্র নিজের রেজিস্ট্রার্ড গাড়ির মনিটরিং ও কমান্ড কন্ট্রোল।',
+                    color: 'text-slate-300 border-slate-700 bg-slate-950'
+                  }
+                };
+
+                const helper = roleHelper[newUserRole] || roleHelper.support;
+
+                return (
+                  <div className="bg-slate-950 border border-slate-800 rounded-2xl p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-1.5 text-purple-300 font-bold text-[11px]">
+                        <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+                        <span>🤖 AI রোল ও পারমিশন অ্যাসিস্ট্যান্ট</span>
+                      </div>
+                      <span className="text-[9px] font-mono text-slate-400 bg-slate-900 px-2 py-0.5 rounded-full border border-slate-800">
+                        AUTO-CONFIGURED
+                      </span>
+                    </div>
+
+                    <div>
+                      <span className="text-[10px] text-slate-400 font-bold block mb-1">অ্যাক্সেসযোগ্য SaaS সেকশন ও ক্ষমতা:</span>
+                      <div className="flex flex-wrap gap-1">
+                        {helper.sections.map((sec, idx) => (
+                          <span key={idx} className="text-[9.5px] bg-slate-900 text-cyan-300 px-2 py-0.5 rounded-lg border border-slate-800 font-bold">
+                            ✓ {sec}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className={`p-2 rounded-xl border text-[10px] font-bold ${helper.color}`}>
+                      {helper.audit}
+                    </div>
+                  </div>
+                );
+              })()}
 
               <div className="flex space-x-2 pt-2">
                 <button

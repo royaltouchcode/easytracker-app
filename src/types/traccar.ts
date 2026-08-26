@@ -235,7 +235,7 @@ export interface UserSession {
 
 export type MapLayerType = 'carto_positron' | 'google_roadmap' | 'google_satellite' | 'google_hybrid' | 'google_terrain' | 'osm' | 'baidu_dark';
 
-export type SaasRole = 'customer' | 'super_admin' | 'partner' | 'sales' | 'technician' | 'support' | 'rescue';
+export type SaasRole = 'customer' | 'super_admin' | 'partner' | 'sales' | 'technician' | 'support' | 'rescue' | 'operations_manager' | 'support_lead';
 
 export type WarrantyPolicyType = 'replacement_1yr' | 'service_2yr' | 'extended_3yr' | 'lifetime_service';
 export type WarrantyStatus = 'active' | 'expiring_soon' | 'expired' | 'void';
