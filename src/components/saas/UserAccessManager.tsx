@@ -32,7 +32,8 @@ import {
   FileSpreadsheet,
   Trash2,
   Globe,
-  BellRing
+  BellRing,
+  Users
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { SaasRole } from '../../types/traccar';
@@ -877,8 +878,8 @@ export const UserAccessManager: React.FC = () => {
       {activeTabSubView === 'users' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
           {filteredUsers.map((u) => {
-            const badge = roleBadges[u.primaryRole];
-            const BadgeIcon = badge.icon;
+            const badge = roleBadges[u.primaryRole] || roleBadges.support || { label: u.primaryRole, color: 'bg-slate-700 text-slate-300 border-slate-600', icon: UserCheck };
+            const BadgeIcon = badge.icon || UserCheck;
 
             return (
               <div key={u.id} className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl space-y-3 flex flex-col justify-between">
