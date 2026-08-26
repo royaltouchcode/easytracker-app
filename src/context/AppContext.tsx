@@ -2817,6 +2817,133 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const syncServerData = async () => {
     try {
+      const lower = (user?.email || '').toLowerCase();
+      
+      // 1. If Persona is Personal Demo Bike User (demo / user)
+      if (lower.startsWith('demo') || lower.startsWith('user')) {
+        const demoBike: Device = {
+          id: 991,
+          name: 'Yamaha FZS-V3 (ঢাকা মেট্রো-ল ৫৫-৮৮৯৯)',
+          uniqueId: '864720058291039',
+          status: 'online',
+          disabled: false,
+          lastUpdate: new Date().toISOString(),
+          category: 'motorcycle',
+          phone: '+8801700112233',
+          attributes: {
+            color: '#ef4444',
+            plateNumber: 'DM LA 55-8899',
+            driverName: 'Demo Rider',
+            driverPhone: '01700112233',
+            speedLimit: 65,
+            initialOdometerKm: 12450,
+            initialFuelLiters: 11.5,
+            planName: 'Basic Bike Shield (৩৯৯ টাকা/মাস • সক্রিয়)',
+            vehicleSpec: {
+              manufacturer: 'Yamaha',
+              modelName: 'FZS-FI V3 ABS',
+              engineOilGrade: '10W-40 4T Full Synthetic',
+              engineOilCapacityLiters: 1.0,
+              oilChangeIntervalKm: 2000,
+              fuelTankCapacityLiters: 13
+            }
+          }
+        };
+        setDevices([demoBike]);
+        setSelectedDeviceId(demoBike.id);
+        return;
+      }
+
+      // 2. If Persona is Fleet / Bus / Transit Company
+      if (lower.startsWith('fleet') || lower.startsWith('bus') || lower.startsWith('transit')) {
+        const fleetVehicles: Device[] = [
+          {
+            id: 801,
+            name: 'হানিফ এন্টারপ্রাইজ Hino 1J (ঢাকা মেট্রো-ব ১৪-৯৯০১)',
+            uniqueId: '864720058291801',
+            status: 'online',
+            disabled: false,
+            lastUpdate: new Date().toISOString(),
+            category: 'bus',
+            phone: '+8801712334455',
+            attributes: {
+              color: '#0284c7',
+              plateNumber: 'DM BA 14-9901',
+              driverName: 'মোঃ আব্দুল কুদ্দুস',
+              driverPhone: '01712-334455',
+              speedLimit: 80,
+              initialOdometerKm: 142000,
+              initialFuelLiters: 180,
+              planName: 'Enterprise Fleet Pro (৪টি গাড়ি • ১,৫৯৯ টাকা/মাস)'
+            }
+          },
+          {
+            id: 802,
+            name: 'শ্যামলী পরিবহন Scania (ঢাকা মেট্রো-ব ১৫-৪২৩১)',
+            uniqueId: '864720058291802',
+            status: 'online',
+            disabled: false,
+            lastUpdate: new Date().toISOString(),
+            category: 'bus',
+            phone: '+8801799887766',
+            attributes: {
+              color: '#059669',
+              plateNumber: 'DM BA 15-4231',
+              driverName: 'মোঃ রফিকুল ইসলাম',
+              driverPhone: '01799-887766',
+              speedLimit: 80,
+              initialOdometerKm: 98000,
+              initialFuelLiters: 220,
+              planName: 'Enterprise Fleet Pro'
+            }
+          },
+          {
+            id: 803,
+            name: 'Tata 1615 Cargo Truck (ঢাকা মেট্রো-ট ২৭-৮৫৭৮)',
+            uniqueId: '864720058291803',
+            status: 'online',
+            disabled: false,
+            lastUpdate: new Date().toISOString(),
+            category: 'truck',
+            phone: '+8801700112233',
+            attributes: {
+              color: '#d97706',
+              plateNumber: 'DM TA 27-8578',
+              driverName: 'মোঃ ফারুক হোসেন',
+              driverPhone: '01700-112233',
+              speedLimit: 60,
+              initialOdometerKm: 115000,
+              initialFuelLiters: 140,
+              planName: 'Enterprise Fleet Pro'
+            }
+          },
+          {
+            id: 804,
+            name: 'Mahindra Bolero Pickup (ঢাকা মেট্রো-ন ১২-৩৪৫৬)',
+            uniqueId: '864720058291804',
+            status: 'online',
+            disabled: false,
+            lastUpdate: new Date().toISOString(),
+            category: 'pickup',
+            phone: '+8801733445566',
+            attributes: {
+              color: '#4f46e5',
+              plateNumber: 'DM NA 12-3456',
+              driverName: 'মোঃ কামাল হোসেন',
+              driverPhone: '01733-445566',
+              speedLimit: 70,
+              initialOdometerKm: 54000,
+              initialFuelLiters: 45,
+              planName: 'Enterprise Fleet Pro'
+            }
+          }
+        ];
+        setDevices(fleetVehicles);
+        setSelectedDeviceId(fleetVehicles[0].id);
+        return;
+      }
+
+      // 3. Real Traccar Server Account: Fetch purely real user device(s)
       const realDevices = await traccarApi.getDevices();
       if (realDevices && realDevices.length > 0) {
         const savedCustom = localStorage.getItem('gps_saved_device_profile');
