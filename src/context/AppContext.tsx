@@ -46,7 +46,7 @@ import { traccarSocket } from '../services/traccarSocket';
 import { audioAlertService } from '../services/audioAlertService';
 import { reverseGeocodeCoords } from '../utils/reverseGeocoding';
 
-export type TabType = 'map' | 'reports' | 'playback' | 'commands' | 'surveillance' | 'geofence' | 'alerts' | 'settings' | 'saas_admin' | 'saas_partner' | 'saas_sales' | 'saas_technician' | 'saas_support' | 'saas_rescue';
+export type TabType = 'map' | 'reports' | 'playback' | 'commands' | 'surveillance' | 'geofence' | 'alerts' | 'settings' | 'fleet_transit' | 'saas_admin' | 'saas_partner' | 'saas_sales' | 'saas_technician' | 'saas_support' | 'saas_rescue';
 export type Language = 'en' | 'bn';
 
 export interface UserLocation {

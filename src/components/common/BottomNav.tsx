@@ -5,17 +5,24 @@ import {
   BarChart3, 
   History, 
   Zap, 
-  Settings 
+  Settings,
+  Building2
 } from 'lucide-react';
 
 export const BottomNav: React.FC = () => {
-  const { activeTab, setActiveTab, language, t } = useApp();
+  const { activeTab, setActiveTab, language, t, selectedDevice, devices } = useApp();
+
+  const category = (selectedDevice?.category || '').toLowerCase();
+  const isCommercialFleet = category.includes('bus') || category.includes('truck') || category.includes('trailer') || category.includes('pickup') || (devices && devices.length > 1);
 
   const navItems: { id: TabType; label: string; icon: React.ReactNode }[] = [
     { id: 'map', label: language === 'bn' ? 'হোম ম্যাপ' : 'Home', icon: <Home className="w-5 h-5" /> },
-    { id: 'reports', label: language === 'bn' ? 'রিপোর্ট ও হেলথ' : 'Reports', icon: <BarChart3 className="w-5 h-5" /> },
+    { id: 'reports', label: language === 'bn' ? 'রিপোর্ট' : 'Reports', icon: <BarChart3 className="w-5 h-5" /> },
     { id: 'playback', label: t('playback'), icon: <History className="w-5 h-5" /> },
-    { id: 'commands', label: t('commands'), icon: <Zap className="w-5 h-5" /> },
+    ...(isCommercialFleet 
+      ? [{ id: 'fleet_transit' as TabType, label: language === 'bn' ? 'ফ্লিট হাব' : 'Fleet Hub', icon: <Building2 className="w-5 h-5 text-cyan-400" /> }]
+      : [{ id: 'commands' as TabType, label: t('commands'), icon: <Zap className="w-5 h-5" /> }]
+    ),
     { id: 'settings', label: t('settings'), icon: <Settings className="w-5 h-5" /> },
   ];
 

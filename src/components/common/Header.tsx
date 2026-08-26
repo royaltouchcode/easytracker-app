@@ -62,6 +62,9 @@ export const Header: React.FC = () => {
   const isSuperAdmin = user?.administrator || user?.role === 'super_admin';
   const hasMultipleRoles = isSuperAdmin || (user?.approvedRoles && user.approvedRoles.length > 1);
 
+  const category = (selectedDevice?.category || '').toLowerCase();
+  const isCommercialFleet = category.includes('bus') || category.includes('truck') || category.includes('trailer') || category.includes('pickup') || (devices && devices.length > 1);
+
   return (
     <>
       <header className="bg-slate-900/95 backdrop-blur-md border-b border-slate-800/80 px-2.5 py-1.5 flex items-center justify-between z-30 shrink-0 select-none gap-2">
@@ -80,6 +83,22 @@ export const Header: React.FC = () => {
                 >
                   <Home className="w-3.5 h-3.5" />
                   <span className="hidden xs:inline">{language === 'bn' ? 'হোম' : 'Home'}</span>
+                </button>
+              )}
+
+              {/* Adaptive Fleet Hub Button for Commercial / Fleet Owners */}
+              {isCommercialFleet && (
+                <button
+                  onClick={() => setActiveTab('fleet_transit')}
+                  className={`px-2.5 py-1 rounded-xl font-bold text-xs transition border flex items-center space-x-1 shrink-0 ${
+                    activeTab === 'fleet_transit'
+                      ? 'bg-cyan-600 text-white border-cyan-500 shadow-md shadow-cyan-600/30'
+                      : 'bg-cyan-950/60 hover:bg-cyan-900/60 text-cyan-300 border-cyan-700/60'
+                  }`}
+                  title="ফ্লিট ও ট্রান্সপোর্টেশন অ্যাডমিন হাব (কাউন্টার, ড্রাইভার, BRTA)"
+                >
+                  <Building2 className="w-3.5 h-3.5 text-cyan-400" />
+                  <span className="hidden sm:inline">ফ্লিট হাব</span>
                 </button>
               )}
 

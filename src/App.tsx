@@ -10,6 +10,7 @@ import { SurveillanceView } from './components/surveillance/SurveillanceView';
 import { GeofenceView } from './components/geofence/GeofenceView';
 import { AlertHistoryView } from './components/alerts/AlertHistoryView';
 import { DeviceSettingsView } from './components/settings/DeviceSettingsView';
+import { FleetTransitHubView } from './components/fleet/FleetTransitHubView';
 import { LoginScreen } from './components/auth/LoginScreen';
 import { InitialPinSetupModal } from './components/auth/InitialPinSetupModal';
 
@@ -202,8 +203,9 @@ const MainAppContent: React.FC = () => {
                 {activeTab === 'geofence' && <GeofenceView />}
                 {activeTab === 'alerts' && <AlertHistoryView />}
                 {activeTab === 'settings' && <DeviceSettingsView />}
+                {activeTab === 'fleet_transit' && <FleetTransitHubView />}
                 {/* Fallback if an unrecognized tab is active */}
-                {!['saas_admin', 'saas_partner', 'saas_sales', 'saas_technician', 'saas_support', 'saas_rescue', 'map', 'reports', 'playback', 'commands', 'surveillance', 'geofence', 'alerts', 'settings'].includes(activeTab) && (
+                {!['saas_admin', 'saas_partner', 'saas_sales', 'saas_technician', 'saas_support', 'saas_rescue', 'map', 'reports', 'playback', 'commands', 'surveillance', 'geofence', 'alerts', 'settings', 'fleet_transit'].includes(activeTab) && (
                   <AdminDashboardView />
                 )}
               </>
@@ -225,8 +227,9 @@ const MainAppContent: React.FC = () => {
                 {activeTab === 'geofence' && <GeofenceView />}
                 {activeTab === 'alerts' && <AlertHistoryView />}
                 {activeTab === 'settings' && <DeviceSettingsView />}
+                {activeTab === 'fleet_transit' && <FleetTransitHubView />}
                 {/* Fallback to Map View if activeTab is not a customer tab (e.g. was a saas tab before switching) */}
-                {!['map', 'reports', 'playback', 'commands', 'surveillance', 'geofence', 'alerts', 'settings'].includes(activeTab) && (
+                {!['map', 'reports', 'playback', 'commands', 'surveillance', 'geofence', 'alerts', 'settings', 'fleet_transit'].includes(activeTab) && (
                   <>
                     <LiveTrackingMap />
                     <DeviceSlidingSheet />
