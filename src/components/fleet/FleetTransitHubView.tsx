@@ -31,7 +31,8 @@ import {
   X,
   Check,
   KeyRound,
-  LogOut
+  LogOut,
+  BarChart3
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { TransitCounterManager } from '../saas/TransitCounterManager';
@@ -1870,6 +1871,16 @@ export const FleetTransitHubView: React.FC = () => {
           >
             <UserCheck className="w-4 h-4 text-indigo-300" />
             <span>👨‍✈️ ড্রাইভার লাইসেন্স ও পারফরম্যান্স</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('reports')}
+            className="px-3.5 py-2 rounded-2xl font-black transition border flex items-center space-x-1.5 bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border-amber-500/40 shadow-sm transition active:scale-95"
+            title="ফ্লিট মাইলেজ, ফুয়েল ও ট্রিপ রিপোর্টস হাব"
+          >
+            <BarChart3 className="w-4 h-4 text-amber-400" />
+            <span>📊 ফ্লিট রিপোর্ট হাব</span>
           </button>
         </div>
       </div>
