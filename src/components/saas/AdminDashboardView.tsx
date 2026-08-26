@@ -53,10 +53,13 @@ import { RescueTeamManager } from './RescueTeamManager';
 import { SmsGatewayManager } from './SmsGatewayManager';
 import { TelecomM2MConnector } from './TelecomM2MConnector';
 import { GovTechPoliceGateway } from './GovTechPoliceGateway';
+import { CorporateFleetManager } from './CorporateFleetManager';
 
 type AdminSectionType = 
   | 'overview'
   | 'server_sync'
+  | 'b2b_m2m_sync'
+  | 'corporate_fleet'
   | 'govtech_api'
   | 'operator_m2m'
   | 'rescue_hub'
@@ -583,7 +586,9 @@ export const AdminDashboardView: React.FC = () => {
   // Sidebar Menu Items Definition
   const SIDEBAR_ITEMS: { id: AdminSectionType; labelBn: string; labelEn: string; icon: any; badge?: string; badgeColor?: string }[] = [
     { id: 'overview', labelBn: 'ওভারভিউ ও মেট্রিক্স', labelEn: 'Overview & Metrics', icon: Crown },
-    { id: 'server_sync', labelBn: 'GPS সার্ভার ও সিঙ্ক হাব', labelEn: 'GPS Server & Sync', icon: Server, badge: 'Live', badgeColor: 'bg-emerald-500/20 text-emerald-300' },
+    { id: 'server_sync', labelBn: 'GPS সার্ভার ও ক্লাস্টার হাব', labelEn: 'GPS Server & Cluster', icon: Server, badge: 'Live', badgeColor: 'bg-emerald-500/20 text-emerald-300' },
+    { id: 'b2b_m2m_sync', labelBn: 'B2B ও M2M ফ্লিট সিঙ্ক', labelEn: 'B2B & M2M Sync Hub', icon: RefreshCw, badge: 'M2M API', badgeColor: 'bg-purple-500/20 text-purple-300' },
+    { id: 'corporate_fleet', labelBn: 'কর্পোরেট ফ্লিট হাব (ERP)', labelEn: 'Corporate Fleet ERP', icon: Building2, badge: 'Enterprise', badgeColor: 'bg-amber-500/20 text-amber-300' },
     { id: 'govtech_api', labelBn: 'BRTA, BTRC ও পুলিশ 2-Way API', labelEn: 'GovTech & Police 2-Way APIs', icon: Globe, badge: 'GovTech', badgeColor: 'bg-rose-500/20 text-rose-300' },
     { id: 'operator_m2m', labelBn: 'টেলিকম M2M গেটওয়ে ও টেস্ট', labelEn: 'Telco M2M API & Ping', icon: Radio, badge: 'M2M IoT', badgeColor: 'bg-indigo-500/20 text-indigo-300' },
     { id: 'rescue_hub', labelBn: 'রেসকিউ টিম ও ক্ষতিপূরণ রেট', labelEn: 'Rescue Squads & Rates', icon: Flame, badge: '24/7 Red', badgeColor: 'bg-rose-500/20 text-rose-300' },
@@ -1283,6 +1288,206 @@ export const AdminDashboardView: React.FC = () => {
                 );
               })()}
 
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* VIEW: DEDICATED B2B & M2M CONNECTED FLEET TRACKING SERVER SYNC HUB         */}
+          {/* ========================================================================= */}
+          {activeSection === 'b2b_m2m_sync' && (
+            <div className="space-y-4 animate-in fade-in duration-150">
+              {(() => {
+                const filteredPartnerDevices = partnerM2MDevices.filter(d => 
+                  partnerFleetFilter === 'all' || d.partnerBrand === partnerFleetFilter
+                );
+                const distinctPartners = Array.from(new Set(partnerM2MDevices.map(d => d.partnerBrand)));
+                const isAllSelected = selectedDeviceImeis.length === filteredPartnerDevices.length && filteredPartnerDevices.length > 0;
+
+                return (
+                  <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl space-y-4">
+                    
+                    {/* Header Action Banner */}
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+                      <div className="flex items-center space-x-2.5">
+                        <div className="w-10 h-10 rounded-2xl bg-purple-600/20 border border-purple-500/40 flex items-center justify-center text-purple-300">
+                          <RefreshCw className="w-5 h-5 text-purple-400" />
+                        </div>
+                        <div>
+                          <h3 className="font-extrabold text-sm text-white flex items-center space-x-2">
+                            <span>B2B ও M2M কানেক্টেড ডিভাইস ইনজেশন ও সিঙ্ক হাব</span>
+                            <span className="text-[9.5px] bg-purple-500/20 text-purple-300 font-bold px-2 py-0.2 rounded-full border border-purple-500/30">
+                              {filteredPartnerDevices.length} টি ডিভাইস
+                            </span>
+                          </h3>
+                          <p className="text-[10.5px] text-slate-400">
+                            B2B পার্টনার ও টেলিকম M2M API থেকে কানেক্টেড ট্র্যাকারগুলোকে Traccar সার্ভারে বাল্ক বা এককভাবে সিঙ্ক করুন
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Bulk Sync Action Button */}
+                      <div className="flex items-center space-x-2 w-full sm:w-auto">
+                        <button
+                          type="button"
+                          onClick={handleBulkSyncSelectedDevices}
+                          disabled={selectedDeviceImeis.length === 0 || isBulkSyncingDevices}
+                          className="flex-1 sm:flex-initial px-4 py-2 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-extrabold text-xs shadow-lg shadow-purple-600/30 flex items-center justify-center space-x-1.5 transition active:scale-95 disabled:opacity-40"
+                        >
+                          <RefreshCw className={`w-3.5 h-3.5 ${isBulkSyncingDevices ? 'animate-spin text-amber-300' : ''}`} />
+                          <span>
+                            {isBulkSyncingDevices 
+                              ? 'বাল্ক সিঙ্ক হচ্ছে...' 
+                              : `⚡ নির্বাচিত (${selectedDeviceImeis.length}) টি ডিভাইস বাল্ক সিঙ্ক`}
+                          </span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Partner Filter Pills */}
+                    <div className="flex items-center space-x-1.5 overflow-x-auto pb-1 text-xs">
+                      <span className="text-[10px] text-slate-400 font-bold shrink-0">পার্টনার ফিল্টার:</span>
+                      <button
+                        type="button"
+                        onClick={() => setPartnerFleetFilter('all')}
+                        className={`px-3 py-1 rounded-xl text-[10.5px] font-bold transition shrink-0 ${
+                          partnerFleetFilter === 'all'
+                            ? 'bg-purple-600 text-white shadow-md'
+                            : 'bg-slate-950 text-slate-400 border border-slate-800 hover:text-white'
+                        }`}
+                      >
+                        সকল পার্টনার ও ফ্লিট ({partnerM2MDevices.length})
+                      </button>
+
+                      {distinctPartners.map((partnerName) => {
+                        const count = partnerM2MDevices.filter(d => d.partnerBrand === partnerName).length;
+                        return (
+                          <button
+                            key={partnerName}
+                            type="button"
+                            onClick={() => setPartnerFleetFilter(partnerName)}
+                            className={`px-3 py-1 rounded-xl text-[10.5px] font-bold transition shrink-0 ${
+                              partnerFleetFilter === partnerName
+                                ? 'bg-purple-600 text-white shadow-md'
+                                : 'bg-slate-950 text-slate-400 border border-slate-800 hover:text-white'
+                            }`}
+                          >
+                            {partnerName} ({count})
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {partnerFleetSyncSuccess && (
+                      <div className="p-3 bg-emerald-950 border border-emerald-500/60 rounded-2xl text-xs text-emerald-300 font-bold flex items-center space-x-2 animate-in fade-in">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                        <span>{partnerFleetSyncSuccess}</span>
+                      </div>
+                    )}
+
+                    {/* Devices Table */}
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs">
+                        <thead>
+                          <tr className="border-b border-slate-800 text-[10px] text-slate-400 font-mono uppercase bg-slate-950/60">
+                            <th className="py-2.5 px-3 w-8">
+                              <input
+                                type="checkbox"
+                                checked={isAllSelected}
+                                onChange={() => handleSelectAllFilteredDevices(filteredPartnerDevices)}
+                                className="rounded text-purple-600"
+                                title="সব সিলেক্ট করুন"
+                              />
+                            </th>
+                            <th className="py-2.5 px-3">যানবাহন ও IMEI</th>
+                            <th className="py-2.5 px-3">পার্টনার / ফ্লিট কোম্পানি</th>
+                            <th className="py-2.5 px-3">টেলিকম M2M সিম ও APN</th>
+                            <th className="py-2.5 px-3">সার্ভার নোড</th>
+                            <th className="py-2.5 px-3">প্যাকেট ও স্পিড</th>
+                            <th className="py-2.5 px-3 text-right">ইন্ডিভিজুয়াল সিঙ্ক</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-800/60">
+                          {filteredPartnerDevices.map((dev) => {
+                            const isSelected = selectedDeviceImeis.includes(dev.imei);
+                            const isThisSyncing = individualSyncImei === dev.imei;
+
+                            return (
+                              <tr 
+                                key={dev.imei} 
+                                className={`hover:bg-slate-850/60 transition ${
+                                  isSelected ? 'bg-purple-950/20' : ''
+                                }`}
+                              >
+                                <td className="py-2.5 px-3">
+                                  <input
+                                    type="checkbox"
+                                    checked={isSelected}
+                                    onChange={() => handleToggleSelectDevice(dev.imei)}
+                                    className="rounded text-purple-600"
+                                  />
+                                </td>
+                                <td className="py-2.5 px-3">
+                                  <div className="font-extrabold text-white text-xs">{dev.vehicleName}</div>
+                                  <div className="font-mono text-[10.5px] text-cyan-300 flex items-center space-x-1.5 mt-0.5">
+                                    <span>{dev.plateNumber}</span>
+                                    <span className="text-slate-500">•</span>
+                                    <span className="text-slate-400">{dev.imei}</span>
+                                  </div>
+                                </td>
+                                <td className="py-2.5 px-3">
+                                  <span className="font-bold text-slate-200 block text-xs">{dev.partnerBrand}</span>
+                                  <span className="text-[9px] font-mono text-purple-400 bg-purple-950/60 px-1.5 py-0.2 rounded border border-purple-800/50 inline-block mt-0.5">
+                                    {dev.tenantTier === 'b2b_partner' ? 'B2B Partner' : 'Fleet Enterprise'}
+                                  </span>
+                                </td>
+                                <td className="py-2.5 px-3">
+                                  <div className="font-mono text-emerald-300 font-bold text-[11px]">{dev.simNumber}</div>
+                                  <div className="text-[10px] text-slate-400 font-mono mt-0.5">
+                                    {dev.operator} ({dev.apn})
+                                  </div>
+                                </td>
+                                <td className="py-2.5 px-3">
+                                  <span className="text-[10.5px] font-mono font-bold text-amber-300 bg-slate-950 px-2 py-0.5 rounded-lg border border-slate-800">
+                                    {dev.serverNodeId}
+                                  </span>
+                                </td>
+                                <td className="py-2.5 px-3">
+                                  <div className="flex items-center space-x-1.5">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                                    <span className="font-mono text-white text-[10.5px] font-bold">{dev.speed} km/h</span>
+                                  </div>
+                                  <span className="text-[9.5px] text-slate-400 font-mono block mt-0.5">{dev.lastPacketTime}</span>
+                                </td>
+                                <td className="py-2.5 px-3 text-right">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleIndividualDeviceSync(dev.imei, dev.vehicleName)}
+                                    disabled={isThisSyncing}
+                                    className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-[11px] shadow-md shadow-blue-600/30 inline-flex items-center space-x-1 transition active:scale-95 disabled:opacity-50"
+                                  >
+                                    <RefreshCw className={`w-3 h-3 ${isThisSyncing ? 'animate-spin text-amber-300' : ''}`} />
+                                    <span>{isThisSyncing ? 'সিঙ্ক হচ্ছে..' : '১-ট্যাপ সিঙ্ক'}</span>
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* VIEW: CORPORATE FLEET HUB & LOGISTICS ERP (BUS, CARGO, COURIER)           */}
+          {/* ========================================================================= */}
+          {activeSection === 'corporate_fleet' && (
+            <div className="animate-in fade-in duration-150">
+              <CorporateFleetManager />
             </div>
           )}
 

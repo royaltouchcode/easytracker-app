@@ -250,13 +250,29 @@ export const UserAccessManager: React.FC = () => {
   const [editStatus, setEditStatus] = useState<'active' | 'suspended'>('active');
   const [editTier, setEditTier] = useState<TenantTier>('saas_core');
   const [editPrimaryRole, setEditPrimaryRole] = useState<SaasRole>('super_admin');
+  const [editApprovedRoles, setEditApprovedRoles] = useState<SaasRole[]>(['super_admin']);
+  const [aiAutoPresetMsg, setAiAutoPresetMsg] = useState<string | null>(null);
+
+  // AI Custom Role Modal State
+  const [isAiRoleModalOpen, setIsAiRoleModalOpen] = useState(false);
+  const [aiRolePrompt, setAiRolePrompt] = useState('');
+  const [isAiGenerating, setIsAiGenerating] = useState(false);
+  const [generatedRole, setGeneratedRole] = useState<CustomRoleDefinition | null>(null);
+
+  // New User Form State
+  const [newUserName, setNewUserName] = useState('');
+  const [newUserPhone, setNewUserPhone] = useState('');
+  const [newUserDept, setNewUserDept] = useState('');
+  const [newUserRole, setNewUserRole] = useState<SaasRole>('support');
+  const [newUserCustomTitle, setNewUserCustomTitle] = useState('');
+
   const [editPermissions, setEditPermissions] = useState<DetailedUserPermissions>({
     canManageServerSync: false, canManageM2M: false, canManageTripDispatch: false, canManageCounterTickets: false, canManageFuelAudit: false, canManageDriverLicenses: false,
     canCutEngine: false, canTriggerAlarm: false, canConfigDevice: false, canViewRevenue: false, canManageDealerQuota: false, canApproveSales: false,
     canManageWarranty: false, canManageInventory: false, canApproveRMA: false, canDispatchTech: false, canViewSmsGateway: false, canAuditRescueClaims: false,
     canExportData: true, canAccessGovTech: false, canPurgeDemo: false
   });
-  const [activePermissionTab, setActivePermissionTab] = useState<'server_m2m' | 'fleet_dispatch' | 'commands' | 'finance' | 'compliance'>('server_m2m');
+  const [activePermissionTab, setActivePermissionTab] = useState<'server_m2m' | 'fleet_dispatch' | 'commands' | 'finance' | 'warranty' | 'support' | 'compliance'>('server_m2m');
 
   const filteredUsers = useMemo(() => {
     return users.filter(u => {
@@ -288,11 +304,20 @@ export const UserAccessManager: React.FC = () => {
     setEditPermissions(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
+  const handleToggleRole = (role: SaasRole) => {
+    if (editApprovedRoles.includes(role)) {
+      setEditApprovedRoles(editApprovedRoles.filter(r => r !== role));
+    } else {
+      setEditApprovedRoles([...editApprovedRoles, role]);
+    }
+  };
+
   const handleOpenEditModal = (u: EnterpriseUser) => {
     setSelectedUser(u);
     setEditStatus(u.status);
     setEditTier(u.tenantTier || 'saas_core');
     setEditPrimaryRole(u.primaryRole);
+    setEditApprovedRoles(u.approvedRoles || [u.primaryRole]);
     setEditPermissions({
       canManageServerSync: u.permissions?.canManageServerSync || false,
       canManageM2M: u.permissions?.canManageM2M || false,
@@ -365,6 +390,90 @@ export const UserAccessManager: React.FC = () => {
         canExportData: true, canAccessGovTech: false, canPurgeDemo: false
       });
     }
+
+    setAiAutoPresetMsg(`⚡ AI অটো-প্রিসেট: '${role.toUpperCase()}' রোলের স্ট্যান্ডার্ড পারমিশন সফলভাবে কনফিগার হয়েছে!`);
+    setTimeout(() => setAiAutoPresetMsg(null), 3500);
+  };
+
+  const handleGenerateAiRole = () => {
+    if (!aiRolePrompt.trim()) return;
+    setIsAiGenerating(true);
+    setTimeout(() => {
+      setIsAiGenerating(false);
+      setGeneratedRole({
+        id: `CROLE-${Date.now().toString().slice(-4)}`,
+        titleBn: aiRolePrompt.trim(),
+        tenantTier: 'saas_core',
+        baseRole: 'support',
+        descriptionBn: `${aiRolePrompt.trim()} পদের জন্য এন্টারপ্রাইজ স্কোপড অ্যাক্সেস।`,
+        accessibleSections: ['কাস্টমার সাপোর্ট', 'ডিভাইস ডায়াগনস্টিক', 'এসএমএস গেটওয়ে'],
+        permissions: {
+          canManageServerSync: false, canManageM2M: false, canManageTripDispatch: false, canManageCounterTickets: false, canManageFuelAudit: false, canManageDriverLicenses: false,
+          canCutEngine: false, canTriggerAlarm: true, canConfigDevice: false, canViewRevenue: false, canManageDealerQuota: false, canApproveSales: false,
+          canManageWarranty: true, canManageInventory: false, canApproveRMA: false, canDispatchTech: false, canViewSmsGateway: true, canAuditRescueClaims: false,
+          canExportData: false, canAccessGovTech: false, canPurgeDemo: false
+        },
+        aiSecurityAuditBn: '🤖 AI নিরাপত্তা ভেরিফিকেশন: স্ট্যান্ডার্ড সাপোর্ট প্রিভিলেজ অ্যাসাইন করা হয়েছে।',
+        createdAt: 'আজ'
+      });
+    }, 600);
+  };
+
+  const handleSaveCustomRole = () => {
+    if (!generatedRole) return;
+    alert(`✅ নতুন AI রোল "${generatedRole.titleBn}" সফলভাবে তৈরি হয়েছে!`);
+    setIsAiRoleModalOpen(false);
+    setGeneratedRole(null);
+    setAiRolePrompt('');
+  };
+
+  const handleSaveNewUser = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newUserName.trim() || !newUserPhone.trim()) return;
+    const newUser: EnterpriseUser = {
+      id: `USR-${Date.now().toString().slice(-4)}`,
+      name: newUserName.trim(),
+      phone: newUserPhone.trim(),
+      email: `${newUserPhone.trim().replace(/[^0-9]/g, '')}@easytracker.net`,
+      department: newUserDept.trim() || 'General Operations',
+      status: 'active',
+      tenantTier: 'saas_core',
+      primaryRole: newUserRole,
+      approvedRoles: [newUserRole],
+      customRoleTitle: newUserCustomTitle.trim() || undefined,
+      permissions: {
+        canManageServerSync: newUserRole === 'super_admin' || newUserRole === 'operations_manager',
+        canManageM2M: newUserRole === 'super_admin' || newUserRole === 'operations_manager',
+        canManageTripDispatch: newUserRole === 'super_admin',
+        canManageCounterTickets: false,
+        canManageFuelAudit: false,
+        canManageDriverLicenses: false,
+        canCutEngine: newUserRole === 'super_admin' || newUserRole === 'rescue',
+        canTriggerAlarm: true,
+        canConfigDevice: newUserRole === 'super_admin' || newUserRole === 'technician',
+        canViewRevenue: newUserRole === 'super_admin' || newUserRole === 'sales',
+        canManageDealerQuota: newUserRole === 'super_admin' || newUserRole === 'sales',
+        canApproveSales: newUserRole === 'super_admin' || newUserRole === 'sales',
+        canManageWarranty: true,
+        canManageInventory: true,
+        canApproveRMA: newUserRole === 'super_admin' || newUserRole === 'technician',
+        canDispatchTech: true,
+        canViewSmsGateway: true,
+        canAuditRescueClaims: newUserRole === 'super_admin' || newUserRole === 'rescue',
+        canExportData: true,
+        canAccessGovTech: newUserRole === 'super_admin',
+        canPurgeDemo: newUserRole === 'super_admin'
+      },
+      lastLogin: 'এইমাত্র যুক্ত হয়েছে',
+      createdAt: 'আজ'
+    };
+    saveUsers([newUser, ...users]);
+    setIsNewUserModalOpen(false);
+    setNewUserName('');
+    setNewUserPhone('');
+    setNewUserDept('');
+    setNewUserCustomTitle('');
+    alert(`✨ নতুন কর্মকর্তা "${newUser.name}" সফলভাবে যুক্ত হয়েছেন!`);
   };
 
   const handleSaveUserPermissions = (e: React.FormEvent) => {
@@ -377,6 +486,7 @@ export const UserAccessManager: React.FC = () => {
           status: editStatus,
           tenantTier: editTier,
           primaryRole: editPrimaryRole,
+          approvedRoles: editApprovedRoles,
           permissions: editPermissions
         };
       }
