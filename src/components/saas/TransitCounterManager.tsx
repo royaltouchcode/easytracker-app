@@ -1212,20 +1212,55 @@ export const TransitCounterManager: React.FC<TransitCounterManagerProps> = ({ is
                   </div>
                 </div>
 
-                <div className="pt-2 flex items-center justify-between border-t border-slate-800/80 text-[10.5px]">
-                  <span className="text-slate-400 font-mono">{staff.lastActive}</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      navigator.clipboard?.writeText(`EasyTracker Staff Login:\nPhone: ${staff.phone}\nPIN: ${staff.loginPin}`);
-                      setCopiedStaffId(staff.id);
-                      setTimeout(() => setCopiedStaffId(null), 2500);
-                    }}
-                    className="px-2.5 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold flex items-center space-x-1 border border-slate-700 transition"
-                  >
-                    {copiedStaffId === staff.id ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3 text-slate-400" />}
-                    <span>{copiedStaffId === staff.id ? 'কপি হয়েছে' : 'পিন কপি'}</span>
-                  </button>
+                <div className="pt-2.5 border-t border-slate-800/80 space-y-2">
+                  <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono">
+                    <span>স্ট্যাটাস: <strong className="text-emerald-400">সক্রিয় (Active)</strong></span>
+                    <span>{staff.lastActive}</span>
+                  </div>
+
+                  {/* 3 PIN Delivery Action Buttons */}
+                  <div className="grid grid-cols-3 gap-1 text-[10px] font-bold">
+                    {/* 1. Copy PIN */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard?.writeText(`EasyTracker Staff Login:\nMobile: ${staff.phone}\nPIN: ${staff.loginPin}\nApp: https://easytracker.com`);
+                        setCopiedStaffId(staff.id);
+                        setTimeout(() => setCopiedStaffId(null), 2500);
+                      }}
+                      className="py-1.5 px-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center justify-center space-x-1 transition active:scale-95"
+                      title="মোবাইল ও পিন কপি করুন"
+                    >
+                      {copiedStaffId === staff.id ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3 text-slate-400" />}
+                      <span>{copiedStaffId === staff.id ? 'কপি হয়েছে' : 'পিন কপি'}</span>
+                    </button>
+
+                    {/* 2. WhatsApp Share */}
+                    <a
+                      href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`*EasyTracker ফ্লিট স্টাফ লগইন ক্রেডেনশিয়াল*\n👤 নাম: ${staff.fullName}\n📱 মোবাইল: ${staff.phone}\n🔑 ৪-ডিজিট পিন: ${staff.loginPin}\n🏢 নির্ধারিত কাউন্টার: ${staff.assignedCounterOrPlate}\n🌐 লগইন লিঙ্ক: http://localhost:5173/`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="py-1.5 px-1 rounded-xl bg-emerald-950/70 hover:bg-emerald-900/80 text-emerald-300 border border-emerald-600/50 flex items-center justify-center space-x-1 transition active:scale-95"
+                      title="WhatsApp-এ সরাসরি ক্রেডেনশিয়াল পাঠান"
+                    >
+                      <Share2 className="w-3 h-3 text-emerald-400" />
+                      <span>WhatsApp</span>
+                    </a>
+
+                    {/* 3. Auto SMS Dispatch */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCopiedStaffId(`sms_${staff.id}`);
+                        setTimeout(() => setCopiedStaffId(null), 3000);
+                      }}
+                      className="py-1.5 px-1 rounded-xl bg-indigo-950/70 hover:bg-indigo-900/80 text-indigo-300 border border-indigo-600/50 flex items-center justify-center space-x-1 transition active:scale-95"
+                      title="স্বয়ংক্রিয় এসএমএস গেটওয়ে দিয়ে পাঠান"
+                    >
+                      <PhoneCall className="w-3 h-3 text-indigo-400" />
+                      <span>{copiedStaffId === `sms_${staff.id}` ? 'এসএমএস সেন্ট' : 'SMS পাঠান'}</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
