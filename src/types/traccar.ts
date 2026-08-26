@@ -1,4 +1,4 @@
-export type AppTheme = 'cyber_midnight' | 'emerald_luxe' | 'royal_amethyst';
+export type AppTheme = 'cyber_midnight' | 'emerald_luxe' | 'royal_amethyst' | 'nordic_offwhite';
 
 export type VehicleType = 
   | 'car' 

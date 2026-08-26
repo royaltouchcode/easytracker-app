@@ -398,7 +398,9 @@ export const Header: React.FC = () => {
           <button
             onClick={() => setIsThemeModalOpen(true)}
             className={`p-1.5 rounded-lg border transition active:scale-95 shadow-sm flex items-center space-x-1 text-[10px] font-bold ${
-              appTheme === 'emerald_luxe' 
+              appTheme === 'nordic_offwhite'
+                ? 'bg-sky-500/20 hover:bg-sky-500/30 border-sky-400 text-sky-600'
+                : appTheme === 'emerald_luxe' 
                 ? 'bg-emerald-600/30 hover:bg-emerald-600/45 border-emerald-500/40 text-emerald-300' 
                 : appTheme === 'royal_amethyst' 
                 ? 'bg-purple-600/30 hover:bg-purple-600/45 border-purple-500/40 text-purple-300' 
@@ -408,7 +410,7 @@ export const Header: React.FC = () => {
           >
             <Palette className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">
-              {appTheme === 'emerald_luxe' ? 'এমেরাল্ড' : appTheme === 'royal_amethyst' ? 'অমেথিস্ট' : 'মিডনাইট'}
+              {appTheme === 'nordic_offwhite' ? 'অফ-হোয়াইট' : appTheme === 'emerald_luxe' ? 'এমেরাল্ড' : appTheme === 'royal_amethyst' ? 'অমেথিস্ট' : 'মিডনাইট'}
             </span>
           </button>
 
@@ -472,6 +474,13 @@ export const Header: React.FC = () => {
 
             <div className="space-y-2.5">
               {[
+                {
+                  id: 'nordic_offwhite' as AppTheme,
+                  nameBn: '🕊️ নরডিক অফ-হোয়াইট (Nordic Off-White)',
+                  nameEn: 'Nordic Off-White',
+                  descBn: 'ঝকঝকে পরিচ্ছন্ন অফ-হোয়াইট, এন্টারপ্রাইজ লাইট মোড ও মিনিমাল কার্ড ডিজাইন (Autonemo Style)',
+                  colors: ['#f8fafc', '#ffffff', '#0284c7', '#0f172a']
+                },
                 {
                   id: 'cyber_midnight' as AppTheme,
                   nameBn: '🌌 সাইবার মিডনাইট (Cyber Midnight)',
