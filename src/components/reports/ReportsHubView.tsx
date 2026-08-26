@@ -81,8 +81,17 @@ export const ReportsHubView: React.FC = () => {
 
   const [activeSubTab, setActiveSubTab] = useState<'hub' | 'fuel' | 'compliance' | 'driver' | 'transit' | 'maintenance' | 'ai_manual' | 'running' | 'subscription'>('hub');
   const [reportHubMode, setReportHubMode] = useState<'enterprise' | 'compact'>('enterprise');
+  const [personaMode, setPersonaMode] = useState<'auto' | 'personal' | 'fleet'>('auto');
   const [selectedReportType, setSelectedReportType] = useState<DetailedReportType>(null);
   const [reportDateFilter, setReportDateFilter] = useState<'today' | 'yesterday' | 'week' | 'month'>('today');
+
+  // Vehicle Category & Adaptive Persona Detection
+  const category = (selectedDevice?.category || 'motorcycle').toLowerCase();
+  const isBike = category.includes('motorcycle') || category.includes('bike') || category.includes('scooter');
+  const isCar = category.includes('car') || category.includes('suv') || category.includes('jeep') || category.includes('sedan') || category.includes('cng');
+  const isCommercialFleet = category.includes('bus') || category.includes('truck') || category.includes('trailer') || category.includes('pickup') || (devices && devices.length > 1);
+
+  const isFleetMode = personaMode === 'fleet' || (personaMode === 'auto' && isCommercialFleet);
 
   // Real Server Trips & Stoppages State (Strict Zero-Demo: loaded from real Traccar API)
   const [realServerTrips, setRealServerTrips] = useState<any[]>([]);
@@ -403,35 +412,87 @@ export const ReportsHubView: React.FC = () => {
   return (
     <div className="h-full w-full bg-slate-950 flex flex-col overflow-y-auto pb-20 select-none">
       {/* Header Banner */}
-      <div className="bg-slate-900 border-b border-slate-800 p-3 shrink-0 flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={() => setActiveTab('map')}
-            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-200 border border-slate-700 transition active:scale-95 flex items-center space-x-1"
-            title="Back to Map"
-          >
-            <ArrowLeft className="w-4 h-4 text-blue-400" />
-            <span className="text-xs font-bold">{language === 'bn' ? 'হোম' : 'Home'}</span>
-          </button>
+      <div className="bg-slate-900 border-b border-slate-800 p-2.5 sm:p-3 shrink-0 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5">
+        <div className="flex items-center space-x-2 w-full sm:w-auto justify-between sm:justify-start">
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setActiveTab('map')}
+              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-200 border border-slate-700 transition active:scale-95 flex items-center space-x-1"
+              title="Back to Map"
+            >
+              <ArrowLeft className="w-4 h-4 text-blue-400" />
+              <span className="text-xs font-bold">{language === 'bn' ? 'হোম' : 'Home'}</span>
+            </button>
 
-          <div className="w-8 h-8 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400">
-            <VehicleIcon type={selectedDevice?.category} className="w-4 h-4" />
+            <div className="w-8 h-8 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400">
+              <VehicleIcon type={selectedDevice?.category} className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="flex items-center space-x-1.5">
+                <h2 className="font-extrabold text-sm text-slate-100">
+                  {selectedDevice?.name || 'My Vehicle'}
+                </h2>
+                <span className={`text-[8.5px] font-bold px-2 py-0.5 rounded-full border ${
+                  isBike 
+                    ? 'bg-amber-500/20 text-amber-300 border-amber-500/30' 
+                    : isCommercialFleet 
+                    ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30' 
+                    : 'bg-blue-500/20 text-blue-300 border-blue-500/30'
+                }`}>
+                  {isBike ? '🏍️ বাইক মোড' : isCommercialFleet ? '🚌 ফ্লিট মোড' : '🚗 কার মোড'}
+                </span>
+              </div>
+              <p className="text-[10px] text-slate-400 font-mono">
+                {selectedDevice?.attributes?.plateNumber || 'No Plate'} • {selectedDevice?.uniqueId}
+              </p>
+            </div>
           </div>
-          <div>
-            <h2 className="font-extrabold text-sm text-slate-100 flex items-center space-x-1.5">
-              <span>{language === 'bn' ? 'রিপোর্ট ও ভেহিকেল হেলথ' : 'Reports & Vehicle Health'}</span>
-              <span className="text-[9px] bg-blue-500/20 text-blue-300 font-bold px-1.5 py-0.2 rounded-full border border-blue-500/30">v1.0.0</span>
-            </h2>
-            <p className="text-[10px] text-slate-400">
-              {selectedDevice?.name || 'My Vehicle'} • {selectedDevice?.attributes?.plateNumber || 'No Plate'}
-            </p>
+
+          {/* Persona Switcher Pill (Quick View Toggle for Personal vs Fleet Pro) */}
+          <div className="flex items-center bg-slate-950 p-1 rounded-2xl border border-slate-800 shrink-0">
+            <button
+              type="button"
+              onClick={() => setPersonaMode('auto')}
+              className={`px-2.5 py-1 rounded-xl text-[10px] font-bold transition flex items-center space-x-1 ${
+                personaMode === 'auto'
+                  ? 'bg-blue-600 text-white shadow'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+              title="স্মার্ট অটো অ্যাডাপ্টিভ"
+            >
+              <span>⚡ অটো</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setPersonaMode('personal')}
+              className={`px-2.5 py-1 rounded-xl text-[10px] font-bold transition flex items-center space-x-1 ${
+                personaMode === 'personal'
+                  ? 'bg-blue-600 text-white shadow'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+              title="পার্সোনাল ক্লিন ভিউ"
+            >
+              <span>🏍️ পার্সোনাল</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setPersonaMode('fleet')}
+              className={`px-2.5 py-1 rounded-xl text-[10px] font-bold transition flex items-center space-x-1 ${
+                personaMode === 'fleet'
+                  ? 'bg-cyan-600 text-white shadow'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+              title="এন্টারপ্রাইজ ফ্লিট স্যুট"
+            >
+              <span>🏢 ফ্লিট প্রো</span>
+            </button>
           </div>
         </div>
 
         {/* Global Odometer Badge (Click to Calibrate) */}
         <button
           onClick={() => setIsInitialOdoModalOpen(true)}
-          className="bg-slate-800 hover:bg-slate-750 border border-slate-700 px-2.5 py-1 rounded-xl text-right transition active:scale-95 group"
+          className="bg-slate-800 hover:bg-slate-750 border border-slate-700 px-3 py-1 rounded-xl text-right transition active:scale-95 group self-end sm:self-auto"
           title="মিটার রিডিং সেট বা পরিবর্তন করুন"
         >
           <div className="text-[9px] uppercase font-bold text-slate-400 group-hover:text-blue-300 transition flex items-center justify-end space-x-1">
@@ -447,147 +508,177 @@ export const ReportsHubView: React.FC = () => {
       {/* 2-COLUMN WORKSPACE: LEFT-SIDE NAVIGATION RAIL + RIGHT CONTENT AREA */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left-Side Vertical Navigation Rail (Mobile Slim Icons + Desktop Full Rail) */}
-        <aside className="w-[76px] sm:w-44 bg-slate-900/95 border-r border-slate-800 flex flex-col p-1.5 space-y-1.5 shrink-0 overflow-y-auto no-scrollbar shadow-lg z-10">
-          <button
-            type="button"
-            onClick={() => {
-              setActiveSubTab('hub');
-              setSelectedReportType(null);
-            }}
-            className={`flex flex-col sm:flex-row items-center sm:space-x-2.5 p-2 sm:px-3 sm:py-2.5 rounded-2xl font-bold transition text-center sm:text-left ${
-              activeSubTab === 'hub'
-                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30 ring-1 ring-blue-400/50'
-                : 'bg-slate-950/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
-            }`}
-          >
-            <BarChart3 className="w-5 h-5 sm:w-4 sm:h-4 text-blue-300 shrink-0" />
-            <span className="text-[10px] sm:text-xs leading-tight mt-1 sm:mt-0 font-bold block">
-              {language === 'bn' ? 'রিপোর্ট ও অডিট' : 'Reports Hub'}
-            </span>
-          </button>
+        <aside className="w-[76px] sm:w-48 bg-slate-900/95 border-r border-slate-800 flex flex-col p-1.5 space-y-2 shrink-0 overflow-y-auto no-scrollbar shadow-lg z-10">
+          
+          {/* SECTION 1: 📊 ট্র্যাকিং ও অডিট */}
+          <div className="space-y-1">
+            <div className="hidden sm:flex items-center space-x-1.5 px-2.5 pt-0.5 text-[9px] uppercase font-extrabold text-slate-500 tracking-wider">
+              <span>{language === 'bn' ? 'অডিট ও লগ' : 'Daily Audit'}</span>
+            </div>
 
-          <button
-            type="button"
-            onClick={() => setActiveSubTab('fuel')}
-            className={`flex flex-col sm:flex-row items-center sm:space-x-2.5 p-2 sm:px-3 sm:py-2.5 rounded-2xl font-bold transition text-center sm:text-left ${
-              activeSubTab === 'fuel'
-                ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/30 ring-1 ring-amber-400/50'
-                : 'bg-slate-950/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
-            }`}
-          >
-            <Fuel className="w-5 h-5 sm:w-4 sm:h-4 text-amber-300 shrink-0" />
-            <span className="text-[10px] sm:text-xs leading-tight mt-1 sm:mt-0 font-bold block">
-              {language === 'bn' ? 'ফুয়েল ও চুরি হাব' : 'Fuel & Theft'}
-            </span>
-          </button>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveSubTab('hub');
+                setSelectedReportType(null);
+              }}
+              className={`w-full flex flex-col sm:flex-row items-center sm:space-x-2.5 p-2 sm:px-3 sm:py-2.5 rounded-2xl font-bold transition text-center sm:text-left ${
+                activeSubTab === 'hub'
+                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30 ring-1 ring-blue-400/50'
+                  : 'bg-slate-950/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+              }`}
+            >
+              <BarChart3 className="w-5 h-5 sm:w-4 sm:h-4 text-blue-300 shrink-0" />
+              <span className="text-[10px] sm:text-xs leading-tight mt-1 sm:mt-0 font-bold block">
+                {language === 'bn' ? 'রিপোর্ট হাব' : 'Reports Hub'}
+              </span>
+            </button>
 
-          <button
-            type="button"
-            onClick={() => setActiveSubTab('compliance')}
-            className={`flex flex-col sm:flex-row items-center sm:space-x-2.5 p-2 sm:px-3 sm:py-2.5 rounded-2xl font-bold transition text-center sm:text-left ${
-              activeSubTab === 'compliance'
-                ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 ring-1 ring-emerald-400/50'
-                : 'bg-slate-950/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
-            }`}
-          >
-            <FileCheck className="w-5 h-5 sm:w-4 sm:h-4 text-emerald-300 shrink-0" />
-            <span className="text-[10px] sm:text-xs leading-tight mt-1 sm:mt-0 font-bold block">
-              {language === 'bn' ? 'BRTA ভল্ট' : 'BRTA Docs'}
-            </span>
-          </button>
+            <button
+              type="button"
+              onClick={() => setActiveSubTab('running')}
+              className={`w-full flex flex-col sm:flex-row items-center sm:space-x-2.5 p-2 sm:px-3 sm:py-2.5 rounded-2xl font-bold transition text-center sm:text-left ${
+                activeSubTab === 'running'
+                  ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 ring-1 ring-emerald-400/50'
+                  : 'bg-slate-950/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+              }`}
+            >
+              <Activity className="w-5 h-5 sm:w-4 sm:h-4 text-emerald-300 shrink-0" />
+              <span className="text-[10px] sm:text-xs leading-tight mt-1 sm:mt-0 font-bold block">
+                {language === 'bn' ? 'রানিং ও স্পিড' : 'Running Log'}
+              </span>
+            </button>
+          </div>
 
-          <button
-            type="button"
-            onClick={() => setActiveSubTab('driver')}
-            className={`flex flex-col sm:flex-row items-center sm:space-x-2.5 p-2 sm:px-3 sm:py-2.5 rounded-2xl font-bold transition text-center sm:text-left ${
-              activeSubTab === 'driver'
-                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 ring-1 ring-indigo-400/50'
-                : 'bg-slate-950/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
-            }`}
-          >
-            <User className="w-5 h-5 sm:w-4 sm:h-4 text-indigo-300 shrink-0" />
-            <span className="text-[10px] sm:text-xs leading-tight mt-1 sm:mt-0 font-bold block">
-              {language === 'bn' ? 'ড্রাইভার ইনফো' : 'Driver Profile'}
-            </span>
-          </button>
+          {/* SECTION 2: 🛡️ ভেহিকেল কেয়ার ও হেলথ */}
+          <div className="space-y-1 pt-1.5 border-t border-slate-800/70">
+            <div className="hidden sm:flex items-center space-x-1.5 px-2.5 pt-0.5 text-[9px] uppercase font-extrabold text-slate-500 tracking-wider">
+              <span>{language === 'bn' ? 'ভেহিকেল কেয়ার' : 'Vehicle Care'}</span>
+            </div>
 
-          <button
-            type="button"
-            onClick={() => setActiveSubTab('transit')}
-            className={`flex flex-col sm:flex-row items-center sm:space-x-2.5 p-2 sm:px-3 sm:py-2.5 rounded-2xl font-bold transition text-center sm:text-left ${
-              activeSubTab === 'transit'
-                ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-600/30 ring-1 ring-cyan-400/50'
-                : 'bg-slate-950/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
-            }`}
-          >
-            <Bus className="w-5 h-5 sm:w-4 sm:h-4 text-cyan-300 shrink-0" />
-            <span className="text-[10px] sm:text-xs leading-tight mt-1 sm:mt-0 font-bold block">
-              {language === 'bn' ? 'বাস কাউন্টার' : 'Bus Counters'}
-            </span>
-          </button>
+            <button
+              type="button"
+              onClick={() => setActiveSubTab('fuel')}
+              className={`w-full flex flex-col sm:flex-row items-center sm:space-x-2.5 p-2 sm:px-3 sm:py-2.5 rounded-2xl font-bold transition text-center sm:text-left ${
+                activeSubTab === 'fuel'
+                  ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/30 ring-1 ring-amber-400/50'
+                  : 'bg-slate-950/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+              }`}
+            >
+              <Fuel className="w-5 h-5 sm:w-4 sm:h-4 text-amber-300 shrink-0" />
+              <span className="text-[10px] sm:text-xs leading-tight mt-1 sm:mt-0 font-bold block">
+                {language === 'bn' ? 'ফুয়েল ও মাইলেজ' : 'Fuel & Mileage'}
+              </span>
+            </button>
 
-          <button
-            type="button"
-            onClick={() => setActiveSubTab('maintenance')}
-            className={`flex flex-col sm:flex-row items-center sm:space-x-2.5 p-2 sm:px-3 sm:py-2.5 rounded-2xl font-bold transition text-center sm:text-left relative ${
-              activeSubTab === 'maintenance'
-                ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/30 ring-1 ring-amber-400/50'
-                : 'bg-slate-950/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
-            }`}
-          >
-            <Wrench className="w-5 h-5 sm:w-4 sm:h-4 text-amber-400 shrink-0" />
-            <span className="text-[10px] sm:text-xs leading-tight mt-1 sm:mt-0 font-bold block">
-              {language === 'bn' ? 'সার্ভিস ও মবিল' : 'Service & Oil'}
-            </span>
-            {(isAdvanceNotice || isDueToday) && (
-              <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping absolute top-1 right-1" />
+            <button
+              type="button"
+              onClick={() => setActiveSubTab('maintenance')}
+              className={`w-full flex flex-col sm:flex-row items-center sm:space-x-2.5 p-2 sm:px-3 sm:py-2.5 rounded-2xl font-bold transition text-center sm:text-left relative ${
+                activeSubTab === 'maintenance'
+                  ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/30 ring-1 ring-amber-400/50'
+                  : 'bg-slate-950/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+              }`}
+            >
+              <Wrench className="w-5 h-5 sm:w-4 sm:h-4 text-amber-400 shrink-0" />
+              <span className="text-[10px] sm:text-xs leading-tight mt-1 sm:mt-0 font-bold block">
+                {language === 'bn' ? 'সার্ভিস ও মবিল' : 'Service & Oil'}
+              </span>
+              {(isAdvanceNotice || isDueToday) && (
+                <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping absolute top-1 right-1" />
+              )}
+            </button>
+
+            {(!isBike || isFleetMode) && (
+              <button
+                type="button"
+                onClick={() => setActiveSubTab('compliance')}
+                className={`w-full flex flex-col sm:flex-row items-center sm:space-x-2.5 p-2 sm:px-3 sm:py-2.5 rounded-2xl font-bold transition text-center sm:text-left ${
+                  activeSubTab === 'compliance'
+                    ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 ring-1 ring-emerald-400/50'
+                    : 'bg-slate-950/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                }`}
+              >
+                <FileCheck className="w-5 h-5 sm:w-4 sm:h-4 text-emerald-300 shrink-0" />
+                <span className="text-[10px] sm:text-xs leading-tight mt-1 sm:mt-0 font-bold block">
+                  {language === 'bn' ? 'BRTA ভল্ট' : 'BRTA Docs'}
+                </span>
+              </button>
             )}
-          </button>
 
-          <button
-            type="button"
-            onClick={() => setActiveSubTab('ai_manual')}
-            className={`flex flex-col sm:flex-row items-center sm:space-x-2.5 p-2 sm:px-3 sm:py-2.5 rounded-2xl font-bold transition text-center sm:text-left ${
-              activeSubTab === 'ai_manual'
-                ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30 ring-1 ring-purple-400/50'
-                : 'bg-slate-950/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
-            }`}
-          >
-            <Bot className="w-5 h-5 sm:w-4 sm:h-4 text-purple-300 shrink-0" />
-            <span className="text-[10px] sm:text-xs leading-tight mt-1 sm:mt-0 font-bold block">
-              {language === 'bn' ? 'AI ম্যানুয়াল' : 'AI Manual'}
-            </span>
-          </button>
+            <button
+              type="button"
+              onClick={() => setActiveSubTab('ai_manual')}
+              className={`w-full flex flex-col sm:flex-row items-center sm:space-x-2.5 p-2 sm:px-3 sm:py-2.5 rounded-2xl font-bold transition text-center sm:text-left ${
+                activeSubTab === 'ai_manual'
+                  ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30 ring-1 ring-purple-400/50'
+                  : 'bg-slate-950/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+              }`}
+            >
+              <Bot className="w-5 h-5 sm:w-4 sm:h-4 text-purple-300 shrink-0" />
+              <span className="text-[10px] sm:text-xs leading-tight mt-1 sm:mt-0 font-bold block">
+                {language === 'bn' ? 'AI ম্যানুয়াল' : 'AI Manual'}
+              </span>
+            </button>
+          </div>
 
-          <button
-            type="button"
-            onClick={() => setActiveSubTab('running')}
-            className={`flex flex-col sm:flex-row items-center sm:space-x-2.5 p-2 sm:px-3 sm:py-2.5 rounded-2xl font-bold transition text-center sm:text-left ${
-              activeSubTab === 'running'
-                ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 ring-1 ring-emerald-400/50'
-                : 'bg-slate-950/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
-            }`}
-          >
-            <Activity className="w-5 h-5 sm:w-4 sm:h-4 text-emerald-300 shrink-0" />
-            <span className="text-[10px] sm:text-xs leading-tight mt-1 sm:mt-0 font-bold block">
-              {language === 'bn' ? 'রানিং রিপোর্ট' : 'Running Log'}
-            </span>
-          </button>
+          {/* SECTION 3: 🏢 এন্টারপ্রাইজ ফ্লিট হাব (Adaptive: shown in fleet mode or for fleet/bus/truck) */}
+          {isFleetMode && (
+            <div className="space-y-1 pt-1.5 border-t border-cyan-500/30 animate-in fade-in">
+              <div className="hidden sm:flex items-center justify-between px-2.5 pt-0.5 text-[9px] uppercase font-extrabold text-cyan-400 tracking-wider">
+                <span>{language === 'bn' ? 'ফ্লিট স্যুট' : 'Fleet Suite'}</span>
+                <span className="bg-cyan-500/20 text-cyan-300 px-1.5 py-0.2 rounded text-[8px] border border-cyan-500/30">PRO</span>
+              </div>
 
-          <button
-            type="button"
-            onClick={() => setActiveSubTab('subscription')}
-            className={`flex flex-col sm:flex-row items-center sm:space-x-2.5 p-2 sm:px-3 sm:py-2.5 rounded-2xl font-bold transition text-center sm:text-left ${
-              activeSubTab === 'subscription'
-                ? 'bg-teal-600 text-white shadow-lg shadow-teal-600/30 ring-1 ring-teal-400/50'
-                : 'bg-slate-950/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
-            }`}
-          >
-            <Calendar className="w-5 h-5 sm:w-4 sm:h-4 text-teal-300 shrink-0" />
-            <span className="text-[10px] sm:text-xs leading-tight mt-1 sm:mt-0 font-bold block">
-              {language === 'bn' ? 'সাবস্ক্রিপশন' : 'Subscription'}
-            </span>
-          </button>
+              <button
+                type="button"
+                onClick={() => setActiveSubTab('driver')}
+                className={`w-full flex flex-col sm:flex-row items-center sm:space-x-2.5 p-2 sm:px-3 sm:py-2.5 rounded-2xl font-bold transition text-center sm:text-left ${
+                  activeSubTab === 'driver'
+                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 ring-1 ring-indigo-400/50'
+                    : 'bg-slate-950/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                }`}
+              >
+                <User className="w-5 h-5 sm:w-4 sm:h-4 text-indigo-300 shrink-0" />
+                <span className="text-[10px] sm:text-xs leading-tight mt-1 sm:mt-0 font-bold block">
+                  {language === 'bn' ? 'ড্রাইভার ইনফো' : 'Driver Profile'}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveSubTab('transit')}
+                className={`w-full flex flex-col sm:flex-row items-center sm:space-x-2.5 p-2 sm:px-3 sm:py-2.5 rounded-2xl font-bold transition text-center sm:text-left ${
+                  activeSubTab === 'transit'
+                    ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-600/30 ring-1 ring-cyan-400/50'
+                    : 'bg-slate-950/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                }`}
+              >
+                <Bus className="w-5 h-5 sm:w-4 sm:h-4 text-cyan-300 shrink-0" />
+                <span className="text-[10px] sm:text-xs leading-tight mt-1 sm:mt-0 font-bold block">
+                  {language === 'bn' ? 'বাস কাউন্টার' : 'Bus Counters'}
+                </span>
+              </button>
+            </div>
+          )}
+
+          {/* SECTION 4: 💳 অ্যাকাউন্ট ও সাবস্ক্রিপশন */}
+          <div className="space-y-1 pt-1.5 border-t border-slate-800/70 mt-auto">
+            <button
+              type="button"
+              onClick={() => setActiveSubTab('subscription')}
+              className={`w-full flex flex-col sm:flex-row items-center sm:space-x-2.5 p-2 sm:px-3 sm:py-2.5 rounded-2xl font-bold transition text-center sm:text-left ${
+                activeSubTab === 'subscription'
+                  ? 'bg-teal-600 text-white shadow-lg shadow-teal-600/30 ring-1 ring-teal-400/50'
+                  : 'bg-slate-950/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+              }`}
+            >
+              <Calendar className="w-5 h-5 sm:w-4 sm:h-4 text-teal-300 shrink-0" />
+              <span className="text-[10px] sm:text-xs leading-tight mt-1 sm:mt-0 font-bold block">
+                {language === 'bn' ? 'সাবস্ক্রিপশন' : 'Subscription'}
+              </span>
+            </button>
+          </div>
         </aside>
 
         {/* Right Scrollable Content View */}
