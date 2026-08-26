@@ -204,11 +204,21 @@ export const FleetTransitHubView: React.FC = () => {
     { id: 4, name: 'মোঃ কামাল হোসেন', phone: '01733-445566', license: 'DL-GA-332901', expiry: '২০২৫-১২-৩১', status: 'EXPIRED' }
   ];
 
-  // 1-Tap Walkie-Talkie Dispatched Messages
+  // 1-Tap Walkie-Talkie Dispatched Messages & Real-World Trip Counters
+  const [tripCounters, setTripCounters] = useState({
+    checkpost: 0,
+    fuelRefill: 0,
+    heavyJam: 0,
+    hotelBreak: 0,
+    tollFerry: 0
+  });
+
   const [walkieMessages, setWalkieMessages] = useState<Array<{ id: number; sender: string; text: string; time: string; target: string }>>([
     { id: 1, sender: '🏢 গাবতলী কাউন্টার', text: 'যাত্রী বোর্ডিং সম্পূর্ণ • ছাড়ার প্রস্তুতি নিন', time: '১০:২৫ AM', target: 'বাস চালক' },
     { id: 2, sender: '👨‍✈️ চালক (কুদ্দুস)', text: 'বাস রেডি • গেটপাস ক্লিয়ারেন্স দিন', time: '১০:২৮ AM', target: 'লাইনম্যান' }
   ]);
+
+  const [isDriverSosOpen, setIsDriverSosOpen] = useState(false);
 
   // ADAS Cabin Alarm Simulation State
   const [cabinAlarm, setCabinAlarm] = useState<string | null>(null);
@@ -231,6 +241,40 @@ export const FleetTransitHubView: React.FC = () => {
       target
     };
     setWalkieMessages(prev => [newMsg, ...prev]);
+  };
+
+  const logTripEvent = (type: 'CHECKPOST' | 'FUEL' | 'JAM' | 'BREAK' | 'TOLL' | 'PASSENGER' | 'ARRIVED') => {
+    let text = '';
+    let sender = '👨‍✈️ চালক (কুদ্দুস)';
+    let target = 'কাউন্টার ও ওনার';
+
+    if (type === 'CHECKPOST') {
+      const next = tripCounters.checkpost + 1;
+      setTripCounters(prev => ({ ...prev, checkpost: next }));
+      text = `👮 পুলিশ/বিআরটিএ চেকপোস্টে চেকিং চলছে (লগ #${next})`;
+    } else if (type === 'FUEL') {
+      const next = tripCounters.fuelRefill + 1;
+      setTripCounters(prev => ({ ...prev, fuelRefill: next }));
+      text = `⛽ পাম্পে ফুয়েল/সিএনজি রিফিল চলছে (রিফিল #${next})`;
+    } else if (type === 'JAM') {
+      const next = tripCounters.heavyJam + 1;
+      setTripCounters(prev => ({ ...prev, heavyJam: next }));
+      text = `🚦 হাইওয়েতে তীব্র যানজট (> ১০ মিনিট বিলম্ব) (জ্যাম রিপোর্ট #${next})`;
+    } else if (type === 'BREAK') {
+      const next = tripCounters.hotelBreak + 1;
+      setTripCounters(prev => ({ ...prev, hotelBreak: next }));
+      text = `🍱 হাইওয়ে রেস্তোরাঁয় যাত্রী খাবার বিরতি (বিরতি #${next})`;
+    } else if (type === 'TOLL') {
+      const next = tripCounters.tollFerry + 1;
+      setTripCounters(prev => ({ ...prev, tollFerry: next }));
+      text = `🌉 টোল প্লাজা / ফেরি পারাপারের লাইনে অপেক্ষমাণ (লগ #${next})`;
+    } else if (type === 'PASSENGER') {
+      text = `👥 কাউন্টারে যাত্রী কাউন্ট ও আসন তথ্য আপডেট জানতে চাই`;
+    } else if (type === 'ARRIVED') {
+      text = `✅ গন্তব্যে নিরাপদে পৌঁছেছি • আজকের ট্রিপ সফলভাবে সম্পন্ন`;
+    }
+
+    sendWalkieMessage(text, sender, target);
   };
 
   // =========================================================================
@@ -376,8 +420,8 @@ export const FleetTransitHubView: React.FC = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setIsCrashAlertModalOpen(true)}
-                  className="py-3 px-3 rounded-2xl bg-rose-950/60 hover:bg-rose-900/70 text-rose-300 border border-rose-500/50 font-bold text-xs flex items-center justify-center space-x-2 transition active:scale-95"
+                  onClick={() => setIsDriverSosOpen(true)}
+                  className="py-3 px-3 rounded-2xl bg-rose-950/60 hover:bg-rose-900/70 text-rose-300 border border-rose-500/50 font-bold text-xs flex items-center justify-center space-x-2 transition active:scale-95 shadow-md shadow-rose-950/50"
                 >
                   <AlertCircle className="w-4 h-4 text-rose-400" />
                   <span>🚨 জরুরি এক্সিডেন্ট / SOS</span>
@@ -469,41 +513,97 @@ export const FleetTransitHubView: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <Radio className="w-5 h-5 text-cyan-400" />
-                  <h4 className="text-sm font-black text-white">📢 ১-ট্যাপ ওয়াকিটকি ডিসপ্যাচ (কাউন্টার ও ওনার যোগাযোগ)</h4>
+                  <h4 className="text-sm font-black text-white">📢 ১-ট্যাপ ওয়াকিটকি ডিসপ্যাচ ও হাইওয়ে ট্রিপ লগ</h4>
                 </div>
                 <span className="text-[10px] font-mono text-cyan-300 bg-cyan-950 px-2 py-0.5 rounded border border-cyan-500/40">
-                  INSTANT PUSH
+                  INSTANT DISPATCH
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+              {/* Dynamic Real-World Trip Event Buttons */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                 <button
                   type="button"
-                  onClick={() => sendWalkieMessage('🚦 হাইওয়ে জ্যামে আছি • ১৫ মিনিট দেরি হবে', '👨‍✈️ চালক (কুদ্দুস)', 'কাউন্টার ও ওনার')}
-                  className="p-2.5 rounded-2xl bg-slate-950 hover:bg-slate-850 border border-slate-800 hover:border-cyan-500/50 text-left text-xs font-bold text-slate-200 transition active:scale-95"
+                  onClick={() => logTripEvent('CHECKPOST')}
+                  className="p-2.5 rounded-2xl bg-slate-950 hover:bg-slate-850 border border-slate-800 hover:border-cyan-500/50 text-left text-xs font-bold text-slate-200 transition active:scale-95 flex items-center justify-between"
                 >
-                  <span>🚦 হাইওয়ে জ্যাম (১৫ মি দেরি)</span>
+                  <span>👮 পুলিশ / বিআরটিএ চেকপোস্ট</span>
+                  {tripCounters.checkpost > 0 && (
+                    <span className="px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 text-[10px] font-mono font-black">
+                      {tripCounters.checkpost} বার
+                    </span>
+                  )}
                 </button>
+
                 <button
                   type="button"
-                  onClick={() => sendWalkieMessage('⛽ পাম্পে ফুয়েল রিফিল করছি • ১০ মিনিট', '👨‍✈️ চালক (কুদ্দুস)', 'কাউন্টারম্যান')}
-                  className="p-2.5 rounded-2xl bg-slate-950 hover:bg-slate-850 border border-slate-800 hover:border-amber-500/50 text-left text-xs font-bold text-slate-200 transition active:scale-95"
+                  onClick={() => logTripEvent('FUEL')}
+                  className="p-2.5 rounded-2xl bg-slate-950 hover:bg-slate-850 border border-slate-800 hover:border-amber-500/50 text-left text-xs font-bold text-slate-200 transition active:scale-95 flex items-center justify-between"
                 >
-                  <span>⛽ ফুয়েল রিফিল (১০ মিনিট)</span>
+                  <span>⛽ ফুয়েল / সিএনজি রিফিল</span>
+                  {tripCounters.fuelRefill > 0 && (
+                    <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-mono font-black">
+                      {tripCounters.fuelRefill} বার
+                    </span>
+                  )}
                 </button>
+
                 <button
                   type="button"
-                  onClick={() => sendWalkieMessage('👥 কাউন্টারে কতজন যাত্রী রেডি আছে?', '👨‍✈️ চালক (কুদ্দুস)', 'কাউন্টার ইনচার্জ')}
-                  className="p-2.5 rounded-2xl bg-slate-950 hover:bg-slate-850 border border-slate-800 hover:border-emerald-500/50 text-left text-xs font-bold text-slate-200 transition active:scale-95"
+                  onClick={() => logTripEvent('JAM')}
+                  className="p-2.5 rounded-2xl bg-slate-950 hover:bg-slate-850 border border-slate-800 hover:border-rose-500/50 text-left text-xs font-bold text-slate-200 transition active:scale-95 flex items-center justify-between"
                 >
-                  <span>👥 যাত্রী কাউন্ট জানতে চাই</span>
+                  <span>🚦 তীব্র যানজট (&gt; ১০ মি বিলম্ব)</span>
+                  {tripCounters.heavyJam > 0 && (
+                    <span className="px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 text-[10px] font-mono font-black">
+                      {tripCounters.heavyJam} বার
+                    </span>
+                  )}
                 </button>
+
                 <button
                   type="button"
-                  onClick={() => sendWalkieMessage('✅ গন্তব্যে নিরাপদে পৌঁছেছি • ট্রিপ সমাপ্ত', '👨‍✈️ চালক (কুদ্দুস)', 'কাউন্টার ও ওনার')}
+                  onClick={() => logTripEvent('BREAK')}
+                  className="p-2.5 rounded-2xl bg-slate-950 hover:bg-slate-850 border border-slate-800 hover:border-emerald-500/50 text-left text-xs font-bold text-slate-200 transition active:scale-95 flex items-center justify-between"
+                >
+                  <span>🍱 হোটেল ও খাবার বিরতি</span>
+                  {tripCounters.hotelBreak > 0 && (
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-mono font-black">
+                      {tripCounters.hotelBreak} বার
+                    </span>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => logTripEvent('TOLL')}
+                  className="p-2.5 rounded-2xl bg-slate-950 hover:bg-slate-850 border border-slate-800 hover:border-indigo-500/50 text-left text-xs font-bold text-slate-200 transition active:scale-95 flex items-center justify-between"
+                >
+                  <span>🌉 টোল প্লাজা / ফেরি পারাপার</span>
+                  {tripCounters.tollFerry > 0 && (
+                    <span className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 text-[10px] font-mono font-black">
+                      {tripCounters.tollFerry} বার
+                    </span>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => logTripEvent('PASSENGER')}
                   className="p-2.5 rounded-2xl bg-slate-950 hover:bg-slate-850 border border-slate-800 hover:border-purple-500/50 text-left text-xs font-bold text-slate-200 transition active:scale-95"
                 >
-                  <span>✅ নিরাপদে গন্তব্যে পৌঁছেছি</span>
+                  <span>👥 যাত্রী ও সিট স্ট্যাটাস</span>
+                </button>
+              </div>
+
+              <div className="pt-1">
+                <button
+                  type="button"
+                  onClick={() => logTripEvent('ARRIVED')}
+                  className="w-full py-2.5 px-3 rounded-2xl bg-emerald-950/40 hover:bg-emerald-900/50 border border-emerald-500/50 text-emerald-300 font-extrabold text-xs flex items-center justify-center space-x-2 transition active:scale-95"
+                >
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                  <span>✅ গন্তব্যে নিরাপদে পৌঁছেছি • আজকের ট্রিপ সফলভাবে সমাপ্ত</span>
                 </button>
               </div>
 
@@ -768,7 +868,75 @@ export const FleetTransitHubView: React.FC = () => {
         )}
 
         {/* ========================================================================= */}
-        {/* 🚨 MODAL 3: DUAL-TERMINAL (UP/DOWN) CRASH ALERT & WATERMARKED VIDEO        */}
+        {/* 🚨 MODAL 3A: DRIVER EMERGENCY SOS & RESCUE CONSOLE (NO VIDEO TO DRIVER)     */}
+        {/* ========================================================================= */}
+        {isDriverSosOpen && (
+          <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
+            <div className="bg-slate-900 border-2 border-rose-500 rounded-3xl p-5 max-w-md w-full shadow-2xl space-y-4 animate-in fade-in">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div className="flex items-center space-x-2 text-rose-400">
+                  <AlertTriangle className="w-6 h-6 animate-bounce" />
+                  <h3 className="font-black text-sm text-white">🚨 জরুরি এক্সিডেন্ট এসওএস ও রেসকিউ</h3>
+                </div>
+                <button onClick={() => setIsDriverSosOpen(false)} className="p-1 rounded-full text-slate-400 hover:text-white">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-rose-950/40 border border-rose-500/50 space-y-2">
+                <span className="font-black text-xs text-rose-300 block flex items-center space-x-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping" />
+                  <span>জরুরি সংকেত সফলভাবে পাঠানো হয়েছে!</span>
+                </span>
+                <p className="text-[11px] text-slate-300">
+                  আপনার বাসের লাইভ জিপিএস লোকেশন (ঢাকা-ময়মনসিংহ হাইওয়ে) এবং দুর্ঘটনার জরুরি সংকেত <strong>গাবতলী কাউন্টার, বগুড়া কাউন্টার ও প্রধান কার্যালয়ে</strong> পৌঁছেছে।
+                </p>
+              </div>
+
+              <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800 text-[10.5px] text-slate-400">
+                🔒 <strong>আইনি ও ইন্স্যুরেন্স সুরক্ষা:</strong> ড্যাশ-ক্যাম ব্ল্যাকবক্সের ১০ সেকেন্ডের ইমপ্যাক্ট ভিডিও সেন্ট্রাল ক্লাউড সার্ভার ও মালিকের ভল্টে নিরাপদে সংরক্ষিত হয়েছে।
+              </div>
+
+              {/* Emergency Hotline Buttons */}
+              <div className="space-y-2 pt-1">
+                <a
+                  href="tel:999"
+                  className="w-full py-3 px-3 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-black text-xs flex items-center justify-center space-x-2 shadow-lg shadow-rose-600/30 transition active:scale-95"
+                >
+                  <Phone className="w-4 h-4" />
+                  <span>🚨 ৯৯৯ এম্বুলেন্স ও পুলিশ জরুরি সেবা</span>
+                </a>
+                <a
+                  href="tel:01711889900"
+                  className="w-full py-2.5 px-3 rounded-2xl bg-indigo-950/70 hover:bg-indigo-900 border border-indigo-500/50 text-indigo-300 font-bold text-xs flex items-center justify-center space-x-2 transition active:scale-95"
+                >
+                  <Phone className="w-4 h-4" />
+                  <span>📞 কাউন্টার ইনচার্জ ও লাইনম্যান</span>
+                </a>
+                <a
+                  href="tel:01700000000"
+                  className="w-full py-2.5 px-3 rounded-2xl bg-slate-800 hover:bg-slate-750 text-slate-200 border border-slate-700 font-bold text-xs flex items-center justify-center space-x-2 transition active:scale-95"
+                >
+                  <Phone className="w-4 h-4" />
+                  <span>📞 প্রধান কার্যালয় / ফ্লিট ওনার হটলাইন</span>
+                </a>
+              </div>
+
+              <div className="flex justify-end pt-1">
+                <button
+                  type="button"
+                  onClick={() => setIsDriverSosOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 font-bold text-xs"
+                >
+                  বন্ধ করুন
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* 🚨 MODAL 3B: OWNER & SUPERVISOR CRASH ALERT WITH WATERMARKED VIDEO         */}
         {/* ========================================================================= */}
         {isCrashAlertModalOpen && (
           <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
