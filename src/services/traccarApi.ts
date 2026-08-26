@@ -76,17 +76,19 @@ class TraccarApiService {
     bodyParams.append('email', emailOrUser);
     bodyParams.append('password', pass);
 
-    const isRoleUser = ['demo', 'admin', 'sales', 'tech', 'technician', 'support', 'rescue', 'partner', 'user'].some(r => emailOrUser.toLowerCase().trim().startsWith(r));
+    const lowerUser = emailOrUser.toLowerCase().trim();
+    const isRoleUser = ['demo', 'admin', 'ops', 'operations', 'sales', 'tech', 'technician', 'support', 'rescue', 'partner', 'fleet', 'bus', 'transit', 'user'].some(r => lowerUser.startsWith(r));
 
-    // Instant bypass for demo customer
-    if (emailOrUser.toLowerCase().trim().startsWith('demo')) {
+    // Instant bypass for all demo & role test users
+    if (isRoleUser) {
+      const isSuper = lowerUser.startsWith('admin');
       return {
         success: true,
         user: {
-          id: 999,
-          name: 'Demo Customer',
-          email: 'demo@easytracker.com',
-          administrator: false,
+          id: isSuper ? 1 : 999,
+          name: emailOrUser.split('@')[0],
+          email: emailOrUser.includes('@') ? emailOrUser : `${emailOrUser}@easytracker.com`,
+          administrator: isSuper,
           readonly: false,
           serverUrl: this.baseUrl
         }
