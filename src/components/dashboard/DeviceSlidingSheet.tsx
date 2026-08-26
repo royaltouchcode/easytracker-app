@@ -26,7 +26,8 @@ import {
   Lock,
   BarChart3,
   AlertTriangle,
-  Flame
+  Flame,
+  Shield
 } from 'lucide-react';
 import { PinVerificationModal } from '../commands/PinVerificationModal';
 import { CustomCommandModal } from '../commands/CustomCommandModal';
@@ -648,20 +649,35 @@ export const DeviceSlidingSheet: React.FC = () => {
               <span className="truncate leading-tight">{language === 'bn' ? 'প্লেব্যাক' : 'Playback'}</span>
             </button>
 
-            {/* 5. Surveillance Cam & Voice Button */}
-            <button
-              type="button"
-              onClick={() => setActiveTab('surveillance')}
-              className="py-1.5 px-0.5 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-200 font-bold text-[10px] xs:text-[10.5px] flex flex-col items-center justify-center space-y-0.5 border border-slate-700/80 transition active:scale-95 shadow-sm"
-            >
-              <div className="flex items-center space-x-0.5">
-                <Video className="w-3.5 h-3.5 text-purple-400 shrink-0" />
-                <Mic className="w-2.5 h-2.5 text-pink-400 shrink-0" />
-              </div>
-              <span className="truncate leading-tight text-[9.5px] xs:text-[10px]">
-                {language === 'bn' ? 'ক্যাম/মাইক' : 'Cam/Mic'}
-              </span>
-            </button>
+            {/* 5. Dynamic Camera vs Geofence Security Button */}
+            {capabilities.hasCamera ? (
+              <button
+                type="button"
+                onClick={() => setActiveTab('surveillance')}
+                className="py-1.5 px-0.5 rounded-xl bg-purple-950/40 hover:bg-purple-900/50 border border-purple-500/40 text-purple-200 font-bold text-[10px] xs:text-[10.5px] flex flex-col items-center justify-center space-y-0.5 transition active:scale-95 shadow-sm"
+                title="লাইভ ক্যামেরা ও ভয়েস মনিটর"
+              >
+                <div className="flex items-center space-x-0.5">
+                  <Video className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+                  <Mic className="w-2.5 h-2.5 text-pink-400 shrink-0" />
+                </div>
+                <span className="truncate leading-tight text-[9.5px] xs:text-[10px]">
+                  {language === 'bn' ? 'ক্যামেরা' : 'Camera'}
+                </span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setActiveTab('geofence')}
+                className="py-1.5 px-0.5 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-200 font-bold text-[10px] xs:text-[10.5px] flex flex-col items-center justify-center space-y-0.5 border border-slate-700/80 transition active:scale-95 shadow-sm"
+                title="নিরাপদ এরিয়া ও জিওফেন্স জোন"
+              >
+                <Shield className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                <span className="truncate leading-tight text-[9.5px] xs:text-[10px]">
+                  {language === 'bn' ? 'জিওফেন্স' : 'Geofence'}
+                </span>
+              </button>
+            )}
           </div>
 
           {/* Expanded Device Details & Dynamic Sensors Grid */}
