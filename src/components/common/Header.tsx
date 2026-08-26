@@ -19,7 +19,8 @@ import {
   ShieldCheck,
   Building2,
   Palette,
-  Gift
+  Gift,
+  Bus
 } from 'lucide-react';
 import { VehicleIcon } from '../../utils/vehicleIcons';
 import { UserProfileModal } from '../auth/UserProfileModal';
@@ -264,43 +265,74 @@ export const Header: React.FC = () => {
         {/* RIGHT SECTION: ROLE-TAILORED CONTROLS (NO EXPOSURE OF CUSTOMER SETTINGS) */}
         {/* ========================================================================= */}
         <div className="flex items-center space-x-1 shrink-0">
-          {/* Role Badge (Clickable for Multi-Role Users & Super Admin) */}
-          <button
-            onClick={() => {
-              if (hasMultipleRoles) {
-                setIsRoleSwitcherOpen(true);
-              }
-            }}
-            className={`px-2 py-1 rounded-xl border flex items-center space-x-1 font-bold text-[10px] sm:text-[11px] transition active:scale-95 shadow-sm ${
-              hasMultipleRoles ? 'cursor-pointer hover:ring-1 hover:ring-white/30' : 'cursor-default'
-            } ${
-              currentRole === 'super_admin' ? 'bg-amber-600/30 border-amber-500/60 text-amber-300' :
-              currentRole === 'sales' ? 'bg-emerald-600/30 border-emerald-500/60 text-emerald-300' :
-              currentRole === 'technician' ? 'bg-purple-600/30 border-purple-500/60 text-purple-300' :
-              currentRole === 'support' ? 'bg-sky-600/30 border-sky-500/60 text-sky-300' :
-              currentRole === 'rescue' ? 'bg-rose-600/30 border-rose-500/60 text-rose-300 animate-pulse' :
-              'bg-slate-800 border-slate-700 text-slate-300 hover:text-white'
-            }`}
-            title={hasMultipleRoles ? 'আপনার অনুমোদিত পোর্টাল সুইচ করুন' : 'আপনার বর্তমান অ্যাক্টিভ রোল'}
-          >
-            {currentRole === 'super_admin' && <Crown className="w-3 h-3 text-amber-400 shrink-0" />}
-            {currentRole === 'sales' && <Briefcase className="w-3 h-3 text-emerald-400 shrink-0" />}
-            {currentRole === 'technician' && <Wrench className="w-3 h-3 text-purple-400 shrink-0" />}
-            {currentRole === 'support' && <Headphones className="w-3 h-3 text-sky-400 shrink-0" />}
-            {currentRole === 'rescue' && <Flame className="w-3 h-3 text-rose-400 shrink-0" />}
-            {currentRole === 'customer' && <Sparkles className="w-3 h-3 text-blue-400 shrink-0" />}
-            <span className="capitalize font-extrabold">
-              {currentRole === 'super_admin' ? 'অ্যাডমিন' :
-               currentRole === 'sales' ? 'সেলস' :
-               currentRole === 'technician' ? 'টেক' :
-               currentRole === 'support' ? 'সাপোর্ট' :
-               currentRole === 'rescue' ? 'রেসকিউ' :
-               'কাস্টমার'}
-            </span>
-          </button>
+          {/* Role Badge (Customized for Staff, Admin & Multi-Role Users) */}
+          {(() => {
+            const isStaffUser = Boolean(
+              user?.email?.includes('fleetstaff') || 
+              user?.role === 'supervisor' || 
+              user?.role === 'driver' || 
+              (user as any)?.assigned ||
+              /^[0-9\-\+]+@/.test(user?.email || '')
+            );
+            const isDriver = isStaffUser && (user?.role === 'driver' || user?.name?.includes('কুদ্দুস') || (user as any)?.assigned?.includes('ঢাকা মেট্রো-ব'));
+
+            return (
+              <button
+                onClick={() => {
+                  if (hasMultipleRoles && !isStaffUser) {
+                    setIsRoleSwitcherOpen(true);
+                  }
+                }}
+                className={`px-2 py-1 rounded-xl border flex items-center space-x-1 font-bold text-[10px] sm:text-[11px] transition active:scale-95 shadow-sm ${
+                  hasMultipleRoles && !isStaffUser ? 'cursor-pointer hover:ring-1 hover:ring-white/30' : 'cursor-default'
+                } ${
+                  isStaffUser ? (isDriver ? 'bg-emerald-600/30 border-emerald-500/60 text-emerald-300' : 'bg-cyan-600/30 border-cyan-500/60 text-cyan-300') :
+                  currentRole === 'super_admin' ? 'bg-amber-600/30 border-amber-500/60 text-amber-300' :
+                  currentRole === 'sales' ? 'bg-emerald-600/30 border-emerald-500/60 text-emerald-300' :
+                  currentRole === 'technician' ? 'bg-purple-600/30 border-purple-500/60 text-purple-300' :
+                  currentRole === 'support' ? 'bg-sky-600/30 border-sky-500/60 text-sky-300' :
+                  currentRole === 'rescue' ? 'bg-rose-600/30 border-rose-500/60 text-rose-300 animate-pulse' :
+                  'bg-slate-800 border-slate-700 text-slate-300 hover:text-white'
+                }`}
+                title={hasMultipleRoles && !isStaffUser ? 'আপনার অনুমোদিত পোর্টাল সুইচ করুন' : 'আপনার বর্তমান অ্যাক্টিভ রোল'}
+              >
+                {isStaffUser ? (
+                  isDriver ? <Bus className="w-3 h-3 text-emerald-400 shrink-0" /> : <Building2 className="w-3 h-3 text-cyan-400 shrink-0" />
+                ) : currentRole === 'super_admin' ? (
+                  <Crown className="w-3 h-3 text-amber-400 shrink-0" />
+                ) : currentRole === 'sales' ? (
+                  <Briefcase className="w-3 h-3 text-emerald-400 shrink-0" />
+                ) : currentRole === 'technician' ? (
+                  <Wrench className="w-3 h-3 text-purple-400 shrink-0" />
+                ) : currentRole === 'support' ? (
+                  <Headphones className="w-3 h-3 text-sky-400 shrink-0" />
+                ) : currentRole === 'rescue' ? (
+                  <Flame className="w-3 h-3 text-rose-400 shrink-0" />
+                ) : (
+                  <Sparkles className="w-3 h-3 text-blue-400 shrink-0" />
+                )}
+                <span className="capitalize font-extrabold">
+                  {isStaffUser
+                    ? (isDriver ? 'বাস চালক' : 'কাউন্টার ইনচার্জ')
+                    : currentRole === 'super_admin' ? 'অ্যাডমিন'
+                    : currentRole === 'sales' ? 'সেলস'
+                    : currentRole === 'technician' ? 'টেক'
+                    : currentRole === 'support' ? 'সাপোর্ট'
+                    : currentRole === 'rescue' ? 'রেসকিউ'
+                    : 'কাস্টমার'}
+                </span>
+              </button>
+            );
+          })()}
 
           {/* Customer-Only Controls (Audio Alert, Notification Bell, Settings Gear) */}
-          {currentRole === 'customer' && (
+          {currentRole === 'customer' && !Boolean(
+            user?.email?.includes('fleetstaff') || 
+            user?.role === 'supervisor' || 
+            user?.role === 'driver' || 
+            (user as any)?.assigned ||
+            /^[0-9\-\+]+@/.test(user?.email || '')
+          ) && (
             <>
               <button
                 onClick={() => setAudioAlertsEnabled(!audioAlertsEnabled)}

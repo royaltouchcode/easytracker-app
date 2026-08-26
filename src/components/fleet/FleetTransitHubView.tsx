@@ -757,6 +757,9 @@ export const FleetTransitHubView: React.FC = () => {
                       <span>রুট: <strong>গাবতলী ➔ বগুড়া</strong></span>
                       <span>সময়: <strong>১০:৩০ AM</strong></span>
                       <span>নিয়োজিত চালক: <strong className="text-cyan-300">{assignedDriverName} ({assignedDriverPhone})</strong></span>
+                      <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono font-black border border-emerald-500/40 text-[11px]">
+                        👥 অনবোর্ড যাত্রী: {onboardPassengerCount} / ৪০ জন
+                      </span>
                     </div>
                   </div>
 
@@ -771,7 +774,7 @@ export const FleetTransitHubView: React.FC = () => {
                     </button>
                     <a
                       href={`tel:${assignedDriverPhone}`}
-                      className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition"
+                      className="p-2 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-300 border border-slate-700 transition"
                       title="চালককে কল দিন"
                     >
                       <Phone className="w-4 h-4 text-cyan-400" />
@@ -786,24 +789,24 @@ export const FleetTransitHubView: React.FC = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   <button
                     type="button"
-                    onClick={() => sendWalkieMessage('👥 আরও ৩ জন যাত্রী আসছে • ৫ মিনিট অপেক্ষা করুন', '🏢 কাউন্টার ইনচার্জ', 'বাস চালক')}
-                    className="p-2.5 rounded-2xl bg-slate-950 hover:bg-slate-850 border border-slate-800 text-xs font-bold text-slate-200 transition active:scale-95"
+                    onClick={() => sendWalkieMessage('👥 আরও যাত্রী আসছে • অনুগ্রহ করে অল্প সময় অপেক্ষা করুন', '🏢 কাউন্টার ইনচার্জ', 'বাস চালক')}
+                    className="p-2.5 rounded-2xl bg-slate-950 hover:bg-slate-850 border border-slate-800 hover:border-cyan-500/50 text-xs font-bold text-slate-200 transition active:scale-95 text-left"
                   >
-                    <span>👥 আরও ৩ যাত্রী আসছে (৫ মি অপেক্ষা)</span>
+                    <span>👥 আরও যাত্রী আসছে (অল্প অপেক্ষা করুন)</span>
                   </button>
                   <button
                     type="button"
-                    onClick={() => sendWalkieMessage('✅ ৩ নং প্ল্যাটফর্ম খালি • বাস ভেতরে আনুন', '👨‍💼 লাইনম্যান', 'বাস চালক')}
-                    className="p-2.5 rounded-2xl bg-slate-950 hover:bg-slate-850 border border-slate-800 text-xs font-bold text-slate-200 transition active:scale-95"
+                    onClick={() => sendWalkieMessage('✅ ৩ নং প্ল্যাটফর্ম ক্লিয়ার • বাস ভেতরে নিয়ে আসুন', '👨‍💼 লাইনম্যান', 'বাস চালক')}
+                    className="p-2.5 rounded-2xl bg-slate-950 hover:bg-slate-850 border border-slate-800 hover:border-emerald-500/50 text-xs font-bold text-slate-200 transition active:scale-95 text-left"
                   >
                     <span>✅ প্ল্যাটফর্ম খালি (বাস ভেতরে আনুন)</span>
                   </button>
                   <button
                     type="button"
-                    onClick={() => sendWalkieMessage('🛑 জ্যামের কারণে পরবর্তী ট্রিপ ২০ মিনিট পিছিয়ে দেওয়া হয়েছে', '🏢 কাউন্টার ইনচার্জ', 'বাস চালক ও ওনার')}
-                    className="p-2.5 rounded-2xl bg-slate-950 hover:bg-slate-850 border border-slate-800 text-xs font-bold text-slate-200 transition active:scale-95"
+                    onClick={() => sendWalkieMessage('🛑 ট্রিপ ছাড়ার সময় হয়েছে • ডিপার্চারের প্রস্তুতি নিন', '🏢 কাউন্টার ইনচার্জ', 'বাস চালক ও লাইনম্যান')}
+                    className="p-2.5 rounded-2xl bg-slate-950 hover:bg-slate-850 border border-slate-800 hover:border-amber-500/50 text-xs font-bold text-slate-200 transition active:scale-95 text-left"
                   >
-                    <span>🛑 ট্রিপ টাইম রিশিডিউল আপডেট</span>
+                    <span>🛑 ট্রিপ ছাড়ার ক্লিয়ারেন্স ও প্রস্তুতি</span>
                   </button>
                 </div>
               </div>

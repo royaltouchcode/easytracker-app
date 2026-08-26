@@ -224,6 +224,126 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
           </div>
 
           {/* ========================================================================= */}
+          {/* 0A. DRIVER PROFILE CARD (DEDICATED SUB-USER)                              */}
+          {/* ========================================================================= */}
+          {Boolean(
+            (user?.email?.includes('fleetstaff') || user?.role === 'driver' || user?.name?.includes('কুদ্দুস') || (user as any)?.assigned?.includes('ঢাকা মেট্রো-ব')) &&
+            (user?.role === 'driver' || user?.name?.includes('কুদ্দুস') || (user as any)?.assigned?.includes('ঢাকা মেট্রো-ব'))
+          ) && (
+            <div className="bg-gradient-to-br from-emerald-950/70 via-slate-900 to-slate-900 border border-emerald-500/40 rounded-2xl p-3.5 shadow-xl space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-1.5 text-emerald-300">
+                  <Bus className="w-4 h-4 text-emerald-400" />
+                  <span className="text-xs font-bold uppercase tracking-wider">ফ্লিট বাস চালক ডিজিটাল প্রোফাইল</span>
+                </div>
+                <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-extrabold text-[9.5px]">
+                  🟢 ডিউটি অন
+                </span>
+              </div>
+
+              <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-2.5 space-y-1.5 text-xs">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">নির্ধারিত বাস:</span>
+                  <span className="font-bold text-white font-mono">ঢাকা মেট্রো-ব ১৪-৯৯০১ (হানিফ Hino 1J)</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">BRTA ড্রাইভিং লাইসেন্স:</span>
+                  <span className="font-mono font-bold text-cyan-300">DL-DH-884920 (🟢 বৈধ)</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">লাইসেন্স মেয়াদ:</span>
+                  <span className="font-mono font-bold text-amber-300">২০২৭-১১-১৫</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">নির্ধারিত রুট:</span>
+                  <span className="font-bold text-slate-200">গাবতলী টার্মিনাল ➔ বগুড়া</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    setActiveTab('fleet_transit');
+                  }}
+                  className="py-2 px-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center space-x-1.5 shadow-md shadow-emerald-600/30 transition active:scale-95"
+                >
+                  <Bus className="w-3.5 h-3.5" />
+                  <span>চালকের কেবিনে যান</span>
+                </button>
+                <a
+                  href="tel:01711889900"
+                  className="py-2 px-2.5 rounded-xl bg-indigo-950 hover:bg-indigo-900 border border-indigo-500/40 text-indigo-300 font-bold text-xs flex items-center justify-center space-x-1.5 transition active:scale-95"
+                >
+                  <Phone className="w-3.5 h-3.5" />
+                  <span>কাউন্টার ইনচার্জ কল</span>
+                </a>
+              </div>
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* 0B. SUPERVISOR / LINEMAN PROFILE CARD (DEDICATED SUB-USER)                */}
+          {/* ========================================================================= */}
+          {Boolean(
+            (user?.email?.includes('fleetstaff') || user?.role === 'supervisor' || (user as any)?.assigned?.includes('টার্মিনাল')) &&
+            !(user?.role === 'driver' || user?.name?.includes('কুদ্দুস') || (user as any)?.assigned?.includes('ঢাকা মেট্রো-ব'))
+          ) && (
+            <div className="bg-gradient-to-br from-cyan-950/70 via-slate-900 to-slate-900 border border-cyan-500/40 rounded-2xl p-3.5 shadow-xl space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-1.5 text-cyan-300">
+                  <Building2 className="w-4 h-4 text-cyan-400" />
+                  <span className="text-xs font-bold uppercase tracking-wider">কাউন্টার ইনচার্জ ও গেটপাস কন্ট্রোল</span>
+                </div>
+                <span className="px-2 py-0.5 rounded-full bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 font-extrabold text-[9.5px]">
+                  🏢 টার্মিনাল স্টেশন
+                </span>
+              </div>
+
+              <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-2.5 space-y-1.5 text-xs">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">নির্ধারিত টার্মিনাল:</span>
+                  <span className="font-bold text-cyan-300">{(user as any)?.assigned || 'জয়দেবপুর / গাবতলী বাস টার্মিনাল'}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">গেটপাস ক্লিয়ারেন্স পাওয়ার:</span>
+                  <span className="text-emerald-400 font-bold">অনুমোদিত (Active Authority)</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">ড্রাইভার ও বাস পরিবর্তন:</span>
+                  <span className="text-emerald-400 font-bold">অনুমোদিত (Available Pool)</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">জরুরি এক্সিডেন্ট রিসিভার:</span>
+                  <span className="text-rose-400 font-bold">আপ/ডাউন টার্মিনাল অটো-সিঙ্ক</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    setActiveTab('fleet_transit');
+                  }}
+                  className="py-2 px-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs flex items-center justify-center space-x-1.5 shadow-md shadow-cyan-600/30 transition active:scale-95"
+                >
+                  <Building2 className="w-3.5 h-3.5" />
+                  <span>টার্মিনাল পোর্টালে যান</span>
+                </button>
+                <a
+                  href="tel:999"
+                  className="py-2 px-2.5 rounded-xl bg-rose-950 hover:bg-rose-900 border border-rose-500/40 text-rose-300 font-bold text-xs flex items-center justify-center space-x-1.5 transition active:scale-95"
+                >
+                  <Phone className="w-3.5 h-3.5" />
+                  <span>জরুরি পুলিশ (৯৯৯)</span>
+                </a>
+              </div>
+            </div>
+          )}
+
+          {/* ========================================================================= */}
           {/* 1. BUSINESS PARTNER PROFILE CARD                                          */}
           {/* ========================================================================= */}
           {currentRole === 'partner' && (
