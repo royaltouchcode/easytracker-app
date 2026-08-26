@@ -3107,6 +3107,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         determinedRole = 'super_admin';
         defaultTab = 'saas_admin';
         approvedRoles = ['super_admin', 'partner', 'sales', 'technician', 'support', 'rescue', 'customer'];
+      } else if (lower.startsWith('ops') || lower.startsWith('operations')) {
+        determinedRole = 'sales';
+        defaultTab = 'saas_sales';
+        approvedRoles = ['sales', 'technician', 'customer'];
       } else if (lower.startsWith('sales')) {
         determinedRole = 'sales';
         defaultTab = 'saas_sales';
@@ -3123,6 +3127,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         determinedRole = 'rescue';
         defaultTab = 'saas_rescue';
         approvedRoles = ['rescue', 'customer'];
+      } else if (lower.startsWith('fleet') || lower.startsWith('bus') || lower.startsWith('transit')) {
+        determinedRole = 'customer';
+        defaultTab = 'fleet_transit';
+        approvedRoles = ['customer'];
       } else {
         determinedRole = 'customer';
         defaultTab = 'map';

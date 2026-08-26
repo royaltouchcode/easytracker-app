@@ -277,14 +277,17 @@ export const LoginScreen: React.FC = () => {
               <div className="text-[10px] uppercase font-bold text-slate-400 mb-1.5 text-center">
                 {language === 'bn' ? '⚡ দ্রুত টেস্ট লগইন করুন:' : '⚡ Quick Test Logins:'}
               </div>
-              <div className="grid grid-cols-3 sm:grid-cols-6 gap-1 text-[10px] font-bold">
+              <div className="grid grid-cols-3 gap-1.5 text-[10px] font-bold">
                 {[
-                  { role: 'demo', label: '👤 Demo User', u: 'demo', p: '123456' },
                   { role: 'admin', label: '👑 Admin', u: 'admin', p: 'admin123' },
-                  { role: 'tech', label: '🔧 Tech', u: 'tech', p: 'tech123' },
+                  { role: 'ops', label: '🏢 Ops Admin', u: 'ops', p: 'ops123' },
                   { role: 'support', label: '🎧 Support', u: 'support', p: 'support123' },
-                  { role: 'sales', label: '💼 Sales', u: 'sales', p: 'sales123' },
-                  { role: 'partner', label: '🏢 Partner', u: 'partner', p: 'partner123' }
+                  { role: 'tech', label: '🔧 Tech Hub', u: 'tech', p: 'tech123' },
+                  { role: 'rescue', label: '🚒 Rescue SOS', u: 'rescue', p: 'rescue123' },
+                  { role: 'sales', label: '💼 Sales Lead', u: 'sales', p: 'sales123' },
+                  { role: 'partner', label: '🤝 B2B Partner', u: 'partner', p: 'partner123' },
+                  { role: 'fleet', label: '🚌 Fleet Transit', u: 'fleet', p: 'fleet123' },
+                  { role: 'demo', label: '🛵 Bike Demo', u: 'demo', p: '123456' }
                 ].map(r => (
                   <button
                     key={r.role}
@@ -295,7 +298,7 @@ export const LoginScreen: React.FC = () => {
                       setPolicyAccepted(true);
                       localStorage.setItem('gps_policy_accepted', 'true');
                     }}
-                    className="py-1 px-1 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700/60 hover:text-white transition active:scale-95 text-center truncate"
+                    className="py-1.5 px-1 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700/60 hover:text-white transition active:scale-95 text-center truncate"
                   >
                     {r.label}
                   </button>
