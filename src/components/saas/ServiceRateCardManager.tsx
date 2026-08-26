@@ -565,113 +565,232 @@ export const ServiceRateCardManager: React.FC = () => {
         </div>
       </div>
 
-      {/* Tabs & Search Navigation */}
-      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5">
-        <div className="flex flex-wrap bg-slate-900 p-1 rounded-2xl border border-slate-800 gap-1">
+      {/* ========================================================================= */}
+      {/* 🧭 PREMIUM RESPONSIVE SUB-TAB NAVIGATION & CONTROLS                        */}
+      {/* ========================================================================= */}
+      <div className="bg-slate-900/90 backdrop-blur-md border border-slate-800 rounded-3xl p-3 md:p-4 shadow-xl space-y-3">
+        {/* Top: 5 Sub-Tabs Visual Responsive Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
+          {/* Tab 1: Service Rates */}
           <button
+            type="button"
             onClick={() => setActiveSubTab('services')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 ${
+            className={`p-3 rounded-2xl border text-left transition-all duration-200 flex flex-col justify-between active:scale-[0.98] ${
               activeSubTab === 'services'
-                ? 'bg-amber-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'bg-gradient-to-br from-amber-600/30 to-amber-950/60 border-amber-500 shadow-lg shadow-amber-600/20 ring-1 ring-amber-500/50'
+                : 'bg-slate-950/80 border-slate-800 hover:border-slate-700 hover:bg-slate-900/90'
             }`}
           >
-            <Layers className="w-3.5 h-3.5" />
-            <span>সার্ভিস রেট ({rateCardServices.length})</span>
+            <div className="flex items-center justify-between">
+              <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
+                activeSubTab === 'services' ? 'bg-amber-500 text-slate-950 shadow-md font-black' : 'bg-slate-800 text-amber-400'
+              }`}>
+                <Layers className="w-4 h-4" />
+              </div>
+              <span className={`text-xs font-mono font-black px-2 py-0.5 rounded-full border ${
+                activeSubTab === 'services' ? 'bg-amber-500/30 text-amber-200 border-amber-400' : 'bg-slate-900 text-slate-400 border-slate-700'
+              }`}>
+                {rateCardServices.length}
+              </span>
+            </div>
+            <div className="mt-2.5">
+              <div className={`text-xs md:text-sm font-extrabold truncate ${activeSubTab === 'services' ? 'text-amber-300' : 'text-slate-200'}`}>
+                সার্ভিস রেট ক্যাটালগ
+              </div>
+              <div className="text-[10px] text-slate-400 truncate">ফিক্সড লেবার ও ইনস্টলেশন ফি</div>
+            </div>
           </button>
 
+          {/* Tab 2: Spare Parts */}
           <button
+            type="button"
             onClick={() => setActiveSubTab('parts')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 ${
+            className={`p-3 rounded-2xl border text-left transition-all duration-200 flex flex-col justify-between active:scale-[0.98] ${
               activeSubTab === 'parts'
-                ? 'bg-cyan-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'bg-gradient-to-br from-cyan-600/30 to-cyan-950/60 border-cyan-500 shadow-lg shadow-cyan-600/20 ring-1 ring-cyan-500/50'
+                : 'bg-slate-950/80 border-slate-800 hover:border-slate-700 hover:bg-slate-900/90'
             }`}
           >
-            <Package className="w-3.5 h-3.5" />
-            <span>পার্টস ক্যাটালগ ({sparePartsCatalog.length})</span>
+            <div className="flex items-center justify-between">
+              <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
+                activeSubTab === 'parts' ? 'bg-cyan-500 text-slate-950 shadow-md font-black' : 'bg-slate-800 text-cyan-400'
+              }`}>
+                <Package className="w-4 h-4" />
+              </div>
+              <span className={`text-xs font-mono font-black px-2 py-0.5 rounded-full border ${
+                activeSubTab === 'parts' ? 'bg-cyan-500/30 text-cyan-200 border-cyan-400' : 'bg-slate-900 text-slate-400 border-slate-700'
+              }`}>
+                {sparePartsCatalog.length}
+              </span>
+            </div>
+            <div className="mt-2.5">
+              <div className={`text-xs md:text-sm font-extrabold truncate ${activeSubTab === 'parts' ? 'text-cyan-300' : 'text-slate-200'}`}>
+                স্পেয়ার পার্টস ক্যাটালগ
+              </div>
+              <div className="text-[10px] text-slate-400 truncate">রিলে, ফিউজ, অ্যান্টেনা ও ব্যাটারি</div>
+            </div>
           </button>
 
+          {/* Tab 3: Parts Ledger & Returns */}
           <button
+            type="button"
             onClick={() => setActiveSubTab('parts_ledger')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 ${
+            className={`p-3 rounded-2xl border text-left transition-all duration-200 flex flex-col justify-between active:scale-[0.98] ${
               activeSubTab === 'parts_ledger'
-                ? 'bg-blue-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'bg-gradient-to-br from-blue-600/30 to-blue-950/60 border-blue-500 shadow-lg shadow-blue-600/20 ring-1 ring-blue-500/50'
+                : 'bg-slate-950/80 border-slate-800 hover:border-slate-700 hover:bg-slate-900/90'
             }`}
           >
-            <History className="w-3.5 h-3.5" />
-            <span>পার্টস স্টক ও ইস্যু লেজার ({partsLedgerLogs.length})</span>
+            <div className="flex items-center justify-between">
+              <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
+                activeSubTab === 'parts_ledger' ? 'bg-blue-500 text-slate-950 shadow-md font-black' : 'bg-slate-800 text-blue-400'
+              }`}>
+                <History className="w-4 h-4" />
+              </div>
+              <span className={`text-xs font-mono font-black px-2 py-0.5 rounded-full border ${
+                activeSubTab === 'parts_ledger' ? 'bg-blue-500/30 text-blue-200 border-blue-400' : 'bg-slate-900 text-slate-400 border-slate-700'
+              }`}>
+                {partsLedgerLogs.length}
+              </span>
+            </div>
+            <div className="mt-2.5">
+              <div className={`text-xs md:text-sm font-extrabold truncate ${activeSubTab === 'parts_ledger' ? 'text-blue-300' : 'text-slate-200'}`}>
+                পার্টস স্টক ও ইস্যু লেজার
+              </div>
+              <div className="text-[10px] text-slate-400 truncate">হ্যান্ডওভার, রিটার্ন QC ও ওয়েস্টেজ</div>
+            </div>
           </button>
 
+          {/* Tab 4: Paid Job Cards */}
           <button
+            type="button"
             onClick={() => setActiveSubTab('job_cards')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 ${
+            className={`p-3 rounded-2xl border text-left transition-all duration-200 flex flex-col justify-between active:scale-[0.98] ${
               activeSubTab === 'job_cards'
-                ? 'bg-emerald-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'bg-gradient-to-br from-emerald-600/30 to-emerald-950/60 border-emerald-500 shadow-lg shadow-emerald-600/20 ring-1 ring-emerald-500/50'
+                : 'bg-slate-950/80 border-slate-800 hover:border-slate-700 hover:bg-slate-900/90'
             }`}
           >
-            <Receipt className="w-3.5 h-3.5" />
-            <span>পেইড জব-কার্ড ({paidJobCards.length})</span>
+            <div className="flex items-center justify-between">
+              <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
+                activeSubTab === 'job_cards' ? 'bg-emerald-500 text-slate-950 shadow-md font-black' : 'bg-slate-800 text-emerald-400'
+              }`}>
+                <Receipt className="w-4 h-4" />
+              </div>
+              <span className={`text-xs font-mono font-black px-2 py-0.5 rounded-full border ${
+                activeSubTab === 'job_cards' ? 'bg-emerald-500/30 text-emerald-200 border-emerald-400' : 'bg-slate-900 text-slate-400 border-slate-700'
+              }`}>
+                {paidJobCards.length}
+              </span>
+            </div>
+            <div className="mt-2.5">
+              <div className={`text-xs md:text-sm font-extrabold truncate ${activeSubTab === 'job_cards' ? 'text-emerald-300' : 'text-slate-200'}`}>
+                পেইড সার্ভিস জব-কার্ড
+              </div>
+              <div className="text-[10px] text-slate-400 truncate">কাস্টমার বিল, পে-আউট ও ওয়ারেন্টি</div>
+            </div>
           </button>
 
+          {/* Tab 5: Fee & Commission Settings */}
           <button
+            type="button"
             onClick={() => setActiveSubTab('fee_config')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 ${
+            className={`col-span-2 sm:col-span-1 p-3 rounded-2xl border text-left transition-all duration-200 flex flex-col justify-between active:scale-[0.98] ${
               activeSubTab === 'fee_config'
-                ? 'bg-purple-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'bg-gradient-to-br from-purple-600/30 to-purple-950/60 border-purple-500 shadow-lg shadow-purple-600/20 ring-1 ring-purple-500/50'
+                : 'bg-slate-950/80 border-slate-800 hover:border-slate-700 hover:bg-slate-900/90'
             }`}
           >
-            <Sliders className="w-3.5 h-3.5" />
-            <span>⚙️ ফি % ও কমিশন কন্ট্রোল</span>
+            <div className="flex items-center justify-between">
+              <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
+                activeSubTab === 'fee_config' ? 'bg-purple-500 text-slate-950 shadow-md font-black' : 'bg-slate-800 text-purple-400'
+              }`}>
+                <Sliders className="w-4 h-4" />
+              </div>
+              <span className={`text-[10px] font-mono font-black px-2 py-0.5 rounded-full border ${
+                activeSubTab === 'fee_config' ? 'bg-purple-500/30 text-purple-200 border-purple-400' : 'bg-slate-900 text-slate-400 border-slate-700'
+              }`}>
+                % CONFIG
+              </span>
+            </div>
+            <div className="mt-2.5">
+              <div className={`text-xs md:text-sm font-extrabold truncate ${activeSubTab === 'fee_config' ? 'text-purple-300' : 'text-slate-200'}`}>
+                ফি % ও কমিশন কন্ট্রোল
+              </div>
+              <div className="text-[10px] text-slate-400 truncate">প্ল্যাটফর্ম ফি, রেফারেল ও ইনসেন্টিভ</div>
+            </div>
           </button>
         </div>
 
-        <div className="flex items-center space-x-2">
-          {activeSubTab !== 'fee_config' && (
-            <div className="relative flex-1 sm:w-56">
-              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+        {/* Bottom Bar: Search Bar & Primary Action CTA Button */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-2 border-t border-slate-800/80">
+          {activeSubTab !== 'fee_config' ? (
+            <div className="relative flex-1">
+              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
-                placeholder="সার্চ করুন..."
+                placeholder={
+                  activeSubTab === 'services' ? 'সার্ভিসের নাম বা কোড দিয়ে খুঁজুন...' :
+                  activeSubTab === 'parts' ? 'পার্টসের নাম বা পার্টস কোড (e.g. RELAY-40A) দিয়ে খুঁজুন...' :
+                  activeSubTab === 'parts_ledger' ? 'লেজার ট্রানজ্যাকশন বা টেকনিশিয়ানের নাম দিয়ে খুঁজুন...' :
+                  'জব-কার্ড নম্বর বা কাস্টমার ফোন দিয়ে খুঁজুন...'
+                }
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-8 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-500"
+                className="w-full bg-slate-950 border border-slate-700/80 rounded-2xl pl-10 pr-10 py-2.5 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition shadow-inner"
               />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-1"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="text-xs text-slate-400 flex items-center space-x-2">
+              <Sliders className="w-4 h-4 text-purple-400" />
+              <span>সুপার অ্যাডমিন প্ল্যাটফর্ম রেট ও কমিশন হার কনফিগারেশন</span>
             </div>
           )}
 
-          {activeSubTab === 'services' && (
-            <button
-              onClick={() => handleOpenServiceModal()}
-              className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-extrabold flex items-center space-x-1 transition shrink-0 shadow-md shadow-amber-600/20"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>নতুন সার্ভিস যোগ</span>
-            </button>
-          )}
+          {/* Action CTA Buttons */}
+          <div className="flex items-center space-x-2 shrink-0">
+            {activeSubTab === 'services' && (
+              <button
+                type="button"
+                onClick={() => handleOpenServiceModal()}
+                className="w-full sm:w-auto px-4 py-2.5 rounded-2xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white text-xs font-black flex items-center justify-center space-x-2 shadow-lg shadow-amber-600/30 transition active:scale-95"
+              >
+                <Plus className="w-4 h-4" />
+                <span>+ নতুন সার্ভিস রেট যোগ করুন</span>
+              </button>
+            )}
 
-          {activeSubTab === 'parts' && (
-            <button
-              onClick={() => handleOpenPartModal()}
-              className="px-3 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-extrabold flex items-center space-x-1 transition shrink-0 shadow-md shadow-cyan-600/20"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>নতুন পার্টস যোগ</span>
-            </button>
-          )}
+            {activeSubTab === 'parts' && (
+              <button
+                type="button"
+                onClick={() => handleOpenPartModal()}
+                className="w-full sm:w-auto px-4 py-2.5 rounded-2xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-black flex items-center justify-center space-x-2 shadow-lg shadow-cyan-600/30 transition active:scale-95"
+              >
+                <Plus className="w-4 h-4" />
+                <span>+ নতুন স্পেয়ার পার্টস যোগ করুন</span>
+              </button>
+            )}
 
-          {activeSubTab === 'parts_ledger' && (
-            <button
-              onClick={() => setIsIssueModalOpen(true)}
-              className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-extrabold flex items-center space-x-1 transition shrink-0 shadow-md shadow-blue-600/20"
-            >
-              <Send className="w-3.5 h-3.5" />
-              <span>টেকনিশিয়ানকে পার্টস ইস্যু</span>
-            </button>
-          )}
+            {activeSubTab === 'parts_ledger' && (
+              <button
+                type="button"
+                onClick={() => setIsIssueModalOpen(true)}
+                className="w-full sm:w-auto px-4 py-2.5 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-black flex items-center justify-center space-x-2 shadow-lg shadow-blue-600/30 transition active:scale-95"
+              >
+                <Send className="w-4 h-4" />
+                <span>📤 টেকনিশিয়ানকে পার্টস হ্যান্ডওভার</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
