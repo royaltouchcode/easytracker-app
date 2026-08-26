@@ -13,7 +13,8 @@ import {
   Sparkles,
   MapPin,
   Check,
-  Navigation
+  Navigation,
+  Building2
 } from 'lucide-react';
 import { MapLayerType, VehicleType } from '../../types/traccar';
 import { getVehicleMarkerSvg } from '../../utils/vehicleIcons';
@@ -443,6 +444,15 @@ export const LiveTrackingMap: React.FC = () => {
       {/* 🎛️ RIGHT-SIDE FROSTED GLASS FLOATING ACTIONS RAIL (MyGPS Style)          */}
       {/* ========================================================================= */}
       <div className="absolute right-3 top-4 z-20 flex flex-col space-y-2">
+        {/* Direct Fleet Hub Shortcut Button */}
+        <button
+          onClick={() => setActiveTab('fleet_transit')}
+          className="w-10 h-10 rounded-2xl bg-cyan-950/90 backdrop-blur-md border border-cyan-500/70 hover:border-cyan-400 text-cyan-300 hover:text-white flex items-center justify-center shadow-2xl transition active:scale-95 group"
+          title="🏢 ফ্লিট ও ট্রান্সপোর্টেশন অ্যাডমিন হাবে যান"
+        >
+          <Building2 className="w-5 h-5 text-cyan-400 group-hover:scale-110 transition-transform" />
+        </button>
+
         {/* Layer Switcher Button */}
         <button
           onClick={() => setIsLayerDrawerOpen(!isLayerDrawerOpen)}

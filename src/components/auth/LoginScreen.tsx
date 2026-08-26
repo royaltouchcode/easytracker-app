@@ -7,13 +7,14 @@ import {
   Eye, 
   EyeOff, 
   Server, 
-  CheckCircle2,
-  Globe,
-  Radio,
-  ArrowRight,
-  Building2,
-  Briefcase,
-  ShoppingBag
+  CheckCircle2, 
+  Globe, 
+  Radio, 
+  ArrowRight, 
+  Building2, 
+  Briefcase, 
+  ShoppingBag,
+  KeyRound
 } from 'lucide-react';
 import { ServerConfig } from '../../types/traccar';
 
@@ -43,10 +44,11 @@ export const LoginScreen: React.FC = () => {
     serverConfig, 
     setServerConfig, 
     login, 
-    language,
+    language, 
     setLanguage 
   } = useApp();
 
+  const [loginMode, setLoginMode] = useState<'account' | 'staff'>('account');
   const [emailOrUser, setEmailOrUser] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -159,11 +161,116 @@ export const LoginScreen: React.FC = () => {
 
         {/* User Login Form */}
         {!showAdminConfig ? (
-          <form onSubmit={handleUserLogin} className="space-y-4 bg-slate-900/90 border border-slate-800/90 rounded-3xl p-6 shadow-2xl backdrop-blur-xl">
-            {/* User ID / Email */}
+          <form onSubmit={handleUserLogin} className="space-y-4 bg-slate-900/90 border border-slate-800/90 rounded-3xl p-5 sm:p-6 shadow-2xl backdrop-blur-xl">
+            
+            {/* Login Mode Switcher: Account vs Staff PIN */}
+            <div className="flex bg-slate-950 p-1 rounded-2xl border border-slate-800 text-xs">
+              <button
+                type="button"
+                onClick={() => {
+                  setLoginMode('account');
+                  setEmailOrUser('');
+                  setPassword('');
+                }}
+                className={`flex-1 py-2 rounded-xl font-black transition flex items-center justify-center space-x-1.5 ${
+                  loginMode === 'account'
+                    ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Lock className="w-3.5 h-3.5" />
+                <span>{language === 'bn' ? 'অ্যাকাউন্ট লগইন' : 'Account Login'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setLoginMode('staff');
+                  setEmailOrUser('01711-889900');
+                  setPassword('8821');
+                  setPolicyAccepted(true);
+                  localStorage.setItem('gps_policy_accepted', 'true');
+                }}
+                className={`flex-1 py-2 rounded-xl font-black transition flex items-center justify-center space-x-1.5 ${
+                  loginMode === 'staff'
+                    ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/30'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <KeyRound className="w-3.5 h-3.5 text-cyan-300" />
+                <span>{language === 'bn' ? '📱 স্টাফ ও পিন লগইন' : 'Staff PIN Login'}</span>
+              </button>
+            </div>
+
+            {/* If Staff Mode: Staff Quick Demo Selection Chips */}
+            {loginMode === 'staff' && (
+              <div className="bg-slate-950 p-3 rounded-2xl border border-cyan-500/40 space-y-2 animate-in fade-in">
+                <div className="text-[10.5px] font-extrabold text-cyan-300 flex items-center justify-between">
+                  <span>⚡ রেডিমেড স্টাফ আইডি সিলেক্ট করুন:</span>
+                  <span className="text-[9px] font-mono bg-cyan-500/20 text-cyan-300 px-1.5 py-0.2 rounded border border-cyan-500/30">PIN PROTECTED</span>
+                </div>
+
+                <div className="grid grid-cols-1 gap-1.5 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEmailOrUser('01711-889900');
+                      setPassword('8821');
+                    }}
+                    className={`p-2 rounded-xl border text-left flex items-center justify-between transition ${
+                      emailOrUser === '01711-889900' ? 'bg-cyan-950/80 border-cyan-500 text-white' : 'bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700'
+                    }`}
+                  >
+                    <div>
+                      <span className="font-bold block text-xs">👨‍💼 মোঃ শফিকুল আলম (লাইনম্যান)</span>
+                      <span className="text-[10px] text-slate-400">গাবতলী বাস টার্মিনাল • 01711-889900</span>
+                    </div>
+                    <span className="font-mono font-black text-amber-300 text-xs bg-slate-950 px-2 py-0.5 rounded border border-slate-800">PIN: 8821</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEmailOrUser('01822-771122');
+                      setPassword('4419');
+                    }}
+                    className={`p-2 rounded-xl border text-left flex items-center justify-between transition ${
+                      emailOrUser === '01822-771122' ? 'bg-cyan-950/80 border-cyan-500 text-white' : 'bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700'
+                    }`}
+                  >
+                    <div>
+                      <span className="font-bold block text-xs">👨‍💼 আব্দুর রাজ্জাক (কাউন্টার ইনচার্জ)</span>
+                      <span className="text-[10px] text-slate-400">জয়দেবপুর বাস টার্মিনাল • 01822-771122</span>
+                    </div>
+                    <span className="font-mono font-black text-amber-300 text-xs bg-slate-950 px-2 py-0.5 rounded border border-slate-800">PIN: 4419</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEmailOrUser('01712-334455');
+                      setPassword('9081');
+                    }}
+                    className={`p-2 rounded-xl border text-left flex items-center justify-between transition ${
+                      emailOrUser === '01712-334455' ? 'bg-cyan-950/80 border-cyan-500 text-white' : 'bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700'
+                    }`}
+                  >
+                    <div>
+                      <span className="font-bold block text-xs">👨‍✈️ মোঃ আব্দুল কুদ্দুস (বাস চালক)</span>
+                      <span className="text-[10px] text-slate-400">ঢাকা মেট্রো-ব ১৪-৯৯০১ • 01712-334455</span>
+                    </div>
+                    <span className="font-mono font-black text-amber-300 text-xs bg-slate-950 px-2 py-0.5 rounded border border-slate-800">PIN: 9081</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* User ID / Mobile Phone */}
             <div>
               <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                {language === 'bn' ? 'ইউজার আইডি বা ইমেইল' : 'User ID / Email'}
+                {loginMode === 'staff' 
+                  ? (language === 'bn' ? '📱 স্টাফ মোবাইল নম্বর' : 'Staff Mobile Number')
+                  : (language === 'bn' ? 'ইউজার আইডি বা ইমেইল' : 'User ID / Email')}
               </label>
               <div className="relative">
                 <Mail className="w-4 h-4 absolute left-3.5 top-3.5 text-slate-400" />
@@ -171,17 +278,19 @@ export const LoginScreen: React.FC = () => {
                   type="text"
                   value={emailOrUser}
                   onChange={(e) => setEmailOrUser(e.target.value)}
-                  placeholder={language === 'bn' ? 'আপনার ইউজার আইডি বা ইমেইল' : 'Enter User ID or Email'}
+                  placeholder={loginMode === 'staff' ? '01711-XXXXXX' : (language === 'bn' ? 'আপনার ইউজার আইডি বা ইমেইল' : 'Enter User ID or Email')}
                   required
                   className="w-full bg-slate-800/90 border border-slate-700/80 rounded-2xl pl-10 pr-3 py-3 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500"
                 />
               </div>
             </div>
 
-            {/* Password */}
+            {/* Password / 4-Digit PIN */}
             <div>
               <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                {language === 'bn' ? 'পাসওয়ার্ড' : 'Password'}
+                {loginMode === 'staff' 
+                  ? (language === 'bn' ? '🔑 ৪-ডিজিটের গোপন পিন (PIN)' : '4-Digit Login PIN')
+                  : (language === 'bn' ? 'পাসওয়ার্ড' : 'Password')}
               </label>
               <div className="relative">
                 <Lock className="w-4 h-4 absolute left-3.5 top-3.5 text-slate-400" />
@@ -189,9 +298,9 @@ export const LoginScreen: React.FC = () => {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
+                  placeholder={loginMode === 'staff' ? '৪-ডিজিট পিন (যেমন: 8821)' : '••••••••'}
                   required
-                  className="w-full bg-slate-800/90 border border-slate-700/80 rounded-2xl pl-10 pr-10 py-3 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                  className="w-full bg-slate-800/90 border border-slate-700/80 rounded-2xl pl-10 pr-10 py-3 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 font-mono"
                 />
                 <button
                   type="button"

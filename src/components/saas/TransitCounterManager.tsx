@@ -1218,7 +1218,7 @@ export const TransitCounterManager: React.FC<TransitCounterManagerProps> = ({ is
                     <span>{staff.lastActive}</span>
                   </div>
 
-                  {/* 3 PIN Delivery Action Buttons */}
+                  {/* Action Buttons: Copy, WhatsApp, SMS and 1-Click Staff Preview */}
                   <div className="grid grid-cols-3 gap-1 text-[10px] font-bold">
                     {/* 1. Copy PIN */}
                     <button
@@ -1261,6 +1261,20 @@ export const TransitCounterManager: React.FC<TransitCounterManagerProps> = ({ is
                       <span>{copiedStaffId === `sms_${staff.id}` ? 'এসএমএস সেন্ট' : 'SMS পাঠান'}</span>
                     </button>
                   </div>
+
+                  {/* 4. 1-Click Impersonate / Preview as this Staff */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOperatorRole('supervisor');
+                      setActiveSubView('schedules');
+                    }}
+                    className="w-full py-1.5 rounded-xl bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 border border-cyan-500/40 text-[10.5px] font-bold flex items-center justify-center space-x-1.5 transition active:scale-95"
+                    title="এই স্টাফের পোর্টালে সরাসরি ঢুকে ভিউ দেখুন"
+                  >
+                    <Eye className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>👁️ স্টাফ ভিউ প্রিভিউ (সরাসরি টেস্ট করুন)</span>
+                  </button>
                 </div>
               </div>
             ))}
