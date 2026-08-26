@@ -139,6 +139,7 @@ const DEMO_TRANSIT_FLEET: Device[] = [
 
 export const FleetTransitHubView: React.FC = () => {
   const { 
+    user,
     devices, 
     selectedDeviceId, 
     setSelectedDeviceId, 
@@ -151,6 +152,227 @@ export const FleetTransitHubView: React.FC = () => {
   const [activeSubTab, setActiveSubTab] = useState<'transit_counters' | 'compliance_vault' | 'driver_performance'>('transit_counters');
   const [vehicleSearch, setVehicleSearch] = useState('');
   const [fleetFilter, setFleetFilter] = useState<'ALL' | 'MOVING' | 'PARKED' | 'IDLE'>('ALL');
+
+  const isStaffUser = Boolean(
+    user?.email?.includes('fleetstaff') || 
+    user?.role === 'supervisor' || 
+    user?.role === 'driver' || 
+    (user as any)?.assigned ||
+    /^[0-9\-\+]+@/.test(user?.email || '')
+  );
+  const isDriver = isStaffUser && (user?.role === 'driver' || user?.name?.includes('কুদ্দুস') || (user as any)?.assigned?.includes('ঢাকা মেট্রো-ব'));
+  const staffTerminalOrBus = (user as any)?.assigned || (isDriver ? 'হানিফ এন্টারপ্রাইজ Hino 1J (ঢাকা মেট্রো-ব ১৪-৯৯০১)' : 'গাবতলী সেন্ট্রাল বাস টার্মিনাল');
+
+  // =========================================================================
+  // 🛡️ DEDICATED CLEAN WORK PORTAL FOR STAFF SUB-USERS (LINEMAN & DRIVER)
+  // =========================================================================
+  if (isStaffUser) {
+    return (
+      <div className="flex-1 overflow-y-auto bg-slate-950 p-3 sm:p-5 space-y-4 select-none animate-in fade-in">
+        {/* Top Banner with Staff Persona */}
+        <div className="bg-gradient-to-r from-slate-900 via-cyan-950/40 to-slate-900 border border-cyan-500/40 rounded-3xl p-4 sm:p-5 shadow-2xl space-y-3">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-center space-x-3">
+              <button
+                type="button"
+                onClick={() => setActiveTab('map')}
+                className="p-2 rounded-2xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition"
+                title="ম্যাপে ফিরে যান"
+              >
+                <ArrowLeft className="w-4 h-4" />
+              </button>
+
+              <div className="w-12 h-12 rounded-2xl bg-cyan-600/30 text-cyan-300 border border-cyan-500/50 flex items-center justify-center text-2xl shadow-lg shrink-0">
+                {isDriver ? '👨‍✈️' : '👨‍💼'}
+              </div>
+
+              <div>
+                <div className="flex items-center space-x-2 flex-wrap">
+                  <h2 className="font-black text-base text-white">
+                    {isDriver ? '🚌 বাস চালক ডিজিটাল কেবিন ও ট্রিপ পোর্টাল' : '🏢 কাউন্টার লাইনম্যান ও গেটপাস পোর্টাল'}
+                  </h2>
+                  <span className="text-[9px] font-mono px-2 py-0.5 rounded-full font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
+                    {isDriver ? 'DRIVER ACCESS' : 'LINE SUPERVISOR'}
+                  </span>
+                  <span className="text-[9px] font-mono px-2 py-0.5 rounded-full font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                    🟢 DUTY ACTIVE
+                  </span>
+                </div>
+                <p className="text-xs text-slate-300 mt-0.5">
+                  স্বাগতম, <strong>{user?.name || 'স্টাফ মেম্বার'}</strong> • নির্ধারিত দায়িত্ব: <strong className="text-cyan-300">{staffTerminalOrBus}</strong>
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2 self-end sm:self-auto text-xs">
+              <span className="px-3 py-1.5 rounded-xl bg-slate-900 text-emerald-300 font-mono font-bold border border-emerald-500/40 flex items-center space-x-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span>পিন ভেরিফাইড সাব-ইউজার</span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Dedicated Staff Content View */}
+        {isDriver ? (
+          /* Driver View */
+          <div className="space-y-4">
+            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-2xl space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 rounded-2xl bg-blue-600/30 text-blue-300 border border-blue-500/40 flex items-center justify-center text-xl">
+                    🚌
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black text-white">হানিফ এন্টারপ্রাইজ Hino 1J</h3>
+                    <span className="text-xs font-mono font-bold text-cyan-400">ঢাকা মেট্রো-ব ১৪-৯৯০১</span>
+                  </div>
+                </div>
+                <span className="px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-mono font-black text-xs">
+                  ⚡ ৬০ কিমি/ঘণ্টা (চলমান)
+                </span>
+              </div>
+
+              {/* Trip Live Telematics */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800">
+                  <span className="text-[10.5px] text-slate-400 block font-bold">🛣️ নির্ধারিত রুট:</span>
+                  <span className="font-extrabold text-cyan-300 text-sm block mt-0.5">গাবতলী টার্মিনাল ➔ বগুড়া</span>
+                </div>
+                <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800">
+                  <span className="text-[10.5px] text-slate-400 block font-bold">📍 লাইভ অবস্থান:</span>
+                  <span className="font-extrabold text-slate-100 text-xs block mt-0.5">ঢাকা-ময়মনসিংহ হাইওয়ে (টোল প্লাজা)</span>
+                </div>
+                <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800">
+                  <span className="text-[10.5px] text-slate-400 block font-bold">👥 যাত্রী সংখ্যা:</span>
+                  <span className="font-extrabold text-emerald-300 text-sm block mt-0.5">৩৮ জন যাত্রী (সিট বুকড)</span>
+                </div>
+              </div>
+
+              {/* Driver Quick Actions */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('map')}
+                  className="py-3 px-3 rounded-2xl bg-cyan-600 hover:bg-cyan-500 text-white font-extrabold text-xs flex items-center justify-center space-x-2 shadow-lg shadow-cyan-600/30 transition active:scale-95"
+                >
+                  <Navigation className="w-4 h-4" />
+                  <span>🗺️ জিপিএস ম্যাপ নেভিগেশন</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => alert('চালান নং #WAY-8801\nরুট: গাবতলী ➔ বগুড়া\nমোট যাত্রী: ৩৮ জন\nডিজেল লোড: ১৮০ লিটার\nস্ট্যাটাস: ইন ট্রানজিট')}
+                  className="py-3 px-3 rounded-2xl bg-slate-800 hover:bg-slate-750 text-slate-200 border border-slate-700 font-bold text-xs flex items-center justify-center space-x-2 transition active:scale-95"
+                >
+                  <FileText className="w-4 h-4 text-emerald-400" />
+                  <span>📋 ডিজিটাল চালান ও ওয়েবিল</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => alert('🚨 সেন্ট্রাল ওনার কন্ট্রোলরুমে এসওএস এলার্ট পাঠানো হয়েছে!')}
+                  className="py-3 px-3 rounded-2xl bg-rose-950/60 hover:bg-rose-900/70 text-rose-300 border border-rose-500/50 font-bold text-xs flex items-center justify-center space-x-2 transition active:scale-95"
+                >
+                  <AlertCircle className="w-4 h-4 text-rose-400" />
+                  <span>🚨 জরুরি এসওএস / মেকানিক</span>
+                </button>
+                <a
+                  href="tel:01711889900"
+                  className="py-3 px-3 rounded-2xl bg-indigo-950/60 hover:bg-indigo-900/70 text-indigo-300 border border-indigo-500/50 font-bold text-xs flex items-center justify-center space-x-2 transition active:scale-95"
+                >
+                  <Phone className="w-4 h-4 text-indigo-400" />
+                  <span>📞 কাউন্টারম্যানকে কল</span>
+                </a>
+              </div>
+            </div>
+          </div>
+        ) : (
+          /* Supervisor / Lineman View */
+          <div className="space-y-4">
+            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-2xl space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 rounded-2xl bg-cyan-600/30 text-cyan-300 border border-cyan-500/40 flex items-center justify-center text-xl">
+                    🏢
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black text-white">{staffTerminalOrBus}</h3>
+                    <span className="text-xs text-slate-400">টার্মিনাল লাইনম্যান ও বাস ডিপার্চার গেটপাস কন্ট্রোল</span>
+                  </div>
+                </div>
+                <span className="px-3 py-1 rounded-full bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 font-bold text-xs">
+                  আজকের শিডিউল: ৩টি বাস
+                </span>
+              </div>
+
+              {/* Gabtoli Assigned Departure Table */}
+              <div className="space-y-2.5">
+                <span className="text-xs font-bold text-slate-300 block">🚌 এই টার্মিনাল থেকে ছাড়ার অপেক্ষায় থাকা বাসসমূহ:</span>
+                <div className="bg-slate-950 border border-slate-800 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <span className="font-black text-sm text-white">হানিফ এন্টারপ্রাইজ Hino 1J</span>
+                      <span className="text-xs font-mono font-bold text-cyan-400">ঢাকা মেট্রো-ব ১৪-৯৯০১</span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">কাউন্টারে ইনসাইড</span>
+                    </div>
+                    <div className="text-xs text-slate-400 mt-1 flex items-center space-x-3">
+                      <span>রুট: <strong>গাবতলী ➔ বগুড়া</strong></span>
+                      <span>সময়: <strong>১০:৩০ AM</strong></span>
+                      <span>চালক: <strong>মোঃ আব্দুল কুদ্দুস (01712-334455)</strong></span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-2 self-end sm:self-auto">
+                    <button
+                      type="button"
+                      onClick={() => alert('✅ গেটপাস অনুমোদিত! বাসটি গাবতলী টার্মিনাল ছাড়ার ক্লিয়ারেন্স পেয়েছে।')}
+                      className="py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center space-x-1.5 shadow-md shadow-emerald-600/30 transition active:scale-95"
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>ডিপার্চার গেটপাস অনুমোদন</span>
+                    </button>
+                    <a
+                      href="tel:01712334455"
+                      className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition"
+                      title="চালককে কল দিন"
+                    >
+                      <Phone className="w-4 h-4 text-cyan-400" />
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              {/* Lineman Quick Actions */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('map')}
+                  className="py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-200 border border-slate-700 font-bold text-xs flex items-center justify-center space-x-2 transition active:scale-95"
+                >
+                  <Navigation className="w-4 h-4 text-cyan-400" />
+                  <span>🗺️ টার্মিনাল ম্যাপ ভিউ</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => alert('যাত্রী তালিকা সংরক্ষিত ও সেন্ট্রাল সার্ভারে সিঙ্ক হয়েছে!')}
+                  className="py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-200 border border-slate-700 font-bold text-xs flex items-center justify-center space-x-2 transition active:scale-95"
+                >
+                  <Users className="w-4 h-4 text-emerald-400" />
+                  <span>👥 প্যাসেঞ্জার ও সিট কাউন্ট</span>
+                </button>
+                <a
+                  href="tel:01700000000"
+                  className="py-2.5 px-3 rounded-xl bg-indigo-950/60 hover:bg-indigo-900/70 text-indigo-300 border border-indigo-500/50 font-bold text-xs flex items-center justify-center space-x-2 transition active:scale-95"
+                >
+                  <Phone className="w-4 h-4 text-indigo-400" />
+                  <span>📞 প্রধান কার্যালয় / ওনার হটলাইন</span>
+                </a>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   const category = (selectedDevice?.category || '').toLowerCase();
   const isTruckOrCargo = category.includes('truck') || category.includes('trailer') || category.includes('pickup') || category.includes('van');

@@ -95,6 +95,25 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
 
   // Role Metadata for Staff / Partner
   const getRoleHeaderInfo = () => {
+    const isStaffUser = Boolean(
+      user?.email?.includes('fleetstaff') || 
+      user?.role === 'supervisor' || 
+      user?.role === 'driver' || 
+      (user as any)?.assigned ||
+      /^[0-9\-\+]+@/.test(user?.email || '')
+    );
+    const isDriverStaff = isStaffUser && (user?.role === 'driver' || user?.name?.includes('কুদ্দুস') || (user as any)?.assigned?.includes('ঢাকা মেট্রো-ব'));
+
+    if (isStaffUser) {
+      return {
+        titleBn: isDriverStaff ? 'ফ্লিট বাস চালক (Driver Sub-User)' : 'কাউন্টার লাইনম্যান / সুপারভাইজার (Staff Sub-User)',
+        titleEn: isDriverStaff ? 'Fleet Driver Sub-User' : 'Counter Supervisor Sub-User',
+        icon: isDriverStaff ? Bus : Users,
+        color: isDriverStaff ? 'from-emerald-600 to-teal-700' : 'from-cyan-600 to-blue-700',
+        badgeColor: isDriverStaff ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' : 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40'
+      };
+    }
+
     switch (currentRole) {
       case 'partner':
         return {
@@ -466,9 +485,9 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
           )}
 
           {/* ========================================================================= */}
-          {/* 7. CUSTOMER / VEHICLE OWNER SUBSCRIPTION & BILLING CARD                   */}
+          {/* 7. CUSTOMER / VEHICLE OWNER SUBSCRIPTION & BILLING CARD (HIDDEN FOR STAFF) */}
           {/* ========================================================================= */}
-          {currentRole === 'customer' && (
+          {!Boolean(user?.email?.includes('fleetstaff') || user?.role === 'supervisor' || user?.role === 'driver' || (user as any)?.assigned || /^[0-9\-\+]+@/.test(user?.email || '')) && currentRole === 'customer' && (
             <div className="bg-gradient-to-br from-indigo-950/70 via-slate-900 to-slate-900 border border-indigo-500/40 rounded-2xl p-3.5 shadow-xl space-y-2.5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-1.5 text-indigo-300">
