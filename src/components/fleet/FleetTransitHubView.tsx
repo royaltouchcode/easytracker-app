@@ -218,6 +218,17 @@ export const FleetTransitHubView: React.FC = () => {
     { id: 2, sender: '👨‍✈️ চালক (কুদ্দুস)', text: 'বাস রেডি • গেটপাস ক্লিয়ারেন্স দিন', time: '১০:২৮ AM', target: 'লাইনম্যান' }
   ]);
 
+  // Dynamic Onboard Passenger Management
+  const [onboardPassengerCount, setOnboardPassengerCount] = useState(38);
+  const [boardingLogs, setBoardingLogs] = useState<Array<{ id: number; location: string; count: number; delta: number; time: string }>>([
+    { id: 1, location: 'গাবতলী সেন্ট্রাল টার্মিনাল (১ম বোর্ডিং)', count: 30, delta: 30, time: '১০:৩০ AM' },
+    { id: 2, location: 'সাভার বাজার বাসস্ট্যান্ড (সাব-কাউন্টার)', count: 35, delta: 5, time: '১১:১৫ AM' },
+    { id: 3, location: 'চন্দ্রা ত্রিমোড় (হাইওয়ে পিকআপ)', count: 38, delta: 3, time: '১১:৪৫ AM' }
+  ]);
+  const [isGatepassApprovalModalOpen, setIsGatepassApprovalModalOpen] = useState(false);
+  const [gatepassBatchInput, setGatepassBatchInput] = useState(38);
+  const [showBoardingLogs, setShowBoardingLogs] = useState(false);
+
   const [isDriverSosOpen, setIsDriverSosOpen] = useState(false);
 
   // ADAS Cabin Alarm Simulation State
@@ -275,6 +286,26 @@ export const FleetTransitHubView: React.FC = () => {
     }
 
     sendWalkieMessage(text, sender, target);
+  };
+
+  const updatePassengerOnboard = (delta: number) => {
+    const nextCount = Math.max(0, Math.min(40, onboardPassengerCount + delta));
+    setOnboardPassengerCount(nextCount);
+    const newLog = {
+      id: Date.now(),
+      location: delta > 0 ? 'হাইওয়ে স্পট পিকআপ (জিপিএস লাইভ)' : 'হাইওয়ে ড্রপ অফ (জিপিএস লাইভ)',
+      count: nextCount,
+      delta,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+    setBoardingLogs(prev => [newLog, ...prev]);
+    sendWalkieMessage(
+      delta > 0 
+        ? `👥 নতুন যাত্রী অনবোর্ড (+${delta} জন) • বাসে বর্তমান যাত্রী: ${nextCount}/৪০ জন` 
+        : `👥 যাত্রী নেমেছেন (${delta} জন) • বাসে বর্তমান যাত্রী: ${nextCount}/৪০ জন`,
+      '👨‍✈️ চালক/কন্ডাক্টর',
+      'কাউন্টার ও ওনার'
+    );
   };
 
   // =========================================================================
@@ -394,11 +425,65 @@ export const FleetTransitHubView: React.FC = () => {
                   <span className="text-[10.5px] text-slate-400 block font-bold">📍 লাইভ অবস্থান:</span>
                   <span className="font-extrabold text-slate-100 text-xs block mt-0.5">ঢাকা-ময়মনসিংহ হাইওয়ে (টোল প্লাজা)</span>
                 </div>
-                <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800">
-                  <span className="text-[10.5px] text-slate-400 block font-bold">👥 যাত্রী সংখ্যা:</span>
-                  <span className="font-extrabold text-emerald-300 text-sm block mt-0.5">৩৮ জন যাত্রী (সিট বুকড)</span>
+                <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800 flex flex-col justify-between">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10.5px] text-slate-400 font-bold">👥 অনবোর্ড যাত্রী:</span>
+                    <button
+                      type="button"
+                      onClick={() => setShowBoardingLogs(!showBoardingLogs)}
+                      className="text-[9.5px] text-cyan-400 hover:text-cyan-300 font-bold underline"
+                    >
+                      {showBoardingLogs ? 'লগ লুকান' : '📋 পিকআপ লগ'}
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-between my-1">
+                    <span className="font-black text-emerald-300 text-base">
+                      {onboardPassengerCount} <span className="text-xs text-slate-400 font-normal">/ ৪০ জন</span>
+                    </span>
+
+                    {/* 1-Touch Quick Highway Steppers for Conductor / Driver */}
+                    <div className="flex items-center space-x-1.5">
+                      <button
+                        type="button"
+                        onClick={() => updatePassengerOnboard(-1)}
+                        disabled={onboardPassengerCount <= 0}
+                        className="w-7 h-7 rounded-xl bg-rose-950/70 hover:bg-rose-900 border border-rose-500/50 text-rose-300 font-black text-xs flex items-center justify-center transition active:scale-90 disabled:opacity-30"
+                        title="১ জন যাত্রী নামল"
+                      >
+                        -১
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => updatePassengerOnboard(1)}
+                        disabled={onboardPassengerCount >= 40}
+                        className="px-2.5 h-7 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-[11px] flex items-center justify-center space-x-1 shadow-md shadow-emerald-600/30 transition active:scale-90 disabled:opacity-30"
+                        title="হাইওয়েতে ১ জন নতুন যাত্রী উঠল"
+                      >
+                        <span>➕ ১ জন উঠল</span>
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
+
+              {/* Collapsible Live Boarding History Stream */}
+              {showBoardingLogs && (
+                <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800 space-y-1.5 text-xs animate-in fade-in">
+                  <span className="text-[10px] font-extrabold text-cyan-300 uppercase block">📋 আজকের ট্রিপের বোর্ডিং হিস্টোরি (জিপিএস অটো-লগ):</span>
+                  {boardingLogs.map(log => (
+                    <div key={log.id} className="flex justify-between items-center bg-slate-900/90 p-2 rounded-xl border border-slate-800/80">
+                      <div>
+                        <span className="text-white font-bold">{log.location}</span>
+                        <span className="text-[10px] text-cyan-400 font-mono block">
+                          {log.delta > 0 ? `+${log.delta} জন বোর্ডিং` : `${log.delta} জন নামল`} • বাসে মোট: {log.count} জন
+                        </span>
+                      </div>
+                      <span className="text-[10px] text-slate-500 font-mono">{log.time}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               {/* Driver Quick Actions */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2">
@@ -678,11 +763,11 @@ export const FleetTransitHubView: React.FC = () => {
                   <div className="flex items-center space-x-2 self-end md:self-auto">
                     <button
                       type="button"
-                      onClick={() => alert('✅ গেটপাস অনুমোদিত! বাসটি গাবতলী টার্মিনাল ছাড়ার ক্লিয়ারেন্স পেয়েছে।')}
+                      onClick={() => setIsGatepassApprovalModalOpen(true)}
                       className="py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center space-x-1.5 shadow-md shadow-emerald-600/30 transition active:scale-95"
                     >
                       <CheckCircle2 className="w-4 h-4" />
-                      <span>ডিপার্চার গেটপাস অনুমোদন</span>
+                      <span>ডিপার্চার গেটপাস অনুমোদন ({onboardPassengerCount} যাত্রী)</span>
                     </button>
                     <a
                       href={`tel:${assignedDriverPhone}`}
@@ -1002,6 +1087,86 @@ export const FleetTransitHubView: React.FC = () => {
                   <Phone className="w-4 h-4" />
                   <span>জরুরি পুলিশ / এম্বুলেন্স (৯৯৯)</span>
                 </a>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* 📋 MODAL 5: SUPERVISOR 1-CLICK GATEPASS & PASSENGER BATCH APPROVAL         */}
+        {/* ========================================================================= */}
+        {isGatepassApprovalModalOpen && (
+          <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+            <div className="bg-slate-900 border border-emerald-500/40 rounded-3xl p-5 max-w-md w-full shadow-2xl space-y-4 animate-in fade-in">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div className="flex items-center space-x-2">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                  <h3 className="font-black text-sm text-white">ডিপার্চার গেটপাস ও যাত্রী অনুমোদন</h3>
+                </div>
+                <button onClick={() => setIsGatepassApprovalModalOpen(false)} className="p-1 rounded-full text-slate-400 hover:text-white">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="space-y-3 text-xs">
+                <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800 space-y-1">
+                  <div className="text-white font-bold">হানিফ এন্টারপ্রাইজ Hino 1J ({assignedBusPlate})</div>
+                  <div className="text-slate-400 font-mono text-[11px]">রুট: গাবতলী ➔ বগুড়া | চালক: {assignedDriverName}</div>
+                </div>
+
+                <div>
+                  <label className="text-slate-300 block font-bold mb-1.5">
+                    ১ম বোর্ডিং মোট যাত্রী সংখ্যা (কাউন্টার টিকিট অনুযায়ী):
+                  </label>
+                  <div className="flex items-center space-x-3">
+                    <input
+                      type="number"
+                      min={1}
+                      max={40}
+                      value={gatepassBatchInput}
+                      onChange={(e) => setGatepassBatchInput(Number(e.target.value))}
+                      className="w-24 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white font-black text-center text-lg"
+                    />
+                    <span className="text-slate-400 text-xs font-mono">/ ৪০ সিট ক্যাপাসিটি</span>
+                  </div>
+                  <span className="text-[10px] text-slate-500 mt-1 block">
+                    *১ ক্লিকেই পুরো ব্যাচ সংখ্যা চালক ও মালিকের ড্যাশবোর্ডে সিঙ্ক হয়ে যাবে।
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-2 pt-2 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setIsGatepassApprovalModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 font-bold text-xs"
+                >
+                  বাতিল
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOnboardPassengerCount(gatepassBatchInput);
+                    const newLog = {
+                      id: Date.now(),
+                      location: `${staffTerminalOrBus} (১ম বোর্ডিং গেটপাস)`,
+                      count: gatepassBatchInput,
+                      delta: gatepassBatchInput,
+                      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                    };
+                    setBoardingLogs([newLog]);
+                    sendWalkieMessage(
+                      `✅ গেটপাস অনুমোদিত! মোট যাত্রী: ${gatepassBatchInput} জন • ট্রিপ ছাড়ার ক্লিয়ারেন্স দেওয়া হলো।`,
+                      '🏢 কাউন্টার ইনচার্জ / লাইনম্যান',
+                      'বাস চালক ও ওনার'
+                    );
+                    alert(`✅ গেটপাস অনুমোদিত! ${gatepassBatchInput} জন যাত্রী সহ বাসটি টার্মিনাল ছাড়ার ক্লিয়ারেন্স পেয়েছে।`);
+                    setIsGatepassApprovalModalOpen(false);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs shadow-lg shadow-emerald-600/30 transition active:scale-95"
+                >
+                  অনুমোদন ও গেটপাস ছাড়ুন
+                </button>
               </div>
             </div>
           </div>
