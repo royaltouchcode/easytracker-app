@@ -78,14 +78,115 @@ class TraccarApiService {
 
     const lowerUser = emailOrUser.toLowerCase().trim();
     const cleanPhone = emailOrUser.replace(/[^0-9]/g, '');
+
+    // 1. Dynamic Company Managers Check (from LocalStorage)
+    try {
+      const savedManagers = localStorage.getItem('gps_fleet_company_managers');
+      if (savedManagers) {
+        const managers = JSON.parse(savedManagers);
+        const match = managers.find((m: any) => m.phone.replace(/[^0-9]/g, '') === cleanPhone);
+        if (match) {
+          if (pass.trim() === match.pin) {
+            return {
+              success: true,
+              user: {
+                id: 8001,
+                name: `${match.name} (কোম্পানি ম্যানেজার)`,
+                email: `${cleanPhone}@fleetstaff.easytracker.com`,
+                administrator: false,
+                readonly: false,
+                role: 'manager',
+                assigned: `${match.company} সেন্ট্রাল হেড অফিস`,
+                company: match.company,
+                serverUrl: this.baseUrl
+              }
+            };
+          } else {
+            return {
+              success: false,
+              error: `ভুল পিন কোড! ${match.name}-এর জন্য সঠিক ৪-ডিজিট পিন (${match.pin}) দিন।`
+            };
+          }
+        }
+      }
+    } catch (e) {}
+
+    // 2. Dynamic Station Counter Incharges Check (from LocalStorage)
+    try {
+      const savedStations = localStorage.getItem('gps_mgr_stations');
+      if (savedStations) {
+        const stations = JSON.parse(savedStations);
+        const match = stations.find((s: any) => s.phone.replace(/[^0-9]/g, '') === cleanPhone);
+        if (match) {
+          if (pass.trim() === match.pin) {
+            return {
+              success: true,
+              user: {
+                id: 8002,
+                name: `${match.incharge} (কাউন্টার ইনচার্জ)`,
+                email: `${cleanPhone}@fleetstaff.easytracker.com`,
+                administrator: false,
+                readonly: false,
+                role: 'counter_incharge',
+                assigned: match.name,
+                serverUrl: this.baseUrl
+              }
+            };
+          } else {
+            return {
+              success: false,
+              error: `ভুল পিন কোড! ${match.incharge}-এর জন্য সঠিক ৪-ডিজিট পিন (${match.pin}) দিন।`
+            };
+          }
+        }
+      }
+    } catch (e) {}
+
+    // 3. Dynamic Bus Supervisors Check (from LocalStorage)
+    try {
+      const savedSups = localStorage.getItem('gps_mgr_supervisors');
+      if (savedSups) {
+        const sups = JSON.parse(savedSups);
+        const match = sups.find((s: any) => s.phone.replace(/[^0-9]/g, '') === cleanPhone);
+        if (match) {
+          if (pass.trim() === match.pin) {
+            return {
+              success: true,
+              user: {
+                id: 8003,
+                name: `${match.name} (বাস সুপারভাইজার)`,
+                email: `${cleanPhone}@fleetstaff.easytracker.com`,
+                administrator: false,
+                readonly: false,
+                role: 'vehicle_supervisor',
+                assigned: match.bus,
+                serverUrl: this.baseUrl
+              }
+            };
+          } else {
+            return {
+              success: false,
+              error: `ভুল পিন কোড! ${match.name}-এর জন্য সঠিক ৪-ডিজিট পিন (${match.pin}) দিন।`
+            };
+          }
+        }
+      }
+    } catch (e) {}
+
+    // 4. Default Preset Staff PIN Users
     const STAFF_PIN_USERS: Record<string, { pin: string; name: string; role: string; assigned: string }> = {
       '01710001122': { pin: '5501', name: 'মোঃ শামীম ওসমান (কোম্পানি ম্যানেজার)', role: 'manager', assigned: 'হানিফ এন্টারপ্রাইজ সেন্ট্রাল হেড অফিস' },
+      '01799887766': { pin: '6620', name: 'মোঃ কামরুল হাসান (কোম্পানি ম্যানেজার)', role: 'manager', assigned: 'শ্যামলী পরিবহন সেন্ট্রাল ডিপো' },
+      '01733445566': { pin: '7731', name: 'আনিসুর রহমান (কোম্পানি ম্যানেজার)', role: 'manager', assigned: 'এনা ট্রান্সপোর্ট ইন্টারসিটি টার্মিনাল' },
       '01822771122': { pin: '4419', name: 'আব্দুর রাজ্জাক (কাউন্টার ইনচার্জ)', role: 'counter_incharge', assigned: 'জয়দেবপুর বাস টার্মিনাল' },
+      '01715998877': { pin: '3312', name: 'মোঃ আশরাফুল আলম (কাউন্টার ইনচার্জ)', role: 'counter_incharge', assigned: 'গাবতলী সেন্ট্রাল টার্মিনাল' },
+      '01911223344': { pin: '7721', name: 'মোঃ জহিরুল ইসলাম (কাউন্টার ইনচার্জ)', role: 'counter_incharge', assigned: 'বগুড়া চারমাথা টার্মিনাল' },
       '01711889900': { pin: '8821', name: 'মোঃ শফিকুল আলম (বাস সুপারভাইজার)', role: 'vehicle_supervisor', assigned: 'হানিফ এন্টারপ্রাইজ Hino 1J (ঢাকা মেট্রো-ব ১৪-৯৯০১)' },
+      '01833445566': { pin: '6610', name: 'মোঃ রোকনুজ্জামান (বাস সুপারভাইজার)', role: 'vehicle_supervisor', assigned: 'শ্যামলী পরিবহন Scania Multi-Axle' },
+      '01755667788': { pin: '7719', name: 'মোঃ জাহাঙ্গীর আলম (বাস সুপারভাইজার)', role: 'vehicle_supervisor', assigned: 'এনা এক্সপ্রেস Hyundai Universe' },
       '01712334455': { pin: '9081', name: 'মোঃ আব্দুল কুদ্দুস (বাস চালক)', role: 'driver', assigned: 'হানিফ এন্টারপ্রাইজ Hino 1J (ঢাকা মেট্রো-ব ১৪-৯৯০১)' },
     };
 
-    // 1. Staff PIN Login verification
     if (STAFF_PIN_USERS[cleanPhone]) {
       const staff = STAFF_PIN_USERS[cleanPhone];
       if (pass.trim() === staff.pin) {
@@ -96,7 +197,7 @@ class TraccarApiService {
             name: staff.name,
             email: `${cleanPhone}@fleetstaff.easytracker.com`,
             administrator: false,
-            readonly: true,
+            readonly: false,
             role: staff.role,
             assigned: staff.assigned,
             serverUrl: this.baseUrl
@@ -110,7 +211,36 @@ class TraccarApiService {
       }
     }
 
-    const isRoleUser = ['demo', 'admin', 'ops', 'operations', 'sales', 'tech', 'technician', 'support', 'rescue', 'partner', 'fleet', 'bus', 'transit', 'user'].some(r => lowerUser.startsWith(r));
+    // 5. SaaS Enterprise RBAC Users Check (from LocalStorage)
+    try {
+      const savedSaaSUsers = localStorage.getItem('gps_enterprise_rbac_users');
+      if (savedSaaSUsers) {
+        const saasUsers = JSON.parse(savedSaaSUsers);
+        const match = saasUsers.find((u: any) => 
+          (cleanPhone.length >= 10 && u.phone.replace(/[^0-9]/g, '') === cleanPhone) || 
+          (lowerUser.includes('@') && u.email?.toLowerCase() === lowerUser) ||
+          u.name?.toLowerCase().includes(lowerUser)
+        );
+        if (match) {
+          return {
+            success: true,
+            user: {
+              id: 9001,
+              name: match.name,
+              email: match.email || `${cleanPhone}@easytracker.com`,
+              administrator: match.primaryRole === 'super_admin',
+              readonly: false,
+              role: match.primaryRole,
+              approvedRoles: match.approvedRoles || [match.primaryRole, 'customer'],
+              permissions: match.permissions,
+              serverUrl: this.baseUrl
+            }
+          };
+        }
+      }
+    } catch (e) {}
+
+    const isRoleUser = ['demo', 'admin', 'ops', 'operations', 'sales', 'tech', 'technician', 'support', 'rescue', 'partner', 'fleet', 'bus', 'transit', 'user', 'owner', 'manager', 'lead'].some(r => lowerUser.startsWith(r));
 
     // Instant bypass for all demo & role test users
     if (isRoleUser) {

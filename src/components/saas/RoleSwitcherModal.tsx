@@ -14,7 +14,8 @@ import {
   Bot,
   Plus,
   ArrowRight,
-  Layers
+  Layers,
+  Building2
 } from 'lucide-react';
 import { SaasRole } from '../../types/traccar';
 import { useApp } from '../../context/AppContext';
@@ -64,9 +65,9 @@ const ALL_PRESET_ROLES: {
     descBn: '৪,০৯৬ স্লট কোটা, ফ্লোটিং ব্যালেন্স লেজার, স্টাফ ম্যানেজমেন্ট ও শপ প্রোফাইল।',
     descEn: '4096 Slot quotas, floating ledger, staff management & shop profile.',
     icon: ShieldCheck,
-    color: 'text-indigo-400',
-    bg: 'bg-indigo-600/20',
-    border: 'border-indigo-500/40',
+    color: 'text-teal-400',
+    bg: 'bg-teal-600/20',
+    border: 'border-teal-500/40',
     targetTab: 'saas_partner'
   },
   {
@@ -80,6 +81,18 @@ const ALL_PRESET_ROLES: {
     bg: 'bg-amber-600/20',
     border: 'border-amber-500/40',
     targetTab: 'saas_admin'
+  },
+  {
+    id: 'operations_manager',
+    titleBn: 'SaaS অপারেশনস ম্যানেজার (Central ERP)',
+    titleEn: 'SaaS Operations Manager',
+    descBn: 'ট্র্যাকার ও সিম ইনভেন্টরি ERP, টেকনিশিয়ান শিডিউলিং ও ডিলার কোটা অনুমোদন।',
+    descEn: 'Central hardware & SIM inventory ERP, tech scheduling & dealer quota.',
+    icon: Building2,
+    color: 'text-cyan-400',
+    bg: 'bg-cyan-600/20',
+    border: 'border-cyan-500/40',
+    targetTab: 'saas_sales'
   },
   {
     id: 'sales',
@@ -104,6 +117,18 @@ const ALL_PRESET_ROLES: {
     bg: 'bg-purple-600/20',
     border: 'border-purple-500/40',
     targetTab: 'saas_technician'
+  },
+  {
+    id: 'support_lead',
+    titleBn: 'সাপোর্ট লিড ও সুপারভাইজার (Support Lead)',
+    titleEn: 'Customer Support Lead',
+    descBn: 'জুনিয়র সাপোর্ট অফিসারদের অডিট, জটিল ডিসপিউট হ্যান্ডলিং ও রেসকিউ টিম ক্লেইম।',
+    descEn: 'Helpdesk supervision, escalation handling & emergency claims verification.',
+    icon: ShieldCheck,
+    color: 'text-indigo-400',
+    bg: 'bg-indigo-600/20',
+    border: 'border-indigo-500/40',
+    targetTab: 'saas_support'
   },
   {
     id: 'support',
@@ -201,9 +226,10 @@ export const RoleSwitcherModal: React.FC<RoleSwitcherModalProps> = ({
       return;
     }
     
-    // Map base role to target portal tab
     const targetMap: Record<SaasRole, string> = {
       super_admin: 'saas_admin',
+      operations_manager: 'saas_sales',
+      support_lead: 'saas_support',
       sales: 'saas_sales',
       technician: 'saas_technician',
       support: 'saas_support',

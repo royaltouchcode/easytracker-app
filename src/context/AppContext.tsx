@@ -3363,10 +3363,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const res = await traccarApi.login(emailOrUser, pass);
     if (res.success && res.user) {
       const lower = emailOrUser.toLowerCase();
-      let determinedRole: SaasRole = 'customer';
+      let determinedRole: SaasRole = (res.user?.role as SaasRole) || 'customer';
       let defaultTab: TabType = 'map';
 
-      let approvedRoles: SaasRole[] = ['customer'];
+      let approvedRoles: SaasRole[] = res.user?.approvedRoles || [determinedRole, 'customer'];
 
       const matchingPartner = approvedPartners.find(p => 
         (p.assignedUsername && p.assignedUsername.toLowerCase() === lower) || 
@@ -3385,34 +3385,42 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         partnerId = matchingPartner.partnerId;
         partnerBrandName = matchingPartner.brandName || matchingPartner.applicantName;
         serviceTier = matchingPartner.serviceTier;
-      } else if (lower.startsWith('partner')) {
+      } else if (lower.startsWith('partner') || res.user?.role === 'partner') {
         determinedRole = 'partner';
         defaultTab = 'saas_partner';
         approvedRoles = ['partner', 'sales', 'technician', 'customer'];
         partnerId = 'partner_custom';
         partnerBrandName = 'Partner Fleet Network';
         serviceTier = 'all_inclusive';
-      } else if (lower.startsWith('admin') || res.user.administrator) {
+      } else if (lower.startsWith('admin') || res.user?.administrator || res.user?.role === 'super_admin') {
         determinedRole = 'super_admin';
         defaultTab = 'saas_admin';
-        approvedRoles = ['super_admin', 'partner', 'sales', 'technician', 'support', 'rescue', 'customer'];
-      } else if (lower.startsWith('ops') || lower.startsWith('operations')) {
+        approvedRoles = ['super_admin', 'partner', 'sales', 'technician', 'support', 'rescue', 'customer', 'operations_manager', 'support_lead'];
+      } else if (res.user?.role === 'manager' || res.user?.role === 'counter_incharge' || res.user?.role === 'vehicle_supervisor' || res.user?.role === 'driver' || res.user?.role === 'lineman') {
+        determinedRole = 'customer';
+        defaultTab = 'fleet_transit';
+        approvedRoles = ['customer'];
+      } else if (lower.startsWith('ops') || lower.startsWith('operations') || res.user?.role === 'operations_manager') {
+        determinedRole = 'operations_manager';
+        defaultTab = 'saas_sales';
+        approvedRoles = ['operations_manager', 'sales', 'technician', 'customer'];
+      } else if (lower.startsWith('sales') || res.user?.role === 'sales') {
         determinedRole = 'sales';
         defaultTab = 'saas_sales';
         approvedRoles = ['sales', 'technician', 'customer'];
-      } else if (lower.startsWith('sales')) {
-        determinedRole = 'sales';
-        defaultTab = 'saas_sales';
-        approvedRoles = ['sales', 'technician', 'customer']; // Sales + Field Tech + Customer
-      } else if (lower.startsWith('tech')) {
+      } else if (lower.startsWith('tech') || res.user?.role === 'technician') {
         determinedRole = 'technician';
         defaultTab = 'saas_technician';
         approvedRoles = ['technician', 'customer'];
-      } else if (lower.startsWith('support')) {
+      } else if (lower.startsWith('lead') || lower.startsWith('support_lead') || res.user?.role === 'support_lead') {
+        determinedRole = 'support_lead';
+        defaultTab = 'saas_support';
+        approvedRoles = ['support_lead', 'support', 'rescue', 'customer'];
+      } else if (lower.startsWith('support') || res.user?.role === 'support') {
         determinedRole = 'support';
         defaultTab = 'saas_support';
         approvedRoles = ['support', 'rescue', 'customer'];
-      } else if (lower.startsWith('rescue')) {
+      } else if (lower.startsWith('rescue') || res.user?.role === 'rescue') {
         determinedRole = 'rescue';
         defaultTab = 'saas_rescue';
         approvedRoles = ['rescue', 'customer'];
@@ -3421,16 +3429,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         defaultTab = 'fleet_transit';
         approvedRoles = ['customer'];
       } else {
-        determinedRole = 'customer';
+        determinedRole = (res.user?.role as SaasRole) || 'customer';
         defaultTab = 'map';
-        approvedRoles = ['customer'];
+        approvedRoles = res.user?.approvedRoles || ['customer'];
       }
 
       const userWithRole: UserSession = { 
         ...res.user, 
-        role: determinedRole,
+        role: res.user?.role || determinedRole,
         approvedRoles: approvedRoles,
-        administrator: determinedRole === 'super_admin' || res.user.administrator,
+        administrator: determinedRole === 'super_admin' || res.user?.administrator,
         partnerId,
         partnerBrandName,
         serviceTier

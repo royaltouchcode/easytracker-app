@@ -34,7 +34,10 @@ import {
   LogOut,
   BarChart3,
   Plus,
-  SlidersHorizontal
+  SlidersHorizontal,
+  Camera,
+  UserMinus,
+  UserPlus
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { TransitCounterManager } from '../saas/TransitCounterManager';
