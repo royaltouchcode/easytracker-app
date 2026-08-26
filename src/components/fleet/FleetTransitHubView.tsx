@@ -37,7 +37,13 @@ import {
   SlidersHorizontal,
   Camera,
   UserMinus,
-  UserPlus
+  UserPlus,
+  Fuel,
+  DollarSign,
+  Calendar,
+  Route,
+  TrendingUp,
+  RotateCcw
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { TransitCounterManager } from '../saas/TransitCounterManager';
@@ -167,9 +173,167 @@ export const FleetTransitHubView: React.FC = () => {
     language 
   } = useApp();
 
-  const [activeSubTab, setActiveSubTab] = useState<'transit_counters' | 'company_rbac' | 'compliance_vault' | 'driver_performance'>('transit_counters');
+  const [activeSubTab, setActiveSubTab] = useState<'live_radar' | 'trip_dispatch' | 'transit_counters' | 'company_rbac' | 'driver_performance' | 'fuel_billing' | 'compliance_vault'>('live_radar');
   const [vehicleSearch, setVehicleSearch] = useState('');
   const [fleetFilter, setFleetFilter] = useState<'ALL' | 'MOVING' | 'PARKED' | 'IDLE'>('ALL');
+
+  // =========================================================================
+  // 📋 AUTONEMO-STYLE TRIP PLANNING & DISPATCH STATE
+  // =========================================================================
+  const [tripsList, setTripsList] = useState<Array<{
+    id: string;
+    tripNo: string;
+    busPlate: string;
+    busModel: string;
+    route: string;
+    driverName: string;
+    driverPhone: string;
+    supervisorName: string;
+    supervisorPhone: string;
+    departureTime: string;
+    etaTime: string;
+    passengers: number;
+    totalSeats: number;
+    fuelLiters: number;
+    farePerSeat: number;
+    tollExpense: number;
+    driverAllowance: number;
+    status: 'IN_TRANSIT' | 'READY' | 'SCHEDULED' | 'DELAYED' | 'COMPLETED';
+  }>>(() => {
+    const saved = localStorage.getItem('gps_fleet_trips_list');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return [
+      {
+        id: 'trip_1',
+        tripNo: 'TR-8810',
+        busPlate: 'ঢাকা মেট্রো-ব ১৪-৯৯০১',
+        busModel: 'হানিফ এন্টারপ্রাইজ Hino 1J',
+        route: 'গাবতলী টার্মিনাল ➔ বগুড়া চারমাথা',
+        driverName: 'মোঃ আব্দুল কুদ্দুস',
+        driverPhone: '01712-334455',
+        supervisorName: 'মোঃ শফিকুল আলম',
+        supervisorPhone: '01711-889900',
+        departureTime: '১০:৩০ AM',
+        etaTime: '০৩:১৫ PM',
+        passengers: 38,
+        totalSeats: 40,
+        fuelLiters: 65,
+        farePerSeat: 650,
+        tollExpense: 1450,
+        driverAllowance: 1200,
+        status: 'IN_TRANSIT'
+      },
+      {
+        id: 'trip_2',
+        tripNo: 'TR-8812',
+        busPlate: 'ঢাকা মেট্রো-ব ১৫-৪২৩১',
+        busModel: 'শ্যামলী পরিবহন Scania Multi-Axle',
+        route: 'সায়েদাবাদ ➔ চট্টগ্রাম দামপাড়া',
+        driverName: 'মোঃ রফিকুল ইসলাম',
+        driverPhone: '01719-887766',
+        supervisorName: 'মোঃ আনিসুর রহমান',
+        supervisorPhone: '01719-332211',
+        departureTime: '১১:০০ AM',
+        etaTime: '০৫:৩০ PM',
+        passengers: 40,
+        totalSeats: 40,
+        fuelLiters: 90,
+        farePerSeat: 1200,
+        tollExpense: 2200,
+        driverAllowance: 1800,
+        status: 'READY'
+      },
+      {
+        id: 'trip_3',
+        tripNo: 'TR-8815',
+        busPlate: 'ঢাকা মেট্রো-ট ২৭-৮৫৭৮',
+        busModel: 'Tata 1615 Cargo Truck',
+        route: 'তেজগাঁও সেন্ট্রাল ডিপো ➔ খুলনা',
+        driverName: 'মোঃ ফারুক হোসেন',
+        driverPhone: '01715-443322',
+        supervisorName: 'সেলফ ড্রাইভ',
+        supervisorPhone: '01715-443322',
+        departureTime: '০১:০০ PM',
+        etaTime: '০৮:৪৫ PM',
+        passengers: 2,
+        totalSeats: 3,
+        fuelLiters: 110,
+        farePerSeat: 18500,
+        tollExpense: 3100,
+        driverAllowance: 2500,
+        status: 'IN_TRANSIT'
+      },
+      {
+        id: 'trip_4',
+        tripNo: 'TR-8818',
+        busPlate: 'ঢাকা মেট্রো-ব ১৬-৭৭৮৮',
+        busModel: 'এনা ট্রান্সপোর্ট Hyundai Universe',
+        route: 'মহাখালী ➔ ময়মনসিংহ বাইপাস',
+        driverName: 'মোঃ জসিম উদ্দিন',
+        driverPhone: '01711-223388',
+        supervisorName: 'মোঃ মোকাররম হোসেন',
+        supervisorPhone: '01811-445566',
+        departureTime: '০৩:৩০ PM',
+        etaTime: '০৬:১৫ PM',
+        passengers: 0,
+        totalSeats: 40,
+        fuelLiters: 45,
+        farePerSeat: 350,
+        tollExpense: 650,
+        driverAllowance: 900,
+        status: 'SCHEDULED'
+      }
+    ];
+  });
+
+  const [isNewTripModalOpen, setIsNewTripModalOpen] = useState(false);
+  const [newTripBusPlate, setNewTripBusPlate] = useState('ঢাকা মেট্রো-ব ১৪-৯৯০১');
+  const [newTripRoute, setNewTripRoute] = useState('গাবতলী টার্মিনাল ➔ বগুড়া চারমাথা');
+  const [newTripDriver, setNewTripDriver] = useState('মোঃ আব্দুল কুদ্দুস');
+  const [newTripSupervisor, setNewTripSupervisor] = useState('মোঃ শফিকুল আলম');
+  const [newTripDeparture, setNewTripDeparture] = useState('১২:৩০ PM');
+  const [newTripFuel, setNewTripFuel] = useState('65');
+  const [newTripFare, setNewTripFare] = useState('650');
+  const [newTripToll, setNewTripToll] = useState('1450');
+  const [newTripAllowance, setNewTripAllowance] = useState('1200');
+
+  const handleSaveNewTrip = (e: React.FormEvent) => {
+    e.preventDefault();
+    const newTripItem = {
+      id: `trip_${Date.now().toString().slice(-4)}`,
+      tripNo: `TR-${Math.floor(1000 + Math.random() * 9000)}`,
+      busPlate: newTripBusPlate,
+      busModel: newTripBusPlate.includes('১৪-৯৯০১') ? 'হানিফ এন্টারপ্রাইজ Hino 1J' : newTripBusPlate.includes('১৫-৪২৩১') ? 'শ্যামলী পরিবহন Scania' : 'এনা এক্সপ্রেস Universe',
+      route: newTripRoute,
+      driverName: newTripDriver,
+      driverPhone: '01712-334455',
+      supervisorName: newTripSupervisor,
+      supervisorPhone: '01711-889900',
+      departureTime: newTripDeparture,
+      etaTime: '০৬:৩০ PM',
+      passengers: 0,
+      totalSeats: 40,
+      fuelLiters: parseFloat(newTripFuel) || 60,
+      farePerSeat: parseFloat(newTripFare) || 650,
+      tollExpense: parseFloat(newTripToll) || 1450,
+      driverAllowance: parseFloat(newTripAllowance) || 1200,
+      status: 'SCHEDULED' as const
+    };
+
+    const updated = [newTripItem, ...tripsList];
+    setTripsList(updated);
+    localStorage.setItem('gps_fleet_trips_list', JSON.stringify(updated));
+    setIsNewTripModalOpen(false);
+    alert(`✅ নতুন ট্রিপ #${newTripItem.tripNo} (${newTripItem.route}) সফলভাবে প্ল্যান ও শিডিউল করা হয়েছে!`);
+  };
+
+  const handleUpdateTripStatus = (tripId: string, newStatus: 'IN_TRANSIT' | 'READY' | 'SCHEDULED' | 'DELAYED' | 'COMPLETED') => {
+    const updated = tripsList.map(t => t.id === tripId ? { ...t, status: newStatus } : t);
+    setTripsList(updated);
+    localStorage.setItem('gps_fleet_trips_list', JSON.stringify(updated));
+  };
 
   // Fleet Company Manager Setup State for Fleet Owner
   const [fleetManagers, setFleetManagers] = useState<Array<{ id: string; name: string; phone: string; pin: string; company: string; base: string; status: 'active' | 'inactive' }>>(() => {
@@ -1920,62 +2084,174 @@ export const FleetTransitHubView: React.FC = () => {
   return (
     <div className="flex-1 overflow-y-auto bg-slate-950 p-3 sm:p-5 space-y-4 select-none animate-in fade-in">
       
-      {/* Top Banner with Navigation and Persona Badge */}
-      <div className="bg-gradient-to-r from-slate-900 via-cyan-950/40 to-slate-900 border border-cyan-500/40 rounded-3xl p-4 sm:p-5 shadow-2xl space-y-3">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+      {/* ========================================================================= */}
+      {/* 🌟 1. AUTONEMO-STYLE CLEAN TOP BANNER & 6-KPI METRICS STRIP               */}
+      {/* ========================================================================= */}
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 sm:p-5 shadow-2xl space-y-4">
+        
+        {/* Header Row */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
           <div className="flex items-center space-x-3">
             <button
               type="button"
               onClick={() => setActiveTab('map')}
-              className="p-2 rounded-2xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition"
+              className="p-2 rounded-2xl bg-slate-950 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 transition"
               title="ম্যাপে ফিরে যান"
             >
               <ArrowLeft className="w-4 h-4" />
             </button>
 
-            <div className="w-12 h-12 rounded-2xl bg-cyan-600/30 text-cyan-300 border border-cyan-500/50 flex items-center justify-center shadow-lg shrink-0">
-              {isTruckOrCargo ? <Truck className="w-6 h-6" /> : <Building2 className="w-6 h-6" />}
+            <div className="w-11 h-11 rounded-2xl bg-cyan-600/20 text-cyan-400 border border-cyan-500/40 flex items-center justify-center shadow-lg shrink-0">
+              {isTruckOrCargo ? <Truck className="w-6 h-6" /> : <Bus className="w-6 h-6" />}
             </div>
 
             <div>
               <div className="flex items-center space-x-2 flex-wrap">
                 <h2 className="font-black text-base text-white">
-                  🏢 ফ্লিট ও ট্রান্সপোর্টেশন অ্যাডমিন হাব (Fleet Admin)
+                  🏢 ফ্লিট ও ট্রান্সপোর্টেশন এন্টারপ্রাইজ হাব (Fleet VMS)
                 </h2>
                 <span className="text-[9px] font-mono px-2 py-0.5 rounded-full font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
-                  ENTERPRISE FLEET
+                  AUTONEMO ENTERPRISE
                 </span>
                 <span className="text-[9px] font-mono px-2 py-0.5 rounded-full font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
                   👔 OWNER ONLY
                 </span>
               </div>
-              <p className="text-xs text-slate-300 mt-0.5">
-                লাইভ ফ্লিট রাডার, কাউন্টার জিওফেন্স, ট্রিপ ডিসপ্যাচ, সুপারভাইজার সাব-লগইন আইডি ও BRTA ভল্ট
+              <p className="text-xs text-slate-400 mt-0.5">
+                রিয়েল-টাইম ট্রিপ প্ল্যানিং, লাইভ ট্র্যাকিং, ড্রাইভার অ্যাসাইনমেন্ট, ফুয়েল ও এক্সপেন্স কন্ট্রোল এবং কমপ্লায়েন্স
               </p>
             </div>
           </div>
 
           <div className="flex items-center space-x-2 self-end sm:self-auto text-xs">
-            <span className="text-[11px] text-slate-400 font-mono">সিলেক্টেড গাড়ি:</span>
-            <span className="px-2.5 py-1 rounded-xl bg-slate-900 text-cyan-300 font-mono font-bold border border-slate-800">
-              {selectedDevice?.name || 'ফ্লিট ভেহিকেল'} ({selectedDevice?.attributes?.plateNumber || 'ঢাকা মেট্রো'})
-            </span>
+            <button
+              type="button"
+              onClick={() => setIsNewTripModalOpen(true)}
+              className="px-3.5 py-2 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center space-x-1.5 shadow-lg shadow-emerald-600/30 transition active:scale-95"
+            >
+              <Plus className="w-4 h-4" />
+              <span>+ নতুন ট্রিপ শিডিউল</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsNewMgrModalOpen(true)}
+              className="px-3.5 py-2 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center space-x-1.5 shadow-md shadow-indigo-600/30 transition active:scale-95"
+            >
+              <Building2 className="w-3.5 h-3.5" />
+              <span>+ ম্যানেজার নিয়োগ</span>
+            </button>
           </div>
         </div>
 
-        {/* 4 Main Fleet Sub-Modules for Fleet Owner */}
-        <div className="pt-2 border-t border-slate-800/80 flex flex-wrap gap-2 text-xs">
+        {/* Clean 6-KPI Tiles Strip (Autonemo Style) */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2.5">
+          <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800 flex flex-col justify-between">
+            <div className="flex items-center justify-between text-slate-400 text-[10.5px] font-bold">
+              <span>মোট ফ্লিট বাস</span>
+              <Bus className="w-3.5 h-3.5 text-cyan-400" />
+            </div>
+            <div className="mt-1">
+              <span className="text-xl font-black text-white font-mono">{totalFleet}</span>
+              <span className="text-[10px] text-slate-400 ml-1">টি গাড়ি</span>
+            </div>
+            <span className="text-[9.5px] text-emerald-400 font-bold mt-0.5">● {movingCount} চলমান</span>
+          </div>
+
+          <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800 flex flex-col justify-between">
+            <div className="flex items-center justify-between text-slate-400 text-[10.5px] font-bold">
+              <span>অ্যাক্টিভ ট্রিপ</span>
+              <Route className="w-3.5 h-3.5 text-emerald-400" />
+            </div>
+            <div className="mt-1">
+              <span className="text-xl font-black text-emerald-300 font-mono">
+                {tripsList.filter(t => t.status === 'IN_TRANSIT' || t.status === 'READY').length}
+              </span>
+              <span className="text-[10px] text-slate-400 ml-1">টি ট্রিপ</span>
+            </div>
+            <span className="text-[9.5px] text-cyan-400 font-bold mt-0.5">
+              {tripsList.filter(t => t.status === 'SCHEDULED').length} টি শিডিউলড
+            </span>
+          </div>
+
+          <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800 flex flex-col justify-between">
+            <div className="flex items-center justify-between text-slate-400 text-[10.5px] font-bold">
+              <span>অন-ডিউটি চালক</span>
+              <UserCheck className="w-3.5 h-3.5 text-purple-400" />
+            </div>
+            <div className="mt-1">
+              <span className="text-xl font-black text-purple-300 font-mono">{AVAILABLE_DRIVERS_POOL.length}</span>
+              <span className="text-[10px] text-slate-400 ml-1">জন</span>
+            </div>
+            <span className="text-[9.5px] text-purple-400 font-bold mt-0.5">BRTA স্মার্ট ভল্ট</span>
+          </div>
+
+          <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800 flex flex-col justify-between">
+            <div className="flex items-center justify-between text-slate-400 text-[10.5px] font-bold">
+              <span>ডিজেল ও ফুয়েল</span>
+              <Fuel className="w-3.5 h-3.5 text-amber-400" />
+            </div>
+            <div className="mt-1">
+              <span className="text-xl font-black text-amber-300 font-mono">
+                {tripsList.reduce((acc, t) => acc + t.fuelLiters, 0)}
+              </span>
+              <span className="text-[10px] text-slate-400 ml-1">লিটার</span>
+            </div>
+            <span className="text-[9.5px] text-amber-400 font-bold mt-0.5">গড়: ৪.৫ কিমি/লি</span>
+          </div>
+
+          <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800 flex flex-col justify-between">
+            <div className="flex items-center justify-between text-slate-400 text-[10.5px] font-bold">
+              <span>টিকিট রেভিনিউ</span>
+              <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
+            </div>
+            <div className="mt-1">
+              <span className="text-base font-black text-emerald-400 font-mono truncate">
+                ৳{tripsList.reduce((acc, t) => acc + (t.passengers * t.farePerSeat), 0).toLocaleString()}
+              </span>
+            </div>
+            <span className="text-[9.5px] text-emerald-300 font-bold mt-0.5">আজকের মোট বুকিং</span>
+          </div>
+
+          <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800 flex flex-col justify-between">
+            <div className="flex items-center justify-between text-slate-400 text-[10.5px] font-bold">
+              <span>কাউন্টার স্টেশন</span>
+              <Building2 className="w-3.5 h-3.5 text-sky-400" />
+            </div>
+            <div className="mt-1">
+              <span className="text-xl font-black text-sky-300 font-mono">{managerStationsList.length}</span>
+              <span className="text-[10px] text-slate-400 ml-1">টি ডিপো</span>
+            </div>
+            <span className="text-[9.5px] text-sky-400 font-bold mt-0.5">গেটপাস সচল</span>
+          </div>
+        </div>
+
+        {/* Clean Pill Sub-Navigation Bar */}
+        <div className="pt-2 border-t border-slate-800/80 flex flex-wrap gap-1.5 text-xs">
           <button
             type="button"
-            onClick={() => setActiveSubTab('transit_counters')}
+            onClick={() => setActiveSubTab('live_radar')}
             className={`px-3.5 py-2 rounded-2xl font-black transition border flex items-center space-x-1.5 ${
-              activeSubTab === 'transit_counters'
+              activeSubTab === 'live_radar'
                 ? 'bg-cyan-600 text-white border-cyan-500 shadow-lg shadow-cyan-600/30'
-                : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-slate-200'
+                : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-slate-200'
             }`}
           >
-            {isTruckOrCargo ? <Truck className="w-4 h-4 text-cyan-300" /> : <Bus className="w-4 h-4 text-cyan-300" />}
-            <span>{isTruckOrCargo ? '📦 কার্গো ডিপো ও চালান হাব' : '🚌 বাস কাউন্টার ও টিকেটিং API'}</span>
+            <Compass className="w-4 h-4" />
+            <span>🗺️ ফ্লিট ট্র্যাকিং ও রাডার</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveSubTab('trip_dispatch')}
+            className={`px-3.5 py-2 rounded-2xl font-black transition border flex items-center space-x-1.5 ${
+              activeSubTab === 'trip_dispatch'
+                ? 'bg-emerald-600 text-white border-emerald-500 shadow-lg shadow-emerald-600/30'
+                : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-slate-200'
+            }`}
+          >
+            <Route className="w-4 h-4" />
+            <span>📋 ট্রিপ প্ল্যানিং ও লাইভ ডিসপ্যাচ</span>
           </button>
 
           <button
@@ -1984,24 +2260,11 @@ export const FleetTransitHubView: React.FC = () => {
             className={`px-3.5 py-2 rounded-2xl font-black transition border flex items-center space-x-1.5 ${
               activeSubTab === 'company_rbac'
                 ? 'bg-indigo-600 text-white border-indigo-500 shadow-lg shadow-indigo-600/30'
-                : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-slate-200'
+                : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-slate-200'
             }`}
           >
-            <Building2 className="w-4 h-4 text-indigo-300" />
+            <Building2 className="w-4 h-4" />
             <span>🏢 কোম্পানি ম্যানেজার ও ৫-টিয়ার RBAC</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveSubTab('compliance_vault')}
-            className={`px-3.5 py-2 rounded-2xl font-black transition border flex items-center space-x-1.5 ${
-              activeSubTab === 'compliance_vault'
-                ? 'bg-emerald-600 text-white border-emerald-500 shadow-lg shadow-emerald-600/30'
-                : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-slate-200'
-            }`}
-          >
-            <ShieldCheck className="w-4 h-4 text-emerald-300" />
-            <span>📄 BRTA লিগ্যাল ভল্ট ও ২-টিয়ার এলার্ট</span>
           </button>
 
           <button
@@ -2010,17 +2273,56 @@ export const FleetTransitHubView: React.FC = () => {
             className={`px-3.5 py-2 rounded-2xl font-black transition border flex items-center space-x-1.5 ${
               activeSubTab === 'driver_performance'
                 ? 'bg-purple-600 text-white border-purple-500 shadow-lg shadow-purple-600/30'
-                : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-slate-200'
+                : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-slate-200'
             }`}
           >
-            <UserCheck className="w-4 h-4 text-purple-300" />
-            <span>👨‍✈️ ড্রাইভার লাইসেন্স ও পারফরম্যান্স</span>
+            <UserCheck className="w-4 h-4" />
+            <span>👨‍✈️ চালক নিয়োগ ও BRTA লাইসেন্স</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveSubTab('transit_counters')}
+            className={`px-3.5 py-2 rounded-2xl font-black transition border flex items-center space-x-1.5 ${
+              activeSubTab === 'transit_counters'
+                ? 'bg-sky-600 text-white border-sky-500 shadow-lg shadow-sky-600/30'
+                : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-slate-200'
+            }`}
+          >
+            <Bus className="w-4 h-4" />
+            <span>🚌 বাস কাউন্টার ও ডিপার্চার গেটপাস</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveSubTab('fuel_billing')}
+            className={`px-3.5 py-2 rounded-2xl font-black transition border flex items-center space-x-1.5 ${
+              activeSubTab === 'fuel_billing'
+                ? 'bg-amber-600 text-white border-amber-500 shadow-lg shadow-amber-600/30'
+                : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-slate-200'
+            }`}
+          >
+            <Fuel className="w-4 h-4" />
+            <span>⛽ ফুয়েল, খরচ ও বিলিং অডিট</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveSubTab('compliance_vault')}
+            className={`px-3.5 py-2 rounded-2xl font-black transition border flex items-center space-x-1.5 ${
+              activeSubTab === 'compliance_vault'
+                ? 'bg-teal-600 text-white border-teal-500 shadow-lg shadow-teal-600/30'
+                : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-slate-200'
+            }`}
+          >
+            <ShieldCheck className="w-4 h-4" />
+            <span>📄 লিগ্যাল ভল্ট ও কমপ্লায়েন্স</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab('reports')}
-            className="px-3.5 py-2 rounded-2xl font-black transition border flex items-center space-x-1.5 bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border-amber-500/40 shadow-sm transition active:scale-95"
+            className="px-3.5 py-2 rounded-2xl font-black transition border flex items-center space-x-1.5 bg-slate-950 hover:bg-slate-850 text-amber-300 border-amber-500/40 shadow-sm transition active:scale-95"
             title="ফ্লিট মাইলেজ, ফুয়েল ও ট্রিপ রিপোর্টস হাব"
           >
             <BarChart3 className="w-4 h-4 text-amber-400" />
@@ -2030,310 +2332,703 @@ export const FleetTransitHubView: React.FC = () => {
       </div>
 
       {/* ========================================================================= */}
-      {/* 📍 LIVE FLEET RADAR & VEHICLE-WISE STATUS GRID                            */}
+      {/* 🌟 2. SUBTAB: 🗺️ LIVE FLEET RADAR & VEHICLE STATUS GRID                   */}
       {/* ========================================================================= */}
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 sm:p-5 shadow-2xl space-y-3.5">
-        
-        {/* Radar Header & Metrics */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
-          <div>
-            <div className="flex items-center space-x-2">
-              <Compass className="w-5 h-5 text-cyan-400 animate-spin" style={{ animationDuration: '8s' }} />
-              <h3 className="text-sm font-black text-white">
-                📍 লাইভ ফ্লিট রাডার ও প্রতিটি গাড়ির রিয়েল-টাইম অবস্থান
-              </h3>
-            </div>
-            <p className="text-[11px] text-slate-400 mt-0.5">
-              লাইভ গতি, ইঞ্জিন স্ট্যাটাস, কাউন্টার জিওফেন্স ইনসাইড এবং ড্রাইভার যোগাযোগ
-            </p>
-          </div>
-
-          {/* Quick Metrics Bar */}
-          <div className="flex items-center space-x-2 flex-wrap text-xs">
-            <div className="px-2.5 py-1 rounded-xl bg-slate-950 border border-slate-800 flex items-center space-x-1.5">
-              <span className="text-slate-400">মোট গাড়ি:</span>
-              <span className="font-mono font-black text-cyan-300">{totalFleet} টি</span>
+      {activeSubTab === 'live_radar' && (
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 sm:p-5 shadow-2xl space-y-3.5 animate-in fade-in">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+            <div>
+              <div className="flex items-center space-x-2">
+                <Compass className="w-5 h-5 text-cyan-400 animate-spin" style={{ animationDuration: '8s' }} />
+                <h3 className="text-sm font-black text-white">
+                  📍 লাইভ ফ্লিট রাডার ও প্রতিটি গাড়ির রিয়েল-টাইম অবস্থান
+                </h3>
+              </div>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                লাইভ গতি, ইঞ্জিন স্ট্যাটাস, কাউন্টার জিওফেন্স ইনসাইড এবং ড্রাইভার যোগাযোগ
+              </p>
             </div>
 
-            <div className="px-2.5 py-1 rounded-xl bg-emerald-950/50 border border-emerald-500/40 flex items-center space-x-1.5 text-emerald-300">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="font-bold">চলমান:</span>
-              <span className="font-mono font-black">{movingCount}</span>
-            </div>
-
-            <div className="px-2.5 py-1 rounded-xl bg-amber-950/50 border border-amber-500/40 flex items-center space-x-1.5 text-amber-300">
-              <span className="font-bold">আইডল:</span>
-              <span className="font-mono font-black">{idleCount}</span>
-            </div>
-
-            <div className="px-2.5 py-1 rounded-xl bg-slate-950 border border-slate-800 flex items-center space-x-1.5 text-slate-400">
-              <span className="font-bold">পার্কড:</span>
-              <span className="font-mono font-black">{parkedCount}</span>
+            <div className="flex items-center space-x-2 flex-wrap text-xs">
+              <div className="px-2.5 py-1 rounded-xl bg-slate-950 border border-slate-800 flex items-center space-x-1.5">
+                <span className="text-slate-400">মোট গাড়ি:</span>
+                <span className="font-mono font-black text-cyan-300">{totalFleet} টি</span>
+              </div>
+              <div className="px-2.5 py-1 rounded-xl bg-emerald-950/50 border border-emerald-500/40 flex items-center space-x-1.5 text-emerald-300">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="font-bold">চলমান:</span>
+                <span className="font-mono font-black">{movingCount}</span>
+              </div>
+              <div className="px-2.5 py-1 rounded-xl bg-amber-950/50 border border-amber-500/40 flex items-center space-x-1.5 text-amber-300">
+                <span className="font-bold">আইডল:</span>
+                <span className="font-mono font-black">{idleCount}</span>
+              </div>
+              <div className="px-2.5 py-1 rounded-xl bg-slate-950 border border-slate-800 flex items-center space-x-1.5 text-slate-400">
+                <span className="font-bold">পার্কড:</span>
+                <span className="font-mono font-black">{parkedCount}</span>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Vehicle Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          {fleetVehicles.map((device) => {
-            const pos = positions[device.id];
-            const isBus = (device.category || '').toLowerCase().includes('bus');
-            const isTruck = (device.category || '').toLowerCase().includes('truck');
-            const isAmbulance = (device.category || '').toLowerCase().includes('ambulance');
+          {/* Vehicle Cards Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {fleetVehicles.map((device) => {
+              const pos = positions[device.id];
+              const isBus = (device.category || '').toLowerCase().includes('bus');
+              const isTruck = (device.category || '').toLowerCase().includes('truck');
+              const isAmbulance = (device.category || '').toLowerCase().includes('ambulance');
 
-            const speedKmh = pos?.speed !== undefined 
-              ? Math.round(pos.speed) 
-              : (device.id === 801 ? 62 : device.id === 802 ? 58 : device.id === 803 ? 46 : device.id === 805 ? 74 : (device.id === 991 ? 42 : 36));
-            
-            const isMoving = speedKmh > 3;
-            const isIgnitionOn = pos?.attributes?.ignition !== undefined ? !!pos.attributes.ignition : true;
-            const isSelected = device.id === selectedDeviceId;
+              const speedKmh = pos?.speed !== undefined 
+                ? Math.round(pos.speed) 
+                : (device.id === 801 ? 62 : device.id === 802 ? 58 : device.id === 803 ? 46 : device.id === 805 ? 74 : (device.id === 991 ? 42 : 36));
+              
+              const isMoving = speedKmh > 3;
+              const isIgnitionOn = pos?.attributes?.ignition !== undefined ? !!pos.attributes.ignition : true;
+              const isSelected = device.id === selectedDeviceId;
 
-            // Generate realistic terminal geofence location
-            const terminalLocation = device.attributes?.locationName || (isBus 
-              ? (isMoving ? '🛣️ ঢাকা-চট্টগ্রাম এক্সপ্রেসওয়ে (রানিং)' : '🏢 গাবতলী সেন্ট্রাল বাস টার্মিনাল (কাউন্টার ইনসাইড)')
-              : (isTruck 
-                ? '📦 পদ্মা সেতু এক্সপ্রেসওয়ে লিংক (রানিং)' 
-                : isAmbulance 
-                ? '🚨 শাহবাগ মোড় ইন্টারসেকশন (ইমার্জেন্সি ট্রিপ)' 
-                : (isMoving ? '🛣️ ঢাকা-ময়মনসিংহ হাইওয়ে (ইন ট্রানজিট)' : '📦 তেজগাঁও সেন্ট্রাল কার্গো ডিপো')));
+              const terminalLocation = device.attributes?.locationName || (isBus 
+                ? (isMoving ? '🛣️ ঢাকা-চট্টগ্রাম এক্সপ্রেসওয়ে (রানিং)' : '🏢 গাবতলী সেন্ট্রাল বাস টার্মিনাল (কাউন্টার ইনসাইড)')
+                : (isTruck 
+                  ? '📦 পদ্মা সেতু এক্সপ্রেসওয়ে লিংক (রানিং)' 
+                  : isAmbulance 
+                  ? '🚨 শাহবাগ মোড় ইন্টারসেকশন (ইমার্জেন্সি ট্রিপ)' 
+                  : (isMoving ? '🛣️ ঢাকা-ময়মনসিংহ হাইওয়ে (ইন ট্রানজিট)' : '📦 তেজগাঁও সেন্ট্রাল কার্গো ডিপো')));
 
-            const driverName = device.attributes?.driverName || 'নিয়োজিত চালক';
-            const driverPhone = device.attributes?.driverPhone || '01712-XXXXXX';
-            const routeName = device.attributes?.route || 'ঢাকা মেট্রো এরিয়া ট্রানজিট';
-
-            return (
-              <div 
-                key={device.id}
-                className={`bg-slate-950 rounded-2xl p-3.5 border transition space-y-2.5 flex flex-col justify-between ${
-                  isSelected 
-                    ? 'border-cyan-500/80 shadow-lg shadow-cyan-500/10 ring-1 ring-cyan-500/40' 
-                    : 'border-slate-800 hover:border-slate-700'
-                }`}
-              >
-                <div>
-                  {/* Top Row: Vehicle Name, Plate & Status Badge */}
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center space-x-2 min-w-0">
-                      <div 
-                        className="w-7 h-7 rounded-xl flex items-center justify-center text-white shrink-0 shadow-inner"
-                        style={{ backgroundColor: device.attributes?.color || '#0891b2' }}
-                      >
-                        <VehicleIcon type={device.category} className="w-4 h-4" />
+              return (
+                <div 
+                  key={device.id}
+                  className={`bg-slate-950 rounded-2xl p-3.5 border transition space-y-2.5 flex flex-col justify-between ${
+                    isSelected 
+                      ? 'border-cyan-500/80 shadow-lg shadow-cyan-500/10 ring-1 ring-cyan-500/40' 
+                      : 'border-slate-800 hover:border-slate-700'
+                  }`}
+                >
+                  <div>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center space-x-2 min-w-0">
+                        <div 
+                          className="w-7 h-7 rounded-xl flex items-center justify-center text-white shrink-0 shadow-inner"
+                          style={{ backgroundColor: device.attributes?.color || '#0891b2' }}
+                        >
+                          <VehicleIcon type={device.category} className="w-4 h-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <span className="text-xs font-black text-white truncate block">
+                            {device.name}
+                          </span>
+                          <span className="text-[10px] font-mono text-cyan-400 font-bold">
+                            {device.attributes?.plateNumber || 'ঢাকা মেট্রো'}
+                          </span>
+                        </div>
                       </div>
-                      <div className="min-w-0">
-                        <span className="text-xs font-black text-white truncate block">
-                          {device.name}
+
+                      <span className={`text-[9.5px] font-mono font-bold px-2 py-0.5 rounded-full border shrink-0 flex items-center space-x-1 ${
+                        isMoving 
+                          ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' 
+                          : isIgnitionOn 
+                          ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' 
+                          : 'bg-slate-800 text-slate-400 border-slate-700'
+                      }`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${isMoving ? 'bg-emerald-400 animate-pulse' : isIgnitionOn ? 'bg-amber-400' : 'bg-rose-400'}`} />
+                        <span>{isMoving ? `${speedKmh} km/h` : isIgnitionOn ? 'আইডল' : 'পার্কড'}</span>
+                      </span>
+                    </div>
+
+                    <div className="bg-slate-900/90 p-2.5 rounded-xl border border-slate-800 space-y-1.5 text-xs mt-2.5">
+                      <div className="flex items-start space-x-1.5">
+                        <MapPin className="w-3.5 h-3.5 text-cyan-400 shrink-0 mt-0.5" />
+                        <span className="text-[11px] font-bold text-slate-200 leading-snug">
+                          {terminalLocation}
                         </span>
-                        <span className="text-[10px] font-mono text-cyan-400 font-bold">
-                          {device.attributes?.plateNumber || 'ঢাকা মেট্রো'}
+                      </div>
+
+                      <div className="flex justify-between items-center pt-1 border-t border-slate-800 text-[10px]">
+                        <span className="text-slate-400">ইগনিশন স্ট্যাটাস:</span>
+                        <span className={`font-mono font-bold ${isIgnitionOn ? 'text-emerald-400' : 'text-slate-400'}`}>
+                          {isIgnitionOn ? '🟢 ইঞ্জিন চালু (ON)' : '🔴 ইঞ্জিন বন্ধ (OFF)'}
+                        </span>
+                      </div>
+
+                      <div className="flex justify-between items-center text-[10px]">
+                        <span className="text-slate-400">নিযুক্ত চালক:</span>
+                        <span className="font-bold text-indigo-300">
+                          {device.attributes?.driverName || 'মোঃ আব্দুল কুদ্দুস'} ({device.attributes?.driverPhone || '01712-334455'})
                         </span>
                       </div>
                     </div>
+                  </div>
 
-                    <span className={`text-[9.5px] font-mono font-bold px-2 py-0.5 rounded-full border shrink-0 flex items-center space-x-1 ${
-                      isMoving 
-                        ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' 
-                        : isIgnitionOn 
-                        ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' 
-                        : 'bg-slate-800 text-slate-400 border-slate-700'
-                    }`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${isMoving ? 'bg-emerald-400 animate-pulse' : isIgnitionOn ? 'bg-amber-400' : 'bg-rose-400'}`} />
-                      <span>{isMoving ? `${speedKmh} km/h` : isIgnitionOn ? 'আইডল' : 'পার্কড'}</span>
+                  <div className="pt-2 flex items-center space-x-1.5 border-t border-slate-800/80 text-[10.5px]">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedDeviceId(device.id);
+                        setActiveTab('map');
+                      }}
+                      className="flex-1 py-1.5 rounded-xl bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 font-bold border border-cyan-500/40 transition active:scale-95 flex items-center justify-center space-x-1"
+                    >
+                      <Eye className="w-3 h-3 text-cyan-400" />
+                      <span>ম্যাপে লাইভ দেখুন</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedDeviceId(device.id);
+                        setActiveTab('commands');
+                      }}
+                      className="py-1.5 px-2.5 rounded-xl bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 font-bold border border-rose-500/40 transition active:scale-95 flex items-center space-x-1"
+                      title="রিমোট ইঞ্জিন কাটঅফ ও কমান্ড"
+                    >
+                      <Zap className="w-3 h-3 text-rose-400" />
+                      <span className="hidden sm:inline">কাটঅফ</span>
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 🌟 3. SUBTAB: 📋 AUTONEMO-STYLE TRIP PLANNING & DISPATCH CONSOLE           */}
+      {/* ========================================================================= */}
+      {activeSubTab === 'trip_dispatch' && (
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 sm:p-5 shadow-2xl space-y-4 animate-in fade-in">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+            <div className="flex items-center space-x-2">
+              <Route className="w-5 h-5 text-emerald-400" />
+              <div>
+                <h3 className="text-sm font-black text-white">
+                  📋 সেন্ট্রাল ট্রিপ প্ল্যানিং, বাস শিডিউলিং ও লাইভ ডিসপ্যাচ
+                </h3>
+                <p className="text-[11px] text-slate-400">
+                  রুট প্ল্যান, চালক ও সুপারভাইজার অ্যাসাইনমেন্ট, যাত্রী ক্যাপাসিটি এবং ডিপার্চার মনিটরিং
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsNewTripModalOpen(true)}
+              className="px-4 py-2 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center space-x-1.5 shadow-lg shadow-emerald-600/30 transition active:scale-95"
+            >
+              <Plus className="w-4 h-4" />
+              <span>+ নতুন ট্রিপ শিডিউল করুন</span>
+            </button>
+          </div>
+
+          {/* Trips Table */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-slate-800 text-slate-400 font-bold text-[11px]">
+                  <th className="py-2.5 px-3 min-w-[110px]">ট্রিপ আইডি</th>
+                  <th className="py-2.5 px-3 min-w-[200px]">বাস ও রুট</th>
+                  <th className="py-2.5 px-3 min-w-[180px]">চালক ও সুপারভাইজার</th>
+                  <th className="py-2.5 px-3 text-center min-w-[130px]">যাত্রী ক্যাপাসিটি</th>
+                  <th className="py-2.5 px-3 min-w-[130px]">ছাড়ার সময় ও ETA</th>
+                  <th className="py-2.5 px-3 text-center min-w-[120px]">স্ট্যাটাস</th>
+                  <th className="py-2.5 px-3 text-right min-w-[140px]">অ্যাকশন</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800/60">
+                {tripsList.map(trip => {
+                  const isFull = trip.passengers >= trip.totalSeats;
+                  return (
+                    <tr key={trip.id} className="hover:bg-slate-950/60 transition">
+                      <td className="py-3 px-3">
+                        <span className="font-mono font-black text-cyan-300 text-xs">{trip.tripNo}</span>
+                        <span className="text-[10px] text-slate-500 block">আজকের ট্রিপ</span>
+                      </td>
+
+                      <td className="py-3 px-3">
+                        <span className="font-black text-white text-xs block">{trip.busModel}</span>
+                        <span className="text-[10.5px] font-mono text-cyan-400">{trip.busPlate}</span>
+                        <span className="text-[10px] text-amber-300 block font-bold mt-0.5">🛣️ {trip.route}</span>
+                      </td>
+
+                      <td className="py-3 px-3">
+                        <div className="text-xs">
+                          <span className="text-slate-200 font-bold block">👨‍✈️ {trip.driverName}</span>
+                          <span className="text-[10px] text-slate-400 font-mono">{trip.driverPhone}</span>
+                          <span className="text-[10px] text-indigo-300 block mt-0.5">🎫 {trip.supervisorName}</span>
+                        </div>
+                      </td>
+
+                      <td className="py-3 px-3 text-center">
+                        <span className="font-mono font-black text-emerald-400 text-sm">
+                          {trip.passengers}
+                        </span>
+                        <span className="text-slate-400 text-xs"> / {trip.totalSeats} সিট</span>
+                        <div className="w-full bg-slate-800 h-1.5 rounded-full mt-1 overflow-hidden">
+                          <div 
+                            className={`h-full ${isFull ? 'bg-emerald-500' : 'bg-cyan-500'}`} 
+                            style={{ width: `${Math.min(100, (trip.passengers / trip.totalSeats) * 100)}%` }} 
+                          />
+                        </div>
+                      </td>
+
+                      <td className="py-3 px-3 text-xs">
+                        <span className="text-slate-200 font-bold block">ছাড়বে: <span className="text-cyan-300 font-mono">{trip.departureTime}</span></span>
+                        <span className="text-[10px] text-slate-400 block font-mono">ETA: {trip.etaTime}</span>
+                        <span className="text-[10px] text-amber-400 font-mono mt-0.5 block">⛽ {trip.fuelLiters} লি ডিজেল</span>
+                      </td>
+
+                      <td className="py-3 px-3 text-center">
+                        <select
+                          value={trip.status}
+                          onChange={(e) => handleUpdateTripStatus(trip.id, e.target.value as any)}
+                          className={`text-[10.5px] font-bold px-2 py-1 rounded-xl border font-mono focus:outline-none ${
+                            trip.status === 'IN_TRANSIT' ? 'bg-emerald-950 text-emerald-300 border-emerald-500/50' :
+                            trip.status === 'READY' ? 'bg-cyan-950 text-cyan-300 border-cyan-500/50' :
+                            trip.status === 'SCHEDULED' ? 'bg-indigo-950 text-indigo-300 border-indigo-500/50' :
+                            trip.status === 'DELAYED' ? 'bg-rose-950 text-rose-300 border-rose-500/50' :
+                            'bg-slate-900 text-slate-400 border-slate-700'
+                          }`}
+                        >
+                          <option value="IN_TRANSIT">⚡ ইন-ট্রানজিট</option>
+                          <option value="READY">🟢 ডিপার্চার রেডি</option>
+                          <option value="SCHEDULED">⏱️ শিডিউলড</option>
+                          <option value="DELAYED">🛑 ডিলেড / জ্যাম</option>
+                          <option value="COMPLETED">✅ সম্পন্ন</option>
+                        </select>
+                      </td>
+
+                      <td className="py-3 px-3 text-right">
+                        <div className="flex items-center justify-end space-x-1.5">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedDeviceId(801);
+                              setActiveTab('map');
+                            }}
+                            className="px-2.5 py-1 rounded-xl bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 border border-cyan-500/40 text-[10.5px] font-bold flex items-center space-x-1 transition"
+                            title="লাইভ ম্যাপে ট্র্যাক করুন"
+                          >
+                            <Eye className="w-3 h-3" />
+                            <span>ট্র্যাক</span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 🌟 4. SUBTAB: ⛽ FUEL, EXPENSE & BILLING CONTROL AUDIT                     */}
+      {/* ========================================================================= */}
+      {activeSubTab === 'fuel_billing' && (
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 sm:p-5 shadow-2xl space-y-4 animate-in fade-in">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+            <div className="flex items-center space-x-2">
+              <Fuel className="w-5 h-5 text-amber-400" />
+              <div>
+                <h3 className="text-sm font-black text-white">
+                  ⛽ ফুয়েল অর্থনীতি, ট্রিপ খরচ ও সেন্ট্রাল বিলিং অডিট
+                </h3>
+                <p className="text-[11px] text-slate-400">
+                  প্রতি ট্রিপের ডিজেল ব্যয়, হাইওয়ে টোল, টিকিট কালেকশন ও নিট প্রফিট মার্জিন
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => alert('📄 আজকের সম্পূর্ণ ফুয়েল ও এক্সপেন্স লেজার রিপোর্ট ডাউনলোড প্রস্তুত করা হচ্ছে...')}
+              className="px-3.5 py-1.5 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-700 text-slate-200 font-bold text-xs flex items-center space-x-1.5 transition"
+            >
+              <FileText className="w-3.5 h-3.5 text-amber-400" />
+              <span>এক্সেল / PDF এক্সপোর্ট</span>
+            </button>
+          </div>
+
+          {/* Financial Overview Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs">
+            <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800">
+              <span className="text-slate-400 block text-[10.5px]">মোট টিকিট বুকিং কালেকশন:</span>
+              <span className="text-xl font-black text-emerald-400 font-mono mt-1 block">
+                ৳{tripsList.reduce((acc, t) => acc + (t.passengers * t.farePerSeat), 0).toLocaleString()}
+              </span>
+              <span className="text-[9.5px] text-emerald-400">অনলাইন + কাউন্টার টিকিট</span>
+            </div>
+
+            <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800">
+              <span className="text-slate-400 block text-[10.5px]">মোট ডিজেল জ্বালানি খরচ:</span>
+              <span className="text-xl font-black text-amber-400 font-mono mt-1 block">
+                ৳{(tripsList.reduce((acc, t) => acc + t.fuelLiters, 0) * 105).toLocaleString()}
+              </span>
+              <span className="text-[9.5px] text-amber-300">
+                {tripsList.reduce((acc, t) => acc + t.fuelLiters, 0)} লিটার @ ৳১০৫/লিটার
+              </span>
+            </div>
+
+            <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800">
+              <span className="text-slate-400 block text-[10.5px]">হাইওয়ে টোল ও ড্রাইভার ভাতা:</span>
+              <span className="text-xl font-black text-indigo-300 font-mono mt-1 block">
+                ৳{tripsList.reduce((acc, t) => acc + t.tollExpense + t.driverAllowance, 0).toLocaleString()}
+              </span>
+              <span className="text-[9.5px] text-slate-400">পদ্মা সেতু / বঙ্গবন্ধু সেতু টোল</span>
+            </div>
+
+            <div className="bg-slate-950 p-4 rounded-2xl border border-emerald-500/40 bg-emerald-950/20">
+              <span className="text-emerald-300 block text-[10.5px] font-bold">নিট প্রফিট মার্জিন (আজকের):</span>
+              <span className="text-xl font-black text-emerald-300 font-mono mt-1 block">
+                ৳{(
+                  tripsList.reduce((acc, t) => acc + (t.passengers * t.farePerSeat), 0) -
+                  (tripsList.reduce((acc, t) => acc + t.fuelLiters, 0) * 105) -
+                  tripsList.reduce((acc, t) => acc + t.tollExpense + t.driverAllowance, 0)
+                ).toLocaleString()}
+              </span>
+              <span className="text-[9.5px] text-emerald-400 font-bold">● লাভজনক অপারেশন</span>
+            </div>
+          </div>
+
+          {/* Trip-wise Breakdown Table */}
+          <div className="overflow-x-auto pt-2">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-slate-800 text-slate-400 font-bold text-[11px]">
+                  <th className="py-2.5 px-3">ট্রিপ ও বাস</th>
+                  <th className="py-2.5 px-3">রুট</th>
+                  <th className="py-2.5 px-3 text-right">টিকিট কালেকশন</th>
+                  <th className="py-2.5 px-3 text-right">ডিজেল (L)</th>
+                  <th className="py-2.5 px-3 text-right">টোল ও ভাতা</th>
+                  <th className="py-2.5 px-3 text-right">নিট ব্যালেন্স</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800/60">
+                {tripsList.map(trip => {
+                  const revenue = trip.passengers * trip.farePerSeat;
+                  const fuelCost = trip.fuelLiters * 105;
+                  const otherExpense = trip.tollExpense + trip.driverAllowance;
+                  const netProfit = revenue - fuelCost - otherExpense;
+
+                  return (
+                    <tr key={trip.id} className="hover:bg-slate-950/60 transition">
+                      <td className="py-2.5 px-3">
+                        <span className="font-bold text-white block">{trip.busPlate}</span>
+                        <span className="text-[10px] font-mono text-cyan-400">{trip.tripNo}</span>
+                      </td>
+                      <td className="py-2.5 px-3 text-slate-300">{trip.route}</td>
+                      <td className="py-2.5 px-3 text-right font-mono font-bold text-emerald-400">
+                        ৳{revenue.toLocaleString()}
+                      </td>
+                      <td className="py-2.5 px-3 text-right font-mono text-amber-300">
+                        {trip.fuelLiters} L (৳{fuelCost.toLocaleString()})
+                      </td>
+                      <td className="py-2.5 px-3 text-right font-mono text-indigo-300">
+                        ৳{otherExpense.toLocaleString()}
+                      </td>
+                      <td className={`py-2.5 px-3 text-right font-mono font-black ${netProfit >= 0 ? 'text-emerald-300' : 'text-rose-400'}`}>
+                        ৳{netProfit.toLocaleString()}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 🌟 5. OTHER EXISTING ACTIVE SUBTABS (100% PRESERVED)                      */}
+      {/* ========================================================================= */}
+      {activeSubTab === 'transit_counters' && <TransitCounterManager isCustomerScoped={true} />}
+
+      {activeSubTab === 'company_rbac' && (
+        <div className="space-y-4 animate-in fade-in">
+          {/* Section 1: Company Operations Managers Provisioning Directory */}
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3 flex-wrap gap-2">
+              <div className="flex items-center space-x-2">
+                <Building2 className="w-5 h-5 text-indigo-400" />
+                <div>
+                  <h3 className="font-extrabold text-sm text-white">কোম্পানি অপারেশনস ম্যানেজার ডিরেক্টরি ও প্রভিশনিং</h3>
+                  <p className="text-[10.5px] text-slate-400">ফ্লিট মালিক কর্তৃক নিজস্ব পরিবহন কোম্পানির ম্যানেজার নিয়োগ ও দায়িত্ব বণ্টন</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsNewMgrModalOpen(true)}
+                className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center space-x-1.5 shadow-md shadow-indigo-600/30 transition active:scale-95"
+              >
+                <Plus className="w-4 h-4" />
+                <span>+ নতুন কোম্পানি ম্যানেজার নিয়োগ</span>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {fleetManagers.map(mgr => (
+                <div key={mgr.id} className="bg-slate-950 p-4 rounded-2xl border border-slate-800 hover:border-indigo-500/40 space-y-2.5 transition">
+                  <div className="flex items-center justify-between">
+                    <span className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-bold text-[10px] border border-indigo-500/40">
+                      🏢 {mgr.company}
+                    </span>
+                    <span className="text-[9px] font-mono text-emerald-400 bg-emerald-950 px-1.5 py-0.5 rounded border border-emerald-500/30">
+                      ACTIVE
                     </span>
                   </div>
-
-                  {/* Terminal & Geofence Status */}
-                  <div className="bg-slate-900/90 p-2.5 rounded-xl border border-slate-800 space-y-1.5 text-xs mt-2.5">
-                    <div className="flex items-start space-x-1.5">
-                      <MapPin className="w-3.5 h-3.5 text-cyan-400 shrink-0 mt-0.5" />
-                      <span className="text-[11px] font-bold text-slate-200 leading-snug">
-                        {terminalLocation}
-                      </span>
-                    </div>
-
-                    <div className="flex justify-between items-center pt-1 border-t border-slate-800 text-[10px]">
-                      <span className="text-slate-400">ইগনিশন স্ট্যাটাস:</span>
-                      <span className={`font-mono font-bold ${isIgnitionOn ? 'text-emerald-400' : 'text-slate-400'}`}>
-                        {isIgnitionOn ? '🟢 ইঞ্জিন চালু (ON)' : '🔴 ইঞ্জিন বন্ধ (OFF)'}
-                      </span>
-                    </div>
-
-                    <div className="flex justify-between items-center text-[10px]">
-                      <span className="text-slate-400">নিযুক্ত চালক:</span>
-                      <span className="font-bold text-indigo-300">
-                        {device.attributes?.driverName || 'মোঃ আব্দুল কুদ্দুস'} ({device.attributes?.driverPhone || '01712-334455'})
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 1-Click Action Buttons */}
-                <div className="pt-2 flex items-center space-x-1.5 border-t border-slate-800/80 text-[10.5px]">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedDeviceId(device.id);
-                      setActiveTab('map');
-                    }}
-                    className="flex-1 py-1.5 rounded-xl bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 font-bold border border-cyan-500/40 transition active:scale-95 flex items-center justify-center space-x-1"
-                  >
-                    <Eye className="w-3 h-3 text-cyan-400" />
-                    <span>ম্যাপে লাইভ দেখুন</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedDeviceId(device.id);
-                      setActiveTab('commands');
-                    }}
-                    className="py-1.5 px-2.5 rounded-xl bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 font-bold border border-rose-500/40 transition active:scale-95 flex items-center space-x-1"
-                    title="রিমোট ইঞ্জিন কাটঅফ ও কমান্ড"
-                  >
-                    <Zap className="w-3 h-3 text-rose-400" />
-                    <span className="hidden sm:inline">কাটঅফ</span>
-                  </button>
-                </div>
-
-              </div>
-            );
-          })}
-        </div>
-
-      </div>
-
-      {/* Module Content (Tabs) */}
-      <div className="space-y-4">
-        {activeSubTab === 'transit_counters' && <TransitCounterManager isCustomerScoped={true} />}
-
-        {/* 🏢 FLEET OWNER'S COMPANY MANAGER & 5-TIER RBAC CONTROLS */}
-        {activeSubTab === 'company_rbac' && (
-          <div className="space-y-4 animate-in fade-in">
-            {/* Section 1: Company Operations Managers Provisioning Directory */}
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-2xl space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-3 flex-wrap gap-2">
-                <div className="flex items-center space-x-2">
-                  <Building2 className="w-5 h-5 text-indigo-400" />
                   <div>
-                    <h3 className="font-extrabold text-sm text-white">কোম্পানি অপারেশনস ম্যানেজার ডিরেক্টরি ও প্রভিশনিং</h3>
-                    <p className="text-[10.5px] text-slate-400">ফ্লিট মালিক কর্তৃক নিজস্ব পরিবহন কোম্পানির ম্যানেজার নিয়োগ ও দায়িত্ব বণ্টন</p>
+                    <h4 className="font-extrabold text-white text-xs">{mgr.name}</h4>
+                    <span className="text-[10px] text-slate-400 block mt-0.5">{mgr.base}</span>
+                  </div>
+                  <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] font-mono">
+                    <span className="text-slate-400">লগইন আইডি: <strong className="text-white">{mgr.phone}</strong></span>
+                    <span className="text-amber-300 bg-amber-950/60 px-1.5 py-0.5 rounded border border-amber-500/30">PIN: {mgr.pin}</span>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setIsNewMgrModalOpen(true)}
-                  className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center space-x-1.5 shadow-md shadow-indigo-600/30 transition active:scale-95"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>+ নতুন কোম্পানি ম্যানেজার নিয়োগ</span>
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                {fleetManagers.map(mgr => (
-                  <div key={mgr.id} className="bg-slate-950 p-4 rounded-2xl border border-slate-800 hover:border-indigo-500/40 space-y-2.5 transition">
-                    <div className="flex items-center justify-between">
-                      <span className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-bold text-[10px] border border-indigo-500/40">
-                        🏢 {mgr.company}
-                      </span>
-                      <span className="text-[9px] font-mono text-emerald-400 bg-emerald-950 px-1.5 py-0.5 rounded border border-emerald-500/30">
-                        ACTIVE
-                      </span>
-                    </div>
-                    <div>
-                      <h4 className="font-extrabold text-white text-xs">{mgr.name}</h4>
-                      <span className="text-[10px] text-slate-400 block mt-0.5">{mgr.base}</span>
-                    </div>
-                    <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] font-mono">
-                      <span className="text-slate-400">লগইন আইডি: <strong className="text-white">{mgr.phone}</strong></span>
-                      <span className="text-amber-300 bg-amber-950/60 px-1.5 py-0.5 rounded border border-amber-500/30">PIN: {mgr.pin}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Section 2: 5-Tier Granular RBAC Permissions Matrix */}
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-2xl space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-3 flex-wrap gap-2">
-                <div className="flex items-center space-x-2">
-                  <ShieldCheck className="w-5 h-5 text-emerald-400" />
-                  <div>
-                    <h3 className="font-extrabold text-sm text-white">৫-স্তরের গ্র্যানুলার রোল পারমিশন ও এক্সেস কন্ট্রোল ম্যাট্রিক্স</h3>
-                    <p className="text-[10.5px] text-slate-400">ফ্লিট মালিক সেন্ট্রাল থেকে যেকোনো রোলের ক্ষমতা তাৎক্ষণিক অন/অফ করতে পারবেন</p>
-                  </div>
-                </div>
-                {matrixSaveSuccess && (
-                  <span className="text-xs text-emerald-300 font-bold bg-emerald-950 border border-emerald-500/50 px-3 py-1 rounded-xl animate-in fade-in">
-                    ✅ পারমিশন পরিবর্তন সফলভাবে সংরক্ষিত!
-                  </span>
-                )}
-              </div>
-
-              {/* Matrix Table */}
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead>
-                    <tr className="border-b border-slate-800 text-slate-400 font-bold text-[11px]">
-                      <th className="py-2.5 px-3 min-w-[220px]">সিস্টেম ফিচার ও অপারেশনাল ক্ষমতা</th>
-                      <th className="py-2.5 px-2 text-center text-amber-300 min-w-[100px]">👑 ফ্লিট মালিক</th>
-                      <th className="py-2.5 px-2 text-center text-indigo-300 min-w-[120px]">🏢 কোম্পানি ম্যানেজার</th>
-                      <th className="py-2.5 px-2 text-center text-cyan-300 min-w-[120px]">🏢 কাউন্টার ইনচার্জ</th>
-                      <th className="py-2.5 px-2 text-center text-amber-300 min-w-[120px]">🎫 বাস সুপারভাইজার</th>
-                      <th className="py-2.5 px-2 text-center text-emerald-300 min-w-[100px]">👨‍✈️ বাস চালক</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-800/60">
-                    {[
-                      { key: 'liveTracking', title: '🗺️ লাইভ জিপিএস ট্র্যাকিং ও গতি মনিটর', desc: 'ম্যাপে রিয়েল-টাইম গতি ও অবস্থান পর্যবেক্ষণ' },
-                      { key: 'engineCut', title: '🚨 রিমোট ইঞ্জিন লক / ফুয়েল কাটঅফ', desc: 'জরুরি পরিস্থিতিতে গাড়ি অচল করার ক্ষমতা' },
-                      { key: 'accidentVideo', title: '📹 ব্ল্যাকবক্স এক্সিডেন্ট ভিডিও ভিউয়ার', desc: 'দুর্ঘটনার সিসিটিভি ক্লিপ ও ক্যামেরা ফুটেজ' },
-                      { key: 'gatepassApproval', title: '✅ ডিপার্চার গেটপাস অনুমোদন', desc: 'টার্মিনাল থেকে ট্রিপের গেটপাস ক্লিয়ার করা' },
-                      { key: 'passengerStepper', title: '👥 অনবোর্ড যাত্রী কন্ট্রোল (+১ / -১)', desc: 'হাইওয়েতে বাসের ভেতরে যাত্রী উঠা-নামা হিসাব' },
-                      { key: 'fleetSetup', title: '🚌 বাস ও রুট অ্যাসাইনমেন্ট সেটআপ', desc: 'নতুন বাস ও রুট কনফিগারেশন' },
-                      { key: 'driverRecruit', title: '👨‍✈️ চালক নিয়োগ ও BRTA লাইসেন্স ভল্ট', desc: 'চালক তালিকা ও স্মার্ট লাইসেন্স ভেরিফিকেশন' },
-                      { key: 'billingFinance', title: '💰 সাবস্ক্রিপশন, প্রফিট/লস ও বিলিং', desc: 'কোম্পানির সেন্ট্রাল ফিনান্সিয়াল অডিট' },
-                      { key: 'legalVault', title: '📄 কমপ্লায়েন্স ও ট্যাক্স টোকেন ভল্ট', desc: 'আইনি মেয়াদ ও ২-টিয়ার নবায়ন এলার্ট' }
-                    ].map(perm => (
-                      <tr key={perm.key} className="hover:bg-slate-950/60 transition">
-                        <td className="py-2.5 px-3">
-                          <span className="font-bold text-white block">{perm.title}</span>
-                          <span className="text-[10px] text-slate-400 block">{perm.desc}</span>
-                        </td>
-                        {(['owner', 'manager', 'counter_incharge', 'vehicle_supervisor', 'driver'] as const).map(roleKey => {
-                          const isChecked = Boolean(fleetRolePermissions[roleKey]?.[perm.key]);
-                          return (
-                            <td key={roleKey} className="py-2.5 px-2 text-center">
-                              <button
-                                type="button"
-                                onClick={() => handleToggleMatrixPerm(roleKey, perm.key)}
-                                className={`w-6 h-6 rounded-lg border inline-flex items-center justify-center transition active:scale-90 ${
-                                  isChecked
-                                    ? 'bg-emerald-600 border-emerald-400 text-white shadow-sm shadow-emerald-600/30'
-                                    : 'bg-slate-950 border-slate-700 text-slate-600 hover:border-slate-500'
-                                }`}
-                                title={isChecked ? 'অনুমোদিত (Enabled)' : 'ব্লকড (Disabled)'}
-                              >
-                                {isChecked ? '✓' : '✕'}
-                              </button>
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              ))}
             </div>
           </div>
-        )}
 
-        {activeSubTab === 'compliance_vault' && <ComplianceDocumentVault isCustomerScoped={true} />}
-        {activeSubTab === 'driver_performance' && <DriverPerformanceManager isCustomerScoped={true} />}
-      </div>
+          {/* Section 2: 5-Tier Granular RBAC Permissions Matrix */}
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3 flex-wrap gap-2">
+              <div className="flex items-center space-x-2">
+                <ShieldCheck className="w-5 h-5 text-emerald-400" />
+                <div>
+                  <h3 className="font-extrabold text-sm text-white">৫-স্তরের গ্র্যানুলার রোল পারমিশন ও এক্সেস কন্ট্রোল ম্যাট্রিক্স</h3>
+                  <p className="text-[10.5px] text-slate-400">ফ্লিট মালিক সেন্ট্রাল থেকে যেকোনো রোলের ক্ষমতা তাৎক্ষণিক অন/অফ করতে পারবেন</p>
+                </div>
+              </div>
+              {matrixSaveSuccess && (
+                <span className="text-xs text-emerald-300 font-bold bg-emerald-950 border border-emerald-500/50 px-3 py-1 rounded-xl animate-in fade-in">
+                  ✅ পারমিশন পরিবর্তন সফলভাবে সংরক্ষিত!
+                </span>
+              )}
+            </div>
 
-      {/* MODAL: FLEET OWNER'S NEW COMPANY MANAGER PROVISION */}
+            {/* Matrix Table */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-800 text-slate-400 font-bold text-[11px]">
+                    <th className="py-2.5 px-3 min-w-[220px]">সিস্টেম ফিচার ও অপারেশনাল ক্ষমতা</th>
+                    <th className="py-2.5 px-2 text-center text-amber-300 min-w-[100px]">👑 ফ্লিট মালিক</th>
+                    <th className="py-2.5 px-2 text-center text-indigo-300 min-w-[120px]">🏢 কোম্পানি ম্যানেজার</th>
+                    <th className="py-2.5 px-2 text-center text-cyan-300 min-w-[120px]">🏢 কাউন্টার ইনচার্জ</th>
+                    <th className="py-2.5 px-2 text-center text-amber-300 min-w-[120px]">🎫 বাস সুপারভাইজার</th>
+                    <th className="py-2.5 px-2 text-center text-emerald-300 min-w-[100px]">👨‍✈️ বাস চালক</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60">
+                  {[
+                    { key: 'liveTracking', title: '🗺️ লাইভ জিপিএস ট্র্যাকিং ও গতি মনিটর', desc: 'ম্যাপে রিয়েল-টাইম গতি ও অবস্থান পর্যবেক্ষণ' },
+                    { key: 'engineCut', title: '🚨 রিমোট ইঞ্জিন লক / ফুয়েল কাটঅফ', desc: 'জরুরি পরিস্থিতিতে গাড়ি অচল করার ক্ষমতা' },
+                    { key: 'accidentVideo', title: '📹 ব্ল্যাকবক্স এক্সিডেন্ট ভিডিও ভিউয়ার', desc: 'দুর্ঘটনার সিসিটিভি ক্লিপ ও ক্যামেরা ফুটেজ' },
+                    { key: 'gatepassApproval', title: '✅ ডিপার্চার গেটপাস অনুমোদন', desc: 'টার্মিনাল থেকে ট্রিপের গেটপাস ক্লিয়ার করা' },
+                    { key: 'passengerStepper', title: '👥 অনবোর্ড যাত্রী কন্ট্রোল (+১ / -১)', desc: 'হাইওয়েতে বাসের ভেতরে যাত্রী উঠা-নামা হিসাব' },
+                    { key: 'fleetSetup', title: '🚌 বাস ও রুট অ্যাসাইনমেন্ট সেটআপ', desc: 'নতুন বাস ও রুট কনফিগারেশন' },
+                    { key: 'driverRecruit', title: '👨‍✈️ চালক নিয়োগ ও BRTA লাইসেন্স ভল্ট', desc: 'চালক তালিকা ও স্মার্ট লাইসেন্স ভেরিফিকেশন' },
+                    { key: 'billingFinance', title: '💰 সাবস্ক্রিপশন, প্রফিট/লস ও বিলিং', desc: 'কোম্পানির সেন্ট্রাল ফিনান্সিয়াল অডিট' },
+                    { key: 'legalVault', title: '📄 কমপ্লায়েন্স ও ট্যাক্স টোকেন ভল্ট', desc: 'আইনি মেয়াদ ও ২-টিয়ার নবায়ন এলার্ট' }
+                  ].map(perm => (
+                    <tr key={perm.key} className="hover:bg-slate-950/60 transition">
+                      <td className="py-2.5 px-3">
+                        <span className="font-bold text-white block">{perm.title}</span>
+                        <span className="text-[10px] text-slate-400 block">{perm.desc}</span>
+                      </td>
+                      {(['owner', 'manager', 'counter_incharge', 'vehicle_supervisor', 'driver'] as const).map(roleKey => {
+                        const isChecked = Boolean(fleetRolePermissions[roleKey]?.[perm.key]);
+                        return (
+                          <td key={roleKey} className="py-2.5 px-2 text-center">
+                            <button
+                              type="button"
+                              onClick={() => handleToggleMatrixPerm(roleKey, perm.key)}
+                              className={`w-6 h-6 rounded-lg border inline-flex items-center justify-center transition active:scale-90 ${
+                                isChecked
+                                  ? 'bg-emerald-600 border-emerald-400 text-white shadow-sm shadow-emerald-600/30'
+                                  : 'bg-slate-950 border-slate-700 text-slate-600 hover:border-slate-500'
+                              }`}
+                              title={isChecked ? 'অনুমোদিত (Enabled)' : 'ব্লকড (Disabled)'}
+                            >
+                              {isChecked ? '✓' : '✕'}
+                            </button>
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeSubTab === 'compliance_vault' && <ComplianceDocumentVault isCustomerScoped={true} />}
+      {activeSubTab === 'driver_performance' && <DriverPerformanceManager isCustomerScoped={true} />}
+
+      {/* ========================================================================= */}
+      {/* 🌟 MODAL: CREATE & DISPATCH NEW TRIP                                      */}
+      {/* ========================================================================= */}
+      {isNewTripModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-in fade-in select-none">
+          <div className="bg-slate-900 border border-emerald-500/60 rounded-3xl max-w-lg w-full p-5 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 rounded-xl bg-emerald-600/30 border border-emerald-500/50 flex items-center justify-center text-emerald-300">
+                  <Route className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-sm text-white">নতুন ট্রিপ শিডিউল ও ডিসপ্যাচ প্ল্যান</h3>
+                  <p className="text-[10px] text-slate-400">বাস, চালক, সুপারভাইজার ও রুট নির্ধারণ</p>
+                </div>
+              </div>
+              <button onClick={() => setIsNewTripModalOpen(false)} className="text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveNewTrip} className="space-y-3 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10.5px] font-bold text-slate-300 block mb-1">বাস নির্বাচন করুন *</label>
+                  <select
+                    value={newTripBusPlate}
+                    onChange={(e) => setNewTripBusPlate(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-bold focus:border-emerald-500 focus:outline-none"
+                  >
+                    <option value="ঢাকা মেট্রো-ব ১৪-৯৯০১">ঢাকা মেট্রো-ব ১৪-৯৯০১ (হানিফ Hino 1J)</option>
+                    <option value="ঢাকা মেট্রো-ব ১৫-৪২৩১">ঢাকা মেট্রো-ব ১৫-৪২৩১ (শ্যামলী Scania)</option>
+                    <option value="ঢাকা মেট্রো-ব ১৬-৭৭৮৮">ঢাকা মেট্রো-ব ১৬-৭৭৮৮ (এনা Universe)</option>
+                    <option value="ঢাকা মেট্রো-ট ২৭-৮৫৭৮">ঢাকা মেট্রো-ট ২৭-৮৫৭৮ (Tata 1615 Cargo)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[10.5px] font-bold text-slate-300 block mb-1">রুট নির্বাচন *</label>
+                  <input
+                    type="text"
+                    required
+                    value={newTripRoute}
+                    onChange={(e) => setNewTripRoute(e.target.value)}
+                    placeholder="যেমন: গাবতলী ➔ বগুড়া"
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-bold focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10.5px] font-bold text-slate-300 block mb-1">নিয়োজিত চালক (Driver) *</label>
+                  <select
+                    value={newTripDriver}
+                    onChange={(e) => setNewTripDriver(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white focus:border-emerald-500 focus:outline-none"
+                  >
+                    <option value="মোঃ আব্দুল কুদ্দুস">মোঃ আব্দুল কুদ্দুস (BRTA লাইসেন্স বৈধ)</option>
+                    <option value="মোঃ রফিকুল ইসলাম">মোঃ রফিকুল ইসলাম (BRTA লাইসেন্স বৈধ)</option>
+                    <option value="মোঃ ফারুক হোসেন">মোঃ ফারুক হোসেন (হেভি কার্গো লাইসেন্স)</option>
+                    <option value="মোঃ জসিম উদ্দিন">মোঃ জসিম উদ্দিন (ইন্টারসিটি স্পেশাল)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[10.5px] font-bold text-slate-300 block mb-1">অনবোর্ড সুপারভাইজার *</label>
+                  <input
+                    type="text"
+                    required
+                    value={newTripSupervisor}
+                    onChange={(e) => setNewTripSupervisor(e.target.value)}
+                    placeholder="যেমন: মোঃ শফিকুল আলম"
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <label className="text-[10.5px] font-bold text-slate-300 block mb-1">ছাড়ার সময় *</label>
+                  <input
+                    type="text"
+                    required
+                    value={newTripDeparture}
+                    onChange={(e) => setNewTripDeparture(e.target.value)}
+                    placeholder="১২:৩০ PM"
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-cyan-300 font-mono font-bold focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10.5px] font-bold text-slate-300 block mb-1">জ্বালানি বরাদ্দ (L)</label>
+                  <input
+                    type="number"
+                    value={newTripFuel}
+                    onChange={(e) => setNewTripFuel(e.target.value)}
+                    placeholder="65"
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-amber-300 font-mono font-bold focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10.5px] font-bold text-slate-300 block mb-1">সিট ভাড়া (৳)</label>
+                  <input
+                    type="number"
+                    value={newTripFare}
+                    onChange={(e) => setNewTripFare(e.target.value)}
+                    placeholder="650"
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-emerald-400 font-mono font-bold focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[10.5px] font-bold text-slate-300 block mb-1">আনুমানিক টোল বাজেট (৳)</label>
+                  <input
+                    type="number"
+                    value={newTripToll}
+                    onChange={(e) => setNewTripToll(e.target.value)}
+                    placeholder="1450"
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10.5px] font-bold text-slate-300 block mb-1">চালক ট্রিপ ভাতা (৳)</label>
+                  <input
+                    type="number"
+                    value={newTripAllowance}
+                    onChange={(e) => setNewTripAllowance(e.target.value)}
+                    placeholder="1200"
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="flex space-x-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsNewTripModalOpen(false)}
+                  className="flex-1 py-2.5 rounded-xl bg-slate-800 text-slate-300 font-bold text-xs"
+                >
+                  বাতিল
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-black text-xs shadow-lg shadow-emerald-600/30 flex items-center justify-center space-x-1.5"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>ট্রিপ শিডিউল সংরক্ষণ করুন</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 🌟 MODAL: FLEET OWNER'S NEW COMPANY MANAGER PROVISION                     */}
+      {/* ========================================================================= */}
       {isNewMgrModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-in fade-in select-none">
           <div className="bg-slate-900 border border-indigo-500/60 rounded-3xl max-w-md w-full p-5 shadow-2xl space-y-4">
