@@ -33,7 +33,8 @@ import {
   KeyRound,
   LogOut,
   BarChart3,
-  Plus
+  Plus,
+  SlidersHorizontal
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { TransitCounterManager } from '../saas/TransitCounterManager';
