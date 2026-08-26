@@ -32,7 +32,8 @@ import {
   Check,
   KeyRound,
   LogOut,
-  BarChart3
+  BarChart3,
+  Plus
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { TransitCounterManager } from '../saas/TransitCounterManager';
@@ -162,9 +163,135 @@ export const FleetTransitHubView: React.FC = () => {
     language 
   } = useApp();
 
-  const [activeSubTab, setActiveSubTab] = useState<'transit_counters' | 'compliance_vault' | 'driver_performance'>('transit_counters');
+  const [activeSubTab, setActiveSubTab] = useState<'transit_counters' | 'company_rbac' | 'compliance_vault' | 'driver_performance'>('transit_counters');
   const [vehicleSearch, setVehicleSearch] = useState('');
   const [fleetFilter, setFleetFilter] = useState<'ALL' | 'MOVING' | 'PARKED' | 'IDLE'>('ALL');
+
+  // Fleet Company Manager Setup State for Fleet Owner
+  const [fleetManagers, setFleetManagers] = useState<Array<{ id: string; name: string; phone: string; pin: string; company: string; base: string; status: 'active' | 'inactive' }>>(() => {
+    const saved = localStorage.getItem('gps_fleet_company_managers');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return [
+      { id: 'mgr_hanif', name: 'মোঃ শামীম ওসমান', phone: '01710-001122', pin: '5501', company: 'হানিফ এন্টারপ্রাইজ', base: 'সেন্ট্রাল হেড অফিস • গাবতলী ঢাকা', status: 'active' },
+      { id: 'mgr_shyamoli', name: 'মোঃ কামরুল হাসান', phone: '01799-887766', pin: '6620', company: 'শ্যামলী পরিবহন', base: 'আরামবাগ সেন্ট্রাল ডিপো', status: 'active' },
+      { id: 'mgr_ena', name: 'আনিসুর রহমান', phone: '01733-445566', pin: '7731', company: 'এনা ট্রান্সপোর্ট', base: 'মহাখালী ইন্টারসিটি টার্মিনাল', status: 'active' }
+    ];
+  });
+
+  const [newMgrName, setNewMgrName] = useState('');
+  const [newMgrPhone, setNewMgrPhone] = useState('');
+  const [newMgrPin, setNewMgrPin] = useState('5501');
+  const [newMgrCompany, setNewMgrCompany] = useState('হানিফ এন্টারপ্রাইজ');
+  const [newMgrBase, setNewMgrBase] = useState('সেন্ট্রাল হেড অফিস • ঢাকা');
+  const [isNewMgrModalOpen, setIsNewMgrModalOpen] = useState(false);
+  const [matrixSaveSuccess, setMatrixSaveSuccess] = useState(false);
+
+  // 5-Tier Live Fleet Permission Matrix State for Fleet Owner
+  const [fleetRolePermissions, setFleetRolePermissions] = useState<Record<string, Record<string, boolean>>>(() => {
+    const saved = localStorage.getItem('gps_fleet_role_matrix_perms');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return {
+      owner: {
+        liveTracking: true,
+        engineCut: true,
+        accidentVideo: true,
+        gatepassApproval: true,
+        passengerStepper: true,
+        fleetSetup: true,
+        driverRecruit: true,
+        billingFinance: true,
+        legalVault: true
+      },
+      manager: {
+        liveTracking: true,
+        engineCut: false,
+        accidentVideo: false,
+        gatepassApproval: true,
+        passengerStepper: false,
+        fleetSetup: true,
+        driverRecruit: true,
+        billingFinance: true,
+        legalVault: true
+      },
+      counter_incharge: {
+        liveTracking: true,
+        engineCut: false,
+        accidentVideo: true,
+        gatepassApproval: true,
+        passengerStepper: false,
+        fleetSetup: false,
+        driverRecruit: false,
+        billingFinance: false,
+        legalVault: false
+      },
+      vehicle_supervisor: {
+        liveTracking: true,
+        engineCut: false,
+        accidentVideo: false,
+        gatepassApproval: false,
+        passengerStepper: true,
+        fleetSetup: false,
+        driverRecruit: false,
+        billingFinance: false,
+        legalVault: false
+      },
+      driver: {
+        liveTracking: true,
+        engineCut: false,
+        accidentVideo: false,
+        gatepassApproval: false,
+        passengerStepper: false,
+        fleetSetup: false,
+        driverRecruit: false,
+        billingFinance: false,
+        legalVault: false
+      }
+    };
+  });
+
+  const handleToggleMatrixPerm = (roleKey: string, permKey: string) => {
+    setFleetRolePermissions(prev => {
+      const currentRolePerms = prev[roleKey] || {};
+      const updated = {
+        ...prev,
+        [roleKey]: {
+          ...currentRolePerms,
+          [permKey]: !currentRolePerms[permKey]
+        }
+      };
+      localStorage.setItem('gps_fleet_role_matrix_perms', JSON.stringify(updated));
+      return updated;
+    });
+    setMatrixSaveSuccess(true);
+    setTimeout(() => setMatrixSaveSuccess(false), 2000);
+  };
+
+  const handleSaveNewManager = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMgrName.trim() || !newMgrPhone.trim()) return;
+
+    const newManager = {
+      id: `mgr_${Date.now().toString().slice(-4)}`,
+      name: newMgrName.trim(),
+      phone: newMgrPhone.trim(),
+      pin: newMgrPin.trim() || '5501',
+      company: newMgrCompany.trim(),
+      base: newMgrBase.trim(),
+      status: 'active' as const
+    };
+
+    const updated = [newManager, ...fleetManagers];
+    setFleetManagers(updated);
+    localStorage.setItem('gps_fleet_company_managers', JSON.stringify(updated));
+    setIsNewMgrModalOpen(false);
+    setNewMgrName('');
+    setNewMgrPhone('');
+    alert(`✅ "${newManager.name}" কে "${newManager.company}" এর কোম্পানি ম্যানেজার হিসেবে সফলভাবে নিয়োগ দেওয়া হয়েছে!`);
+  };
 
   const isStaffUser = Boolean(
     user?.email?.includes('fleetstaff') || 
@@ -1832,7 +1959,7 @@ export const FleetTransitHubView: React.FC = () => {
           </div>
         </div>
 
-        {/* 3 Main Fleet Sub-Modules */}
+        {/* 4 Main Fleet Sub-Modules for Fleet Owner */}
         <div className="pt-2 border-t border-slate-800/80 flex flex-wrap gap-2 text-xs">
           <button
             type="button"
@@ -1845,6 +1972,19 @@ export const FleetTransitHubView: React.FC = () => {
           >
             {isTruckOrCargo ? <Truck className="w-4 h-4 text-cyan-300" /> : <Bus className="w-4 h-4 text-cyan-300" />}
             <span>{isTruckOrCargo ? '📦 কার্গো ডিপো ও চালান হাব' : '🚌 বাস কাউন্টার ও টিকেটিং API'}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveSubTab('company_rbac')}
+            className={`px-3.5 py-2 rounded-2xl font-black transition border flex items-center space-x-1.5 ${
+              activeSubTab === 'company_rbac'
+                ? 'bg-indigo-600 text-white border-indigo-500 shadow-lg shadow-indigo-600/30'
+                : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-slate-200'
+            }`}
+          >
+            <Building2 className="w-4 h-4 text-indigo-300" />
+            <span>🏢 কোম্পানি ম্যানেজার ও ৫-টিয়ার RBAC</span>
           </button>
 
           <button
@@ -1865,11 +2005,11 @@ export const FleetTransitHubView: React.FC = () => {
             onClick={() => setActiveSubTab('driver_performance')}
             className={`px-3.5 py-2 rounded-2xl font-black transition border flex items-center space-x-1.5 ${
               activeSubTab === 'driver_performance'
-                ? 'bg-indigo-600 text-white border-indigo-500 shadow-lg shadow-indigo-600/30'
+                ? 'bg-purple-600 text-white border-purple-500 shadow-lg shadow-purple-600/30'
                 : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-slate-200'
             }`}
           >
-            <UserCheck className="w-4 h-4 text-indigo-300" />
+            <UserCheck className="w-4 h-4 text-purple-300" />
             <span>👨‍✈️ ড্রাইভার লাইসেন্স ও পারফরম্যান্স</span>
           </button>
 
@@ -2062,9 +2202,232 @@ export const FleetTransitHubView: React.FC = () => {
       {/* Module Content (Tabs) */}
       <div className="space-y-4">
         {activeSubTab === 'transit_counters' && <TransitCounterManager isCustomerScoped={true} />}
+
+        {/* 🏢 FLEET OWNER'S COMPANY MANAGER & 5-TIER RBAC CONTROLS */}
+        {activeSubTab === 'company_rbac' && (
+          <div className="space-y-4 animate-in fade-in">
+            {/* Section 1: Company Operations Managers Provisioning Directory */}
+            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-2xl space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3 flex-wrap gap-2">
+                <div className="flex items-center space-x-2">
+                  <Building2 className="w-5 h-5 text-indigo-400" />
+                  <div>
+                    <h3 className="font-extrabold text-sm text-white">কোম্পানি অপারেশনস ম্যানেজার ডিরেক্টরি ও প্রভিশনিং</h3>
+                    <p className="text-[10.5px] text-slate-400">ফ্লিট মালিক কর্তৃক নিজস্ব পরিবহন কোম্পানির ম্যানেজার নিয়োগ ও দায়িত্ব বণ্টন</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsNewMgrModalOpen(true)}
+                  className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center space-x-1.5 shadow-md shadow-indigo-600/30 transition active:scale-95"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>+ নতুন কোম্পানি ম্যানেজার নিয়োগ</span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {fleetManagers.map(mgr => (
+                  <div key={mgr.id} className="bg-slate-950 p-4 rounded-2xl border border-slate-800 hover:border-indigo-500/40 space-y-2.5 transition">
+                    <div className="flex items-center justify-between">
+                      <span className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-bold text-[10px] border border-indigo-500/40">
+                        🏢 {mgr.company}
+                      </span>
+                      <span className="text-[9px] font-mono text-emerald-400 bg-emerald-950 px-1.5 py-0.5 rounded border border-emerald-500/30">
+                        ACTIVE
+                      </span>
+                    </div>
+                    <div>
+                      <h4 className="font-extrabold text-white text-xs">{mgr.name}</h4>
+                      <span className="text-[10px] text-slate-400 block mt-0.5">{mgr.base}</span>
+                    </div>
+                    <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] font-mono">
+                      <span className="text-slate-400">লগইন আইডি: <strong className="text-white">{mgr.phone}</strong></span>
+                      <span className="text-amber-300 bg-amber-950/60 px-1.5 py-0.5 rounded border border-amber-500/30">PIN: {mgr.pin}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Section 2: 5-Tier Granular RBAC Permissions Matrix */}
+            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-2xl space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3 flex-wrap gap-2">
+                <div className="flex items-center space-x-2">
+                  <ShieldCheck className="w-5 h-5 text-emerald-400" />
+                  <div>
+                    <h3 className="font-extrabold text-sm text-white">৫-স্তরের গ্র্যানুলার রোল পারমিশন ও এক্সেস কন্ট্রোল ম্যাট্রিক্স</h3>
+                    <p className="text-[10.5px] text-slate-400">ফ্লিট মালিক সেন্ট্রাল থেকে যেকোনো রোলের ক্ষমতা তাৎক্ষণিক অন/অফ করতে পারবেন</p>
+                  </div>
+                </div>
+                {matrixSaveSuccess && (
+                  <span className="text-xs text-emerald-300 font-bold bg-emerald-950 border border-emerald-500/50 px-3 py-1 rounded-xl animate-in fade-in">
+                    ✅ পারমিশন পরিবর্তন সফলভাবে সংরক্ষিত!
+                  </span>
+                )}
+              </div>
+
+              {/* Matrix Table */}
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-800 text-slate-400 font-bold text-[11px]">
+                      <th className="py-2.5 px-3 min-w-[220px]">সিস্টেম ফিচার ও অপারেশনাল ক্ষমতা</th>
+                      <th className="py-2.5 px-2 text-center text-amber-300 min-w-[100px]">👑 ফ্লিট মালিক</th>
+                      <th className="py-2.5 px-2 text-center text-indigo-300 min-w-[120px]">🏢 কোম্পানি ম্যানেজার</th>
+                      <th className="py-2.5 px-2 text-center text-cyan-300 min-w-[120px]">🏢 কাউন্টার ইনচার্জ</th>
+                      <th className="py-2.5 px-2 text-center text-amber-300 min-w-[120px]">🎫 বাস সুপারভাইজার</th>
+                      <th className="py-2.5 px-2 text-center text-emerald-300 min-w-[100px]">👨‍✈️ বাস চালক</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/60">
+                    {[
+                      { key: 'liveTracking', title: '🗺️ লাইভ জিপিএস ট্র্যাকিং ও গতি মনিটর', desc: 'ম্যাপে রিয়েল-টাইম গতি ও অবস্থান পর্যবেক্ষণ' },
+                      { key: 'engineCut', title: '🚨 রিমোট ইঞ্জিন লক / ফুয়েল কাটঅফ', desc: 'জরুরি পরিস্থিতিতে গাড়ি অচল করার ক্ষমতা' },
+                      { key: 'accidentVideo', title: '📹 ব্ল্যাকবক্স এক্সিডেন্ট ভিডিও ভিউয়ার', desc: 'দুর্ঘটনার সিসিটিভি ক্লিপ ও ক্যামেরা ফুটেজ' },
+                      { key: 'gatepassApproval', title: '✅ ডিপার্চার গেটপাস অনুমোদন', desc: 'টার্মিনাল থেকে ট্রিপের গেটপাস ক্লিয়ার করা' },
+                      { key: 'passengerStepper', title: '👥 অনবোর্ড যাত্রী কন্ট্রোল (+১ / -১)', desc: 'হাইওয়েতে বাসের ভেতরে যাত্রী উঠা-নামা হিসাব' },
+                      { key: 'fleetSetup', title: '🚌 বাস ও রুট অ্যাসাইনমেন্ট সেটআপ', desc: 'নতুন বাস ও রুট কনফিগারেশন' },
+                      { key: 'driverRecruit', title: '👨‍✈️ চালক নিয়োগ ও BRTA লাইসেন্স ভল্ট', desc: 'চালক তালিকা ও স্মার্ট লাইসেন্স ভেরিফিকেশন' },
+                      { key: 'billingFinance', title: '💰 সাবস্ক্রিপশন, প্রফিট/লস ও বিলিং', desc: 'কোম্পানির সেন্ট্রাল ফিনান্সিয়াল অডিট' },
+                      { key: 'legalVault', title: '📄 কমপ্লায়েন্স ও ট্যাক্স টোকেন ভল্ট', desc: 'আইনি মেয়াদ ও ২-টিয়ার নবায়ন এলার্ট' }
+                    ].map(perm => (
+                      <tr key={perm.key} className="hover:bg-slate-950/60 transition">
+                        <td className="py-2.5 px-3">
+                          <span className="font-bold text-white block">{perm.title}</span>
+                          <span className="text-[10px] text-slate-400 block">{perm.desc}</span>
+                        </td>
+                        {(['owner', 'manager', 'counter_incharge', 'vehicle_supervisor', 'driver'] as const).map(roleKey => {
+                          const isChecked = Boolean(fleetRolePermissions[roleKey]?.[perm.key]);
+                          return (
+                            <td key={roleKey} className="py-2.5 px-2 text-center">
+                              <button
+                                type="button"
+                                onClick={() => handleToggleMatrixPerm(roleKey, perm.key)}
+                                className={`w-6 h-6 rounded-lg border inline-flex items-center justify-center transition active:scale-90 ${
+                                  isChecked
+                                    ? 'bg-emerald-600 border-emerald-400 text-white shadow-sm shadow-emerald-600/30'
+                                    : 'bg-slate-950 border-slate-700 text-slate-600 hover:border-slate-500'
+                                }`}
+                                title={isChecked ? 'অনুমোদিত (Enabled)' : 'ব্লকড (Disabled)'}
+                              >
+                                {isChecked ? '✓' : '✕'}
+                              </button>
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
         {activeSubTab === 'compliance_vault' && <ComplianceDocumentVault isCustomerScoped={true} />}
         {activeSubTab === 'driver_performance' && <DriverPerformanceManager isCustomerScoped={true} />}
       </div>
+
+      {/* MODAL: FLEET OWNER'S NEW COMPANY MANAGER PROVISION */}
+      {isNewMgrModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-in fade-in select-none">
+          <div className="bg-slate-900 border border-indigo-500/60 rounded-3xl max-w-md w-full p-5 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 rounded-xl bg-indigo-600/30 border border-indigo-500/50 flex items-center justify-center text-indigo-300">
+                  <Building2 className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-sm text-white">নতুন কোম্পানি ম্যানেজার নিয়োগ ও সেটআপ</h3>
+                  <p className="text-[10px] text-slate-400">ফ্লিট মালিক কর্তৃক সেন্ট্রাল প্রভিশনিং</p>
+                </div>
+              </div>
+              <button onClick={() => setIsNewMgrModalOpen(false)} className="text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveNewManager} className="space-y-3 text-xs">
+              <div>
+                <label className="text-[10.5px] font-bold text-slate-300 block mb-1">ম্যানেজারের পুরো নাম *</label>
+                <input
+                  type="text"
+                  required
+                  value={newMgrName}
+                  onChange={(e) => setNewMgrName(e.target.value)}
+                  placeholder="যেমন: মোঃ শামীম ওসমান"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-bold focus:border-indigo-500 focus:outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[10.5px] font-bold text-slate-300 block mb-1">মোবাইল নম্বর (লগইন আইডি) *</label>
+                  <input
+                    type="text"
+                    required
+                    value={newMgrPhone}
+                    onChange={(e) => setNewMgrPhone(e.target.value)}
+                    placeholder="01710-001122"
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono focus:border-indigo-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10.5px] font-bold text-slate-300 block mb-1">৪-ডিজিট সিকিউরিটি PIN *</label>
+                  <input
+                    type="text"
+                    required
+                    maxLength={4}
+                    value={newMgrPin}
+                    onChange={(e) => setNewMgrPin(e.target.value)}
+                    placeholder="5501"
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-amber-300 font-mono font-black focus:border-indigo-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10.5px] font-bold text-slate-300 block mb-1">নির্ধারিত পরিবহন কোম্পানি *</label>
+                <input
+                  type="text"
+                  value={newMgrCompany}
+                  onChange={(e) => setNewMgrCompany(e.target.value)}
+                  placeholder="হানিফ এন্টারপ্রাইজ"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-indigo-300 font-bold focus:border-indigo-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-[10.5px] font-bold text-slate-300 block mb-1">হেড অফিস / ডিপো লোকেশন</label>
+                <input
+                  type="text"
+                  value={newMgrBase}
+                  onChange={(e) => setNewMgrBase(e.target.value)}
+                  placeholder="যেমন: সেন্ট্রাল হেড অফিস • গাবতলী ঢাকা"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white focus:border-indigo-500 focus:outline-none"
+                />
+              </div>
+
+              <div className="flex space-x-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsNewMgrModalOpen(false)}
+                  className="flex-1 py-2.5 rounded-xl bg-slate-800 text-slate-300 font-bold text-xs"
+                >
+                  বাতিল
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs shadow-lg shadow-indigo-600/30"
+                >
+                  ম্যানেজার অ্যাকাউন্ট তৈরি
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
     </div>
   );
