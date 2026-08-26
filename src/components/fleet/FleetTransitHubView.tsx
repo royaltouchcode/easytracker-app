@@ -30,7 +30,8 @@ import {
   AlertTriangle,
   X,
   Check,
-  KeyRound
+  KeyRound,
+  LogOut
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { TransitCounterManager } from '../saas/TransitCounterManager';
@@ -150,6 +151,7 @@ const DEMO_TRANSIT_FLEET: Device[] = [
 export const FleetTransitHubView: React.FC = () => {
   const { 
     user,
+    logout,
     devices, 
     selectedDeviceId, 
     setSelectedDeviceId, 
@@ -294,6 +296,15 @@ export const FleetTransitHubView: React.FC = () => {
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                 <span>পিন ভেরিফাইড সাব-ইউজার</span>
               </span>
+              <button
+                type="button"
+                onClick={() => logout()}
+                className="px-3 py-1.5 rounded-xl bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 font-bold border border-rose-500/40 flex items-center space-x-1.5 transition active:scale-95 shadow-sm"
+                title="লগআউট করুন"
+              >
+                <LogOut className="w-3.5 h-3.5 text-rose-400" />
+                <span>লগআউট</span>
+              </button>
             </div>
           </div>
         </div>
