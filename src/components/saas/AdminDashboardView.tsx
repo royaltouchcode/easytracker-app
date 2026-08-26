@@ -37,7 +37,12 @@ import {
   Cpu,
   RotateCcw,
   PhoneCall,
-  Flame
+  Flame,
+  Fuel,
+  FileCheck,
+  User,
+  Bus,
+  BarChart3
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { APP_CONFIG } from '../../config/appConfig';
@@ -51,11 +56,24 @@ import { SellerQuotaAndLedgerManager } from './SellerQuotaAndLedgerManager';
 import { EnterpriseInventoryManager } from './EnterpriseInventoryManager';
 import { RescueTeamManager } from './RescueTeamManager';
 import { SmsGatewayManager } from './SmsGatewayManager';
+import { FuelTelematicsManager } from './FuelTelematicsManager';
+import { ComplianceDocumentVault } from './ComplianceDocumentVault';
+import { DriverPerformanceManager } from './DriverPerformanceManager';
+import { TransitCounterManager } from './TransitCounterManager';
+import { TelecomM2MConnector } from './TelecomM2MConnector';
+import { GovTechPoliceGateway } from './GovTechPoliceGateway';
+import { EnterpriseReportCenter } from './EnterpriseReportCenter';
 
 type AdminSectionType = 
   | 'overview'
   | 'server_sync'
   | 'govtech_api'
+  | 'operator_m2m'
+  | 'fuel_analytics'
+  | 'compliance_vault'
+  | 'driver_roster'
+  | 'transit_counters'
+  | 'classified_reports'
   | 'rescue_hub'
   | 'sms_gateway'
   | 'device_inventory'
@@ -427,7 +445,13 @@ export const AdminDashboardView: React.FC = () => {
   const SIDEBAR_ITEMS: { id: AdminSectionType; labelBn: string; labelEn: string; icon: any; badge?: string; badgeColor?: string }[] = [
     { id: 'overview', labelBn: 'ওভারভিউ ও মেট্রিক্স', labelEn: 'Overview & Metrics', icon: Crown },
     { id: 'server_sync', labelBn: 'GPS সার্ভার ও সিঙ্ক হাব', labelEn: 'GPS Server & Sync', icon: Server, badge: 'Live', badgeColor: 'bg-emerald-500/20 text-emerald-300' },
-    { id: 'govtech_api', labelBn: 'BRTA, BTRC ও পুলিশ 2-Way API', labelEn: 'GovTech & Police 2-Way APIs', icon: Globe, badge: 'GovTech', badgeColor: 'bg-emerald-500/20 text-emerald-300' },
+    { id: 'govtech_api', labelBn: 'BRTA, BTRC ও পুলিশ 2-Way API', labelEn: 'GovTech & Police 2-Way APIs', icon: Globe, badge: 'GovTech', badgeColor: 'bg-rose-500/20 text-rose-300' },
+    { id: 'operator_m2m', labelBn: 'টেলিকম M2M গেটওয়ে ও টেস্ট', labelEn: 'Telco M2M API & Ping', icon: Radio, badge: 'M2M IoT', badgeColor: 'bg-indigo-500/20 text-indigo-300' },
+    { id: 'fuel_analytics', labelBn: 'ফুয়েল চুরি ও ড্রেন অ্যানালিটিক্স', labelEn: 'Fuel Anti-Theft & Telematics', icon: Fuel, badge: 'Ultrasonic', badgeColor: 'bg-amber-500/20 text-amber-300' },
+    { id: 'compliance_vault', labelBn: 'BRTA ডকুমেন্টস ও ফিটনেস ভল্ট', labelEn: 'BRTA Compliance & Vault', icon: FileCheck, badge: 'Docs', badgeColor: 'bg-emerald-500/20 text-emerald-300' },
+    { id: 'driver_roster', labelBn: 'ড্রাইভার রোস্টার ও সেফটি স্কোরকার্ড', labelEn: 'Driver Roster & Scorecard', icon: User, badge: 'Eco-AI', badgeColor: 'bg-blue-500/20 text-blue-300' },
+    { id: 'transit_counters', labelBn: 'বাস কাউন্টার ও সুপারভাইজার হাব', labelEn: 'Bus & Transit Counters', icon: Bus, badge: 'Transit', badgeColor: 'bg-cyan-500/20 text-cyan-300' },
+    { id: 'classified_reports', labelBn: 'এন্টারপ্রাইজ ক্লাসিফায়েড রিপোর্টস', labelEn: 'Classified Audit Reports', icon: BarChart3, badge: 'Export', badgeColor: 'bg-indigo-500/20 text-indigo-300' },
     { id: 'rescue_hub', labelBn: 'রেসকিউ টিম ও ক্ষতিপূরণ রেট', labelEn: 'Rescue Squads & Rates', icon: Flame, badge: '24/7 Red', badgeColor: 'bg-rose-500/20 text-rose-300' },
     { id: 'sms_gateway', labelBn: 'এসএমএস গেটওয়ে হাব', labelEn: 'SMS Gateway Hub', icon: Smartphone, badge: 'BD SMS', badgeColor: 'bg-emerald-500/20 text-emerald-300' },
     { id: 'device_inventory', labelBn: 'ট্র্যাকার ডিভাইস ERP', labelEn: 'Device Inventory', icon: Cpu, badge: 'Hardware', badgeColor: 'bg-cyan-500/20 text-cyan-300' },
@@ -943,243 +967,66 @@ export const AdminDashboardView: React.FC = () => {
           {/* ========================================================================= */}
           {/* VIEW: GOVTECH & POLICE TWO-WAY REGULATORY GATEWAY (BRTA, BTRC, DMP, 999)   */}
           {/* ========================================================================= */}
+          {/* ========================================================================= */}
+          {/* VIEW: GOVTECH, BRTA, BTRC & 2-WAY POLICE HIGHWAY GATEWAY                  */}
+          {/* ========================================================================= */}
           {activeSection === 'govtech_api' && (
             <div className="space-y-4 animate-in fade-in duration-150">
-              {/* Header Banner with Zero-Trust PIN Guard */}
-              <div className="bg-gradient-to-r from-emerald-950/60 via-slate-900 to-indigo-950/60 border border-emerald-500/40 p-4 rounded-3xl shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                <div className="flex items-center space-x-3">
-                  <div className="w-11 h-11 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center shadow-inner">
-                    <Globe className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <div className="flex items-center space-x-2">
-                      <h3 className="text-sm md:text-base font-extrabold text-white">
-                        বাংলাদেশ সরকার, বিআরটিএ, বিটিআরসি ও ট্রাফিক পুলিশ 2-Way API গেটওয়ে
-                      </h3>
-                      <span className="text-[9.5px] font-mono text-emerald-300 font-bold bg-emerald-950 px-2 py-0.5 rounded-full border border-emerald-800">
-                        2-WAY BI-DIRECTIONAL
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-400 mt-0.5">
-                      দ্বিমুখী ডাটা সিঙ্ক্রোনাইজেশন • লাইভ ফিটনেস ভেরিফিকেশন • এক্সিডেন্ট ব্ল্যাকবক্স ডিসপ্যাচ
-                    </p>
-                  </div>
-                </div>
+              <GovTechPoliceGateway />
+            </div>
+          )}
 
-                <div className="flex items-center space-x-2 bg-slate-950 px-3 py-1.5 rounded-2xl border border-slate-800 shrink-0">
-                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                  <span className="text-[11px] font-bold text-slate-300">মাস্টার সিকিউরিটি পিন গেট সক্রিয়</span>
-                </div>
-              </div>
+          {/* ========================================================================= */}
+          {/* VIEW: TELECOM M2M GATEWAY & CONNECTION TEST                               */}
+          {/* ========================================================================= */}
+          {activeSection === 'operator_m2m' && (
+            <div className="space-y-4 animate-in fade-in duration-150">
+              <TelecomM2MConnector />
+            </div>
+          )}
 
-              {/* 4 Two-Way Gateway Cards Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                
-                {/* 1. BRTA Two-Way VTS Gateway */}
-                <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2.5">
-                      <div className="w-8 h-8 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 font-bold text-xs">
-                        BRTA
-                      </div>
-                      <div>
-                        <div className="font-bold text-xs text-white">BRTA VTS ফিটনেস ও রুট পারমিট গেটওয়ে</div>
-                        <div className="text-[9.5px] text-slate-400 font-mono">Endpoint: /api/v2/govtech/brta/vts-sync</div>
-                      </div>
-                    </div>
-                    <span className="text-[9.5px] font-bold text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded-full border border-emerald-800">
-                      সক্রিয়
-                    </span>
-                  </div>
+          {/* ========================================================================= */}
+          {/* VIEW: SMART FUEL TELEMATICS & ANTI-THEFT HUB                              */}
+          {/* ========================================================================= */}
+          {activeSection === 'fuel_analytics' && (
+            <div className="space-y-4 animate-in fade-in duration-150">
+              <FuelTelematicsManager />
+            </div>
+          )}
 
-                  <div className="bg-slate-950 p-2.5 rounded-2xl border border-slate-800 text-[11px] space-y-1 text-slate-300">
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">➡️ আউটবাউন্ড পুশ:</span>
-                      <span className="font-mono text-emerald-300">১৭-ডিজিট চেসিস (VIN), ইঞ্জিন ও VTS হ্যাশ</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">⬅️ ইনবাউন্ড ফেচ:</span>
-                      <span className="font-mono text-blue-300">ফিটনেস ইন্সপেকশন ও ডিজিটাল অ্যাপ্রুভাল টোকেন</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">সর্বশেষ সফল সিঙ্ক:</span>
-                      <span className="text-slate-300 font-mono">আজ সকাল ১১:২০ (Latency: 18ms)</span>
-                    </div>
-                  </div>
+          {/* ========================================================================= */}
+          {/* VIEW: BRTA LEGAL COMPLIANCE & DOCUMENT VAULT                              */}
+          {/* ========================================================================= */}
+          {activeSection === 'compliance_vault' && (
+            <div className="space-y-4 animate-in fade-in duration-150">
+              <ComplianceDocumentVault />
+            </div>
+          )}
 
-                  <div className="flex space-x-2 pt-1">
-                    <button
-                      type="button"
-                      onClick={() => alert('মাস্টার পিন ভেরিফাইড! BRTA কেন্দ্রীয় VTS সার্ভারে চেসিস ও VTS সার্টিফিকেট টেস্ট সিঙ্ক সফল হয়েছে।')}
-                      className="flex-1 py-2 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 font-bold text-[11px] flex items-center justify-center space-x-1 transition active:scale-95"
-                    >
-                      <RefreshCw className="w-3 h-3" />
-                      <span>টেস্ট 2-Way সিঙ্ক</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => alert('BRTA API Key: brta_live_vts_gov_bd_key_2026 (Copy to clipboard)')}
-                      className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-300 border border-slate-700 font-bold text-[11px]"
-                    >
-                      API Key
-                    </button>
-                  </div>
-                </div>
+          {/* ========================================================================= */}
+          {/* VIEW: DRIVER ROSTER & PERFORMANCE SCORECARD                               */}
+          {/* ========================================================================= */}
+          {activeSection === 'driver_roster' && (
+            <div className="space-y-4 animate-in fade-in duration-150">
+              <DriverPerformanceManager />
+            </div>
+          )}
 
-                {/* 2. BTRC NEIR Two-Way Device Gateway */}
-                <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2.5">
-                      <div className="w-8 h-8 rounded-xl bg-purple-500/20 border border-purple-500/40 flex items-center justify-center text-purple-400 font-bold text-xs">
-                        BTRC
-                      </div>
-                      <div>
-                        <div className="font-bold text-xs text-white">BTRC NEIR ও স্পেকট্রাম কমপ্লায়েন্স গেটওয়ে</div>
-                        <div className="text-[9.5px] text-slate-400 font-mono">Endpoint: /api/v2/govtech/btrc/neir-imei</div>
-                      </div>
-                    </div>
-                    <span className="text-[9.5px] font-bold text-purple-400 bg-purple-950/80 px-2 py-0.5 rounded-full border border-purple-800">
-                      সক্রিয়
-                    </span>
-                  </div>
+          {/* ========================================================================= */}
+          {/* VIEW: BUS & TRANSIT COUNTER HUB                                           */}
+          {/* ========================================================================= */}
+          {activeSection === 'transit_counters' && (
+            <div className="space-y-4 animate-in fade-in duration-150">
+              <TransitCounterManager />
+            </div>
+          )}
 
-                  <div className="bg-slate-950 p-2.5 rounded-2xl border border-slate-800 text-[11px] space-y-1 text-slate-300">
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">➡️ আউটবাউন্ড পুশ:</span>
-                      <span className="font-mono text-purple-300">১৫-ডিজিট TAC-IMEI ও M2M সিম ICCID</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">⬅️ ইনবাউন্ড ফেচ:</span>
-                      <span className="font-mono text-cyan-300">স্পেকট্রাম ক্লিয়ারেন্স ও টেলিকম লাইসেন্স টোকেন</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">হোয়াইটলিস্টেড ট্র্যাকার:</span>
-                      <span className="text-slate-300 font-mono">{devices.length} টি ডিভাইস ভেরিফাইড</span>
-                    </div>
-                  </div>
-
-                  <div className="flex space-x-2 pt-1">
-                    <button
-                      type="button"
-                      onClick={() => alert('মাস্টার পিন ভেরিফাইড! BTRC NEIR সার্ভারে সকল IMEI ও TAC স্পেকট্রাম ভেরিফিকেশন সফল।')}
-                      className="flex-1 py-2 rounded-xl bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/40 font-bold text-[11px] flex items-center justify-center space-x-1 transition active:scale-95"
-                    >
-                      <RefreshCw className="w-3 h-3" />
-                      <span>NEIR টেস্ট সিঙ্ক</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => alert('BTRC NEIR Key: btrc_neir_auth_easytracker_2026')}
-                      className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-300 border border-slate-700 font-bold text-[11px]"
-                    >
-                      API Key
-                    </button>
-                  </div>
-                </div>
-
-                {/* 3. Traffic Police & DMP Violation Stream API */}
-                <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2.5">
-                      <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 font-bold text-xs">
-                        DMP
-                      </div>
-                      <div>
-                        <div className="font-bold text-xs text-white">বাংলাদেশ ট্রাফিক পুলিশ ও DMP ভায়োলেশন API</div>
-                        <div className="text-[9.5px] text-slate-400 font-mono">Endpoint: /api/v2/police/traffic-violations</div>
-                      </div>
-                    </div>
-                    <span className="text-[9.5px] font-bold text-amber-400 bg-amber-950/80 px-2 py-0.5 rounded-full border border-amber-800">
-                      লাইভ স্ট্রিম
-                    </span>
-                  </div>
-
-                  <div className="bg-slate-950 p-2.5 rounded-2xl border border-slate-800 text-[11px] space-y-1 text-slate-300">
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">➡️ আউটবাউন্ড পুশ:</span>
-                      <span className="font-mono text-amber-300">AI ড্যাশ-ক্যাম ট্রাফিক সাইন ভায়োলেশন ক্লিপ ও স্পিড</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">⬅️ ইনবাউন্ড ফেচ:</span>
-                      <span className="font-mono text-emerald-300">ডিজিটাল ই-চালান ও পুলিশি তদন্ত রিকোয়েস্ট</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">ওয়াটারমার্ক সুরক্ষা:</span>
-                      <span className="text-emerald-400 font-mono">রিয়েল জিপিএস + প্লেট + টাইমস্ট্যাম্প এমবেডেড</span>
-                    </div>
-                  </div>
-
-                  <div className="flex space-x-2 pt-1">
-                    <button
-                      type="button"
-                      onClick={() => alert('মাস্টার পিন ভেরিফাইড! ট্রাফিক পুলিশ কন্ট্রোল রুমে টেস্ট ই-চালান ওয়েব-হুক সিগন্যাল পাঠানো হয়েছে।')}
-                      className="flex-1 py-2 rounded-xl bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/40 font-bold text-[11px] flex items-center justify-center space-x-1 transition active:scale-95"
-                    >
-                      <Activity className="w-3 h-3" />
-                      <span>ওয়েবহুক টেস্ট</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => alert('Traffic Police Key: bd_traffic_police_dmp_feed_key')}
-                      className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-300 border border-slate-700 font-bold text-[11px]"
-                    >
-                      API Key
-                    </button>
-                  </div>
-                </div>
-
-                {/* 4. National Emergency 999 Dispatch Gateway */}
-                <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2.5">
-                      <div className="w-8 h-8 rounded-xl bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-400 font-bold text-xs">
-                        999
-                      </div>
-                      <div>
-                        <div className="font-bold text-xs text-white">জাতীয় জরুরি সেবা ৯৯৯ ও হাইওয়ে রেসকিউ API</div>
-                        <div className="text-[9.5px] text-slate-400 font-mono">Endpoint: /api/v2/emergency/999-dispatch</div>
-                      </div>
-                    </div>
-                    <span className="text-[9.5px] font-bold text-rose-400 bg-rose-950/80 px-2 py-0.5 rounded-full border border-rose-800">
-                      ইমার্জেন্সি
-                    </span>
-                  </div>
-
-                  <div className="bg-slate-950 p-2.5 rounded-2xl border border-slate-800 text-[11px] space-y-1 text-slate-300">
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">➡️ আউটবাউন্ড পুশ:</span>
-                      <span className="font-mono text-rose-300">ক্র্যাশ ইমপ্যাক্ট (4.0G+), ৫ মিনিট ব্ল্যাকবক্স লিংক ও ম্যাপ</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">⬅️ ইনবাউন্ড ফেচ:</span>
-                      <span className="font-mono text-blue-300">অ্যাম্বুলেন্স ও হাইওয়ে রেসকিউ টিম স্ট্যাটাস ডিসপ্যাচ</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">SOS অটোনোমাস ব্যাকআপ:</span>
-                      <span className="text-emerald-400 font-mono">SOS-1, SOS-2, SOS-3 নম্বরে এসএমএস সিঙ্ক</span>
-                    </div>
-                  </div>
-
-                  <div className="flex space-x-2 pt-1">
-                    <button
-                      type="button"
-                      onClick={() => alert('মাস্টার পিন ভেরিফাইড! ৯৯৯ ইমার্জেন্সি ডিসপ্যাচ গেটওয়ে টেস্ট কল সফল (Zero Latency)।')}
-                      className="flex-1 py-2 rounded-xl bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/40 font-bold text-[11px] flex items-center justify-center space-x-1 transition active:scale-95"
-                    >
-                      <PhoneCall className="w-3 h-3" />
-                      <span>৯৯৯ টেস্ট ডিসপ্যাচ</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => alert('National 999 Key: gov_bd_999_emergency_dispatch_auth')}
-                      className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-300 border border-slate-700 font-bold text-[11px]"
-                    >
-                      API Key
-                    </button>
-                  </div>
-                </div>
-
-              </div>
+          {/* ========================================================================= */}
+          {/* VIEW: ENTERPRISE CLASSIFIED REPORTS CENTER                                */}
+          {/* ========================================================================= */}
+          {activeSection === 'classified_reports' && (
+            <div className="space-y-4 animate-in fade-in duration-150">
+              <EnterpriseReportCenter />
             </div>
           )}
 

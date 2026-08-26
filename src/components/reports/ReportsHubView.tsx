@@ -37,12 +37,16 @@ import {
   ChevronRight,
   ShieldAlert,
   Fan,
-  DoorClosed
+  DoorClosed,
+  FileCheck,
+  User
 } from 'lucide-react';
 import { FuelRefillLog, Position } from '../../types/traccar';
 import { lookupVehicleMaintenanceSpec, VehicleMaintenanceSpec } from '../../utils/maintenanceAiService';
 import { VehicleIcon } from '../../utils/vehicleIcons';
 import { traccarApi } from '../../services/traccarApi';
+import { ComplianceDocumentVault } from '../saas/ComplianceDocumentVault';
+import { DriverPerformanceManager } from '../saas/DriverPerformanceManager';
 
 interface ServicingHistoryEntry {
   id: string;
@@ -71,7 +75,7 @@ export const ReportsHubView: React.FC = () => {
     updateDeviceProfile
   } = useApp();
 
-  const [activeSubTab, setActiveSubTab] = useState<'hub' | 'fuel' | 'maintenance' | 'ai_manual' | 'running' | 'subscription'>('hub');
+  const [activeSubTab, setActiveSubTab] = useState<'hub' | 'fuel' | 'maintenance' | 'ai_manual' | 'running' | 'subscription' | 'compliance' | 'driver'>('hub');
   const [selectedReportType, setSelectedReportType] = useState<DetailedReportType>(null);
   const [reportDateFilter, setReportDateFilter] = useState<'today' | 'yesterday' | 'week' | 'month'>('today');
 
@@ -532,6 +536,36 @@ export const ReportsHubView: React.FC = () => {
             <Calendar className="w-5 h-5 sm:w-4 sm:h-4 text-teal-300 shrink-0" />
             <span className="text-[10px] sm:text-xs leading-tight mt-1 sm:mt-0 font-bold block">
               {language === 'bn' ? 'সাবস্ক্রিপশন' : 'Subscription'}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveSubTab('compliance')}
+            className={`flex flex-col sm:flex-row items-center sm:space-x-2.5 p-2 sm:px-3 sm:py-2.5 rounded-2xl font-bold transition text-center sm:text-left ${
+              activeSubTab === 'compliance'
+                ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 ring-1 ring-emerald-400/50'
+                : 'bg-slate-950/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+            }`}
+          >
+            <FileCheck className="w-5 h-5 sm:w-4 sm:h-4 text-emerald-300 shrink-0" />
+            <span className="text-[10px] sm:text-xs leading-tight mt-1 sm:mt-0 font-bold block">
+              {language === 'bn' ? 'BRTA ভল্ট' : 'BRTA Docs'}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveSubTab('driver')}
+            className={`flex flex-col sm:flex-row items-center sm:space-x-2.5 p-2 sm:px-3 sm:py-2.5 rounded-2xl font-bold transition text-center sm:text-left ${
+              activeSubTab === 'driver'
+                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30 ring-1 ring-blue-400/50'
+                : 'bg-slate-950/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+            }`}
+          >
+            <User className="w-5 h-5 sm:w-4 sm:h-4 text-blue-300 shrink-0" />
+            <span className="text-[10px] sm:text-xs leading-tight mt-1 sm:mt-0 font-bold block">
+              {language === 'bn' ? 'ড্রাইভার ইনফো' : 'Driver Profile'}
             </span>
           </button>
         </aside>
@@ -1695,6 +1729,24 @@ export const ReportsHubView: React.FC = () => {
                 <span className="font-mono text-slate-300">{selectedDevice?.attributes?.sosNumber1 || 'সেট করা হয়নি'}</span>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* =================================================== */}
+        {/* TAB 6: BRTA COMPLIANCE & DOCUMENT VAULT             */}
+        {/* =================================================== */}
+        {activeSubTab === 'compliance' && (
+          <div className="animate-in fade-in duration-150">
+            <ComplianceDocumentVault isCustomerScoped={true} />
+          </div>
+        )}
+
+        {/* =================================================== */}
+        {/* TAB 7: DRIVER PROFILE & SAFETY SCORECARD            */}
+        {/* =================================================== */}
+        {activeSubTab === 'driver' && (
+          <div className="animate-in fade-in duration-150">
+            <DriverPerformanceManager isCustomerScoped={true} />
           </div>
         )}
         </main>
