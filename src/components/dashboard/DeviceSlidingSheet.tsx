@@ -593,36 +593,50 @@ export const DeviceSlidingSheet: React.FC = () => {
           {(() => {
             const isStaffUser = Boolean(
               user?.email?.includes('fleetstaff') || 
+              user?.role === 'manager' ||
+              user?.role === 'counter_incharge' ||
+              user?.role === 'vehicle_supervisor' ||
               user?.role === 'supervisor' || 
               user?.role === 'driver' || 
               user?.role === 'lineman' ||
               (user as any)?.assigned ||
               /^[0-9\-\+]+@/.test(user?.email || '')
             );
-            const isDriver = isStaffUser && (user?.role === 'driver' || user?.name?.includes('কুদ্দুস') || (user as any)?.assigned?.includes('ঢাকা মেট্রো-ব'));
+            const isManager = isStaffUser && (user?.role === 'manager' || user?.name?.includes('ম্যানেজার') || user?.name?.includes('ওসমান'));
+            const isDriver = isStaffUser && !isManager && (user?.role === 'driver' || user?.name?.includes('কুদ্দুস') || (user as any)?.assigned?.includes('ঢাকা মেট্রো-ব'));
+            const isVehicleSupervisor = isStaffUser && !isManager && !isDriver && (user?.role === 'vehicle_supervisor' || user?.name?.includes('সুপারভাইজার') || user?.name?.includes('শফিকুল'));
 
             if (isStaffUser) {
               return (
                 <div className="grid grid-cols-4 gap-1.5">
-                  {/* 1. Terminal / Cabin Hub Portal */}
+                  {/* 1. Terminal / Cabin / Setup Hub Portal */}
                   <button
                     type="button"
                     onClick={() => setActiveTab('fleet_transit')}
-                    className="py-2 px-1 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-extrabold text-[11px] flex flex-col items-center justify-center space-y-0.5 shadow-md shadow-cyan-600/30 transition active:scale-95"
-                    title={isDriver ? 'ড্রাইভার কেবিনে প্রবেশ' : 'টার্মিনাল গেটপাস কন্ট্রোল'}
+                    className={`py-2 px-1 rounded-xl text-white font-extrabold text-[11px] flex flex-col items-center justify-center space-y-0.5 transition active:scale-95 shadow-md ${
+                      isManager ? 'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-600/30' :
+                      isDriver ? 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/30' :
+                      isVehicleSupervisor ? 'bg-amber-600 hover:bg-amber-500 shadow-amber-600/30' :
+                      'bg-cyan-600 hover:bg-cyan-500 shadow-cyan-600/30'
+                    }`}
+                    title="কন্ট্রোল পোর্টালে যান"
                   >
                     <Building2 className="w-4 h-4 shrink-0" />
-                    <span className="truncate leading-tight">{isDriver ? 'চালকের কেবিন' : 'টার্মিনাল গেটপাস'}</span>
+                    <span className="truncate leading-tight">
+                      {isManager ? 'সেটআপ হাব' : isDriver ? 'চালকের কেবিন' : isVehicleSupervisor ? 'অনবোর্ড হাব' : 'গেটপাস পোর্টাল'}
+                    </span>
                   </button>
 
-                  {/* 2. Direct Call Driver or Terminal Hotline */}
+                  {/* 2. Direct Role-Targeted Call */}
                   <a
-                    href={isDriver ? 'tel:01711889900' : 'tel:01712334455'}
+                    href={isDriver ? 'tel:01711889900' : isVehicleSupervisor ? 'tel:01822771122' : 'tel:01712334455'}
                     className="py-2 px-1 rounded-xl bg-indigo-950/80 hover:bg-indigo-900 border border-indigo-500/50 text-indigo-300 font-bold text-[11px] flex flex-col items-center justify-center space-y-0.5 transition active:scale-95 shadow-sm"
-                    title={isDriver ? 'কাউন্টারম্যানকে কল' : 'বাস চালককে কল'}
+                    title="জরুরি ফোন কল"
                   >
                     <Phone className="w-4 h-4 text-indigo-400 shrink-0" />
-                    <span className="truncate leading-tight">{isDriver ? 'কাউন্টার কল' : 'চালককে কল'}</span>
+                    <span className="truncate leading-tight">
+                      {isManager ? 'ওনার কল' : isDriver ? 'সুপারভাইজার' : isVehicleSupervisor ? 'কাউন্টার কল' : 'বাসে কল'}
+                    </span>
                   </a>
 
                   {/* 3. Playback Route History */}

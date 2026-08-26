@@ -167,15 +167,67 @@ export const FleetTransitHubView: React.FC = () => {
 
   const isStaffUser = Boolean(
     user?.email?.includes('fleetstaff') || 
+    user?.role === 'manager' ||
+    user?.role === 'counter_incharge' ||
+    user?.role === 'vehicle_supervisor' ||
     user?.role === 'supervisor' || 
     user?.role === 'driver' || 
     user?.role === 'lineman' ||
     (user as any)?.assigned ||
     /^[0-9\-\+]+@/.test(user?.email || '')
   );
-  const isDriver = isStaffUser && (user?.role === 'driver' || user?.name?.includes('কুদ্দুস') || (user as any)?.assigned?.includes('ঢাকা মেট্রো-ব'));
-  const isLineman = isStaffUser && !isDriver && (user?.role === 'lineman' || user?.name?.includes('লাইনম্যান') || user?.name?.includes('শফিকুল'));
-  const staffTerminalOrBus = (user as any)?.assigned || (isDriver ? 'হানিফ এন্টারপ্রাইজ Hino 1J (ঢাকা মেট্রো-ব ১৪-৯৯০১)' : 'গাবতলী সেন্ট্রাল বাস টার্মিনাল');
+  const isManager = isStaffUser && (user?.role === 'manager' || user?.name?.includes('ম্যানেজার') || user?.name?.includes('ওসমান'));
+  const isDriver = isStaffUser && !isManager && (user?.role === 'driver' || user?.name?.includes('কুদ্দুস') || (user as any)?.assigned?.includes('ঢাকা মেট্রো-ব'));
+  const isVehicleSupervisor = isStaffUser && !isManager && !isDriver && (user?.role === 'vehicle_supervisor' || user?.name?.includes('সুপারভাইজার') || user?.name?.includes('শফিকুল'));
+  const isCounterIncharge = isStaffUser && !isManager && !isDriver && !isVehicleSupervisor;
+  
+  const staffTerminalOrBus = (user as any)?.assigned || (
+    isManager ? 'হানিফ এন্টারপ্রাইজ সেন্ট্রাল হেড অফিস' :
+    isDriver ? 'হানিফ এন্টারপ্রাইজ Hino 1J (ঢাকা মেট্রো-ব ১৪-৯৯০১)' :
+    isVehicleSupervisor ? 'হানিফ এন্টারপ্রাইজ Hino 1J (অনবোর্ড বাস)' :
+    'জয়দেবপুর বাস টার্মিনাল'
+  );
+
+  // =========================================================================
+  // 🏢 COMPANY OPERATIONS MANAGER SETUP HUB STATE
+  // =========================================================================
+  const [managerSetupTab, setManagerSetupTab] = useState<'buses' | 'drivers' | 'counters' | 'supervisors' | 'staff_pins'>('buses');
+  const [managerBusesList, setManagerBusesList] = useState(() => {
+    const saved = localStorage.getItem('gps_mgr_buses');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return [
+      { id: 1, plate: 'ঢাকা মেট্রো-ব ১৪-৯৯০১', model: 'হানিফ এন্টারপ্রাইজ Hino 1J', route: 'গাবতলী ➔ বগুড়া', seats: 40, driver: 'মোঃ আব্দুল কুদ্দুস', supervisor: 'মোঃ শফিকুল আলম', status: 'IN_TRANSIT' },
+      { id: 2, plate: 'ঢাকা মেট্রো-ব ১৫-৪২৩১', model: 'শ্যামলী পরিবহন Scania Multi-Axle', route: 'সায়েদাবাদ ➔ চট্টগ্রাম', seats: 40, driver: 'মোঃ রফিকুল ইসলাম', supervisor: 'মোঃ আনিসুর রহমান', status: 'READY' },
+      { id: 3, plate: 'ঢাকা মেট্রো-ট ২৭-৮৫৭৮', model: 'Tata 1615 Cargo Truck', route: 'তেজগাঁও ➔ খুলনা', seats: 3, driver: 'মোঃ ফারুক হোসেন', supervisor: 'সেলফ', status: 'IN_TRANSIT' },
+      { id: 4, plate: 'ঢাকা মেট্রো-ন ১২-৩৪৫৬', model: 'Mahindra Bolero Pickup', route: 'উত্তরা ➔ গাজীপুর', seats: 3, driver: 'মোঃ কামাল হোসেন', supervisor: 'সেলফ', status: 'IDLE' },
+    ];
+  });
+
+  const [managerStationsList, setManagerStationsList] = useState(() => {
+    const saved = localStorage.getItem('gps_mgr_stations');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return [
+      { id: 1, name: 'জয়দেবপুর বাস টার্মিনাল', incharge: 'আব্দুর রাজ্জাক', phone: '01822-771122', pin: '4419', status: 'ACTIVE' },
+      { id: 2, name: 'গাবতলী সেন্ট্রাল টার্মিনাল', incharge: 'মোঃ আশরাফুল আলম', phone: '01715-998877', pin: '3312', status: 'ACTIVE' },
+      { id: 3, name: 'বগুড়া চারমাথা টার্মিনাল', incharge: 'মোঃ জহিরুল ইসলাম', phone: '01911-223344', pin: '7721', status: 'ACTIVE' },
+    ];
+  });
+
+  const [managerSupervisorsList, setManagerSupervisorsList] = useState(() => {
+    const saved = localStorage.getItem('gps_mgr_supervisors');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return [
+      { id: 1, name: 'মোঃ শফিকুল আলম', phone: '01711-889900', bus: 'ঢাকা মেট্রো-ব ১৪-৯৯০১ (হানিফ Hino 1J)', pin: '8821', status: 'ACTIVE' },
+      { id: 2, name: 'মোঃ আনিসুর রহমান', phone: '01719-332211', bus: 'ঢাকা মেট্রো-ব ১৫-৪২৩১ (শ্যামলী Scania)', pin: '6610', status: 'ACTIVE' },
+      { id: 3, name: 'মোঃ মোকাররম হোসেন', phone: '01811-445566', bus: 'ঢাকা মেট্রো-ব ১৬-৭৭৮৮ (গ্রীন লাইন Volvo)', pin: '2290', status: 'ACTIVE' },
+    ];
+  });
 
   // =========================================================================
   // 🧠 SMART FLEET & DRIVER INTELLIGENCE STATE
@@ -397,17 +449,30 @@ export const FleetTransitHubView: React.FC = () => {
                 <ArrowLeft className="w-4 h-4" />
               </button>
 
-              <div className="w-12 h-12 rounded-2xl bg-cyan-600/30 text-cyan-300 border border-cyan-500/50 flex items-center justify-center text-2xl shadow-lg shrink-0">
-                {isDriver ? '👨‍✈️' : '👨‍💼'}
+              <div className={`w-12 h-12 rounded-2xl border flex items-center justify-center text-2xl shadow-lg shrink-0 ${
+                isManager ? 'bg-indigo-600/30 text-indigo-300 border-indigo-500/50' :
+                isDriver ? 'bg-emerald-600/30 text-emerald-300 border-emerald-500/50' :
+                isVehicleSupervisor ? 'bg-amber-600/30 text-amber-300 border-amber-500/50' :
+                'bg-cyan-600/30 text-cyan-300 border-cyan-500/50'
+              }`}>
+                {isManager ? '🏢' : isDriver ? '👨‍✈️' : isVehicleSupervisor ? '🎫' : '🏢'}
               </div>
 
               <div>
                 <div className="flex items-center space-x-2 flex-wrap">
                   <h2 className="font-black text-base text-white">
-                    {isDriver ? '🚌 বাস চালক ডিজিটাল কেবিন ও ট্রিপ পোর্টাল' : '🏢 কাউন্টার লাইনম্যান ও গেটপাস পোর্টাল'}
+                    {isManager ? '🏢 কোম্পানি অপারেশনস ও ফ্লিট সেটআপ কনসোল' :
+                     isDriver ? '🚌 বাস চালক ডিজিটাল কেবিন ও ককপিট' :
+                     isVehicleSupervisor ? '🎫 অনবোর্ড বাস সুপারভাইজার ও প্যাসেঞ্জার ট্রানজিট পোর্টাল' :
+                     '🏢 কাউন্টার ইনচার্জ ও ডিপার্চার গেটপাস পোর্টাল'}
                   </h2>
-                  <span className="text-[9px] font-mono px-2 py-0.5 rounded-full font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
-                    {isDriver ? 'DRIVER ACCESS' : 'LINE SUPERVISOR'}
+                  <span className={`text-[9px] font-mono px-2 py-0.5 rounded-full font-bold border ${
+                    isManager ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40' :
+                    isDriver ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' :
+                    isVehicleSupervisor ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' :
+                    'bg-cyan-500/20 text-cyan-300 border-cyan-500/40'
+                  }`}>
+                    {isManager ? 'OPERATIONS MANAGER' : isDriver ? 'BUS DRIVER' : isVehicleSupervisor ? 'BUS SUPERVISOR' : 'COUNTER INCHARGE'}
                   </span>
                   <span className="text-[9px] font-mono px-2 py-0.5 rounded-full font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
                     🟢 DUTY ACTIVE
@@ -437,18 +502,605 @@ export const FleetTransitHubView: React.FC = () => {
           </div>
         </div>
 
-        {/* Dedicated Staff Content View */}
-        {isDriver ? (
+        {/* ========================================================================= */}
+        {/* 🏢 1. COMPANY OPERATIONS MANAGER CONSOLE (SETUP & STAFF RBAC HUB)         */}
+        {/* ========================================================================= */}
+        {isManager ? (
+          <div className="space-y-4 animate-in fade-in">
+            {/* Top Metric Cards for Manager */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="bg-slate-900 border border-indigo-500/30 p-3.5 rounded-2xl">
+                <span className="text-[10.5px] text-slate-400 block font-bold">🚌 মোট ফ্লিট বাস:</span>
+                <span className="font-black text-white text-lg">{managerBusesList.length} টি বাস</span>
+                <span className="text-[10px] text-emerald-400 block mt-0.5">২টি ট্রিপে • ২টি রেডি</span>
+              </div>
+              <div className="bg-slate-900 border border-emerald-500/30 p-3.5 rounded-2xl">
+                <span className="text-[10.5px] text-slate-400 block font-bold">👨‍✈️ নিয়োজিত চালক:</span>
+                <span className="font-black text-emerald-300 text-lg">{AVAILABLE_DRIVERS_POOL.length} জন</span>
+                <span className="text-[10px] text-slate-400 block mt-0.5">BRTA লাইসেন্স ভেরিফাইড</span>
+              </div>
+              <div className="bg-slate-900 border border-cyan-500/30 p-3.5 rounded-2xl">
+                <span className="text-[10.5px] text-slate-400 block font-bold">🏢 টার্মিনাল স্টেশন:</span>
+                <span className="font-black text-cyan-300 text-lg">{managerStationsList.length} টি কাউন্টার</span>
+                <span className="text-[10px] text-slate-400 block mt-0.5">গেটপাস অথরিটি সক্রিয়</span>
+              </div>
+              <div className="bg-slate-900 border border-amber-500/30 p-3.5 rounded-2xl">
+                <span className="text-[10.5px] text-slate-400 block font-bold">🎫 বাস সুপারভাইজার:</span>
+                <span className="font-black text-amber-300 text-lg">{managerSupervisorsList.length} জন</span>
+                <span className="text-[10px] text-slate-400 block mt-0.5">অনবোর্ড প্যাসেঞ্জার গাইড</span>
+              </div>
+            </div>
+
+            {/* Manager Operations Sub-Navigation Tabs */}
+            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-2xl space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3 flex-wrap gap-2">
+                <div className="flex items-center space-x-2">
+                  <SlidersHorizontal className="w-5 h-5 text-indigo-400" />
+                  <h3 className="font-black text-sm text-white">কোম্পানি সেটআপ ও রোল ম্যানেজমেন্ট হাব</h3>
+                </div>
+
+                <div className="flex items-center space-x-1.5 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => setManagerSetupTab('buses')}
+                    className={`px-3 py-1.5 rounded-xl font-bold text-xs transition ${
+                      managerSetupTab === 'buses' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30' : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
+                    }`}
+                  >
+                    🚌 বাস ও রুট
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setManagerSetupTab('drivers')}
+                    className={`px-3 py-1.5 rounded-xl font-bold text-xs transition ${
+                      managerSetupTab === 'drivers' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30' : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
+                    }`}
+                  >
+                    👨‍✈️ চালক ও লাইসেন্স
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setManagerSetupTab('counters')}
+                    className={`px-3 py-1.5 rounded-xl font-bold text-xs transition ${
+                      managerSetupTab === 'counters' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30' : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
+                    }`}
+                  >
+                    🏢 কাউন্টার স্টেশন
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setManagerSetupTab('supervisors')}
+                    className={`px-3 py-1.5 rounded-xl font-bold text-xs transition ${
+                      managerSetupTab === 'supervisors' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30' : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
+                    }`}
+                  >
+                    🎫 বাস সুপারভাইজার
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setManagerSetupTab('staff_pins')}
+                    className={`px-3 py-1.5 rounded-xl font-bold text-xs transition ${
+                      managerSetupTab === 'staff_pins' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30' : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
+                    }`}
+                  >
+                    🔐 স্টাফ পিন ও অ্যাক্সেস
+                  </button>
+                </div>
+              </div>
+
+              {/* Tab 1: Buses & Routes */}
+              {managerSetupTab === 'buses' && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-300">কোম্পানির নিবন্ধিত ফ্লিট বাস ও নির্ধারিত রুটসমূহ:</span>
+                    <button
+                      type="button"
+                      onClick={() => alert('🚌 নতুন বাস অ্যাড ফর্ম: নম্বর প্লেট, মডেল ও সিট ক্যাপাসিটি দিয়ে ফ্লিটে যুক্ত করুন।')}
+                      className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md shadow-indigo-600/30 transition active:scale-95 flex items-center space-x-1"
+                    >
+                      <span>➕ নতুন বাস যুক্ত করুন</span>
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-2 text-xs">
+                    {managerBusesList.map(b => (
+                      <div key={b.id} className="bg-slate-950 border border-slate-800 rounded-2xl p-3.5 flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
+                        <div>
+                          <div className="flex items-center space-x-2">
+                            <span className="font-black text-white text-sm">{b.model}</span>
+                            <span className="font-mono text-cyan-400 font-bold text-xs">{b.plate}</span>
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                              {b.seats} সিট ক্যাপাসিটি
+                            </span>
+                          </div>
+                          <div className="text-slate-400 text-xs mt-1 flex items-center space-x-3 flex-wrap">
+                            <span>🛣️ রুট: <strong className="text-slate-200">{b.route}</strong></span>
+                            <span>👨‍✈️ চালক: <strong className="text-cyan-300">{b.driver}</strong></span>
+                            <span>🎫 সুপারভাইজার: <strong className="text-amber-300">{b.supervisor}</strong></span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center space-x-2 self-end md:self-auto">
+                          <button
+                            type="button"
+                            onClick={() => alert(`✏️ ${b.plate}-এর রুট বা ড্রাইভার এডিট কনসোল ওপেন হয়েছে।`)}
+                            className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-850 text-slate-200 border border-slate-700 font-bold text-xs transition"
+                          >
+                            ✏️ রুট/স্টাফ এডিট
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Tab 2: Drivers & BRTA Licenses */}
+              {managerSetupTab === 'drivers' && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-300">নিবন্ধিত ফ্লিট চালক ও BRTA স্মার্ট ড্রাইভিং লাইসেন্স ভল্ট:</span>
+                    <button
+                      type="button"
+                      onClick={() => alert('👨‍✈️ নতুন চালক নিয়োগ ফর্ম: নাম, ফোন ও BRTA লাইসেন্স দিয়ে যুক্ত করুন।')}
+                      className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-600/30 transition active:scale-95 flex items-center space-x-1"
+                    >
+                      <span>➕ নতুন চালক যোগ করুন</span>
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-2 text-xs">
+                    {AVAILABLE_DRIVERS_POOL.map(d => (
+                      <div key={d.id} className="bg-slate-950 border border-slate-800 rounded-2xl p-3.5 flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
+                        <div>
+                          <div className="flex items-center space-x-2">
+                            <span className="font-black text-white text-sm">{d.name}</span>
+                            <span className="font-mono text-slate-400 text-xs">({d.phone})</span>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                              d.status === 'VALID' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' :
+                              d.status === 'EXPIRING_SOON' ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' :
+                              'bg-rose-500/20 text-rose-300 border-rose-500/40'
+                            }`}>
+                              {d.status === 'VALID' ? '🟢 বৈধ' : d.status === 'EXPIRING_SOON' ? '🟡 দ্রুত নবায়ন দরকার' : '🔴 মেয়াদোত্তীর্ণ'}
+                            </span>
+                          </div>
+                          <div className="text-slate-400 text-xs mt-1 flex items-center space-x-3 flex-wrap">
+                            <span>BRTA লাইসেন্স: <strong className="text-cyan-300 font-mono">{d.license}</strong></span>
+                            <span>মেয়াদ: <strong className="text-slate-200 font-mono">{d.expiry}</strong></span>
+                            <span>শ্রেণি: <strong>Heavy Commercial Bus</strong></span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center space-x-2 self-end md:self-auto">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsLicenseModalOpen(true);
+                            }}
+                            className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-850 text-slate-200 border border-slate-700 font-bold text-xs transition"
+                          >
+                            📷 লাইসেন্স আপডেট
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Tab 3: Counter Stations */}
+              {managerSetupTab === 'counters' && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-300">টার্মিনাল টিকিট স্টেশন ও কাউন্টার ইনচার্জ সেটআপ:</span>
+                    <button
+                      type="button"
+                      onClick={() => alert('🏢 নতুন কাউন্টার স্টেশন অ্যাড ফর্ম: টার্মিনালের নাম, ইনচার্জ ও ফোন দিয়ে যুক্ত করুন।')}
+                      className="px-3 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs shadow-md shadow-cyan-600/30 transition active:scale-95 flex items-center space-x-1"
+                    >
+                      <span>➕ নতুন কাউন্টার যুক্ত করুন</span>
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-2 text-xs">
+                    {managerStationsList.map(s => (
+                      <div key={s.id} className="bg-slate-950 border border-slate-800 rounded-2xl p-3.5 flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
+                        <div>
+                          <div className="flex items-center space-x-2">
+                            <span className="font-black text-white text-sm">🏢 {s.name}</span>
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
+                              গেটপাস স্টেশন
+                            </span>
+                          </div>
+                          <div className="text-slate-400 text-xs mt-1 flex items-center space-x-3 flex-wrap">
+                            <span>কাউন্টার ইনচার্জ: <strong className="text-cyan-300">{s.incharge}</strong></span>
+                            <span>ফোন: <strong className="text-slate-200 font-mono">{s.phone}</strong></span>
+                            <span>লগইন পিন: <strong className="text-amber-300 font-mono">PIN: {s.pin}</strong></span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center space-x-2 self-end md:self-auto">
+                          <button
+                            type="button"
+                            onClick={() => alert(`🔑 ${s.name}-এর ইনচার্জ (${s.incharge}) এর জন্য নতুন ৪-ডিজিট পিন রিসেট করা হয়েছে।`)}
+                            className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-850 text-slate-200 border border-slate-700 font-bold text-xs transition"
+                          >
+                            🔑 পিন রিসেট
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Tab 4: Vehicle Supervisors */}
+              {managerSetupTab === 'supervisors' && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-300">বাসের ভেতরের সুপারভাইজার (কন্ডাক্টর/গাইড) ও গাড়ি পেয়ারিং:</span>
+                    <button
+                      type="button"
+                      onClick={() => alert('🎫 নতুন বাস সুপারভাইজার নিয়োগ ও বাস পেয়ারিং ফর্ম।')}
+                      className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs shadow-md shadow-amber-600/30 transition active:scale-95 flex items-center space-x-1"
+                    >
+                      <span>➕ নতুন সুপারভাইজার যোগ করুন</span>
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-2 text-xs">
+                    {managerSupervisorsList.map(sup => (
+                      <div key={sup.id} className="bg-slate-950 border border-slate-800 rounded-2xl p-3.5 flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
+                        <div>
+                          <div className="flex items-center space-x-2">
+                            <span className="font-black text-white text-sm">🎫 {sup.name}</span>
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                              অনবোর্ড গাইড
+                            </span>
+                          </div>
+                          <div className="text-slate-400 text-xs mt-1 flex items-center space-x-3 flex-wrap">
+                            <span>নির্ধারিত বাস: <strong className="text-white">{sup.bus}</strong></span>
+                            <span>ফোন: <strong className="text-slate-200 font-mono">{sup.phone}</strong></span>
+                            <span>লগইন পিন: <strong className="text-amber-300 font-mono">PIN: {sup.pin}</strong></span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center space-x-2 self-end md:self-auto">
+                          <button
+                            type="button"
+                            onClick={() => alert(`🔄 ${sup.name}-কে অন্য বাসে স্থানান্তর বা পিন পরিবর্তন অপশন।`)}
+                            className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-850 text-slate-200 border border-slate-700 font-bold text-xs transition"
+                          >
+                            🔄 বাস পেয়ারিং পরিবর্তন
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Tab 5: Staff PINs & RBAC Access Matrix */}
+              {managerSetupTab === 'staff_pins' && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-300">স্টাফ পিন কোড ও পারমিশন কন্ট্রোল ম্যাট্রিক্স (Role Security):</span>
+                    <span className="text-[10px] text-emerald-400 font-mono bg-emerald-950 px-2 py-0.5 rounded border border-emerald-500/30">
+                      SECURE PIN RBAC
+                    </span>
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs text-left text-slate-300 border border-slate-800 rounded-2xl overflow-hidden">
+                      <thead className="bg-slate-950 text-slate-400 font-bold border-b border-slate-800">
+                        <tr>
+                          <th className="p-3">স্টাফ নাম</th>
+                          <th className="p-3">রোল</th>
+                          <th className="p-3">মোবাইল নম্বর</th>
+                          <th className="p-3">৪-ডিজিট পিন</th>
+                          <th className="p-3">নির্ধারিত দায়িত্ব</th>
+                          <th className="p-3 text-right">স্ট্যাটাস</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800 bg-slate-900/60">
+                        <tr>
+                          <td className="p-3 font-bold text-white">মোঃ শামীম ওসমান</td>
+                          <td className="p-3"><span className="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 text-[10px] font-bold">কোম্পানি ম্যানেজার</span></td>
+                          <td className="p-3 font-mono">01710-001122</td>
+                          <td className="p-3 font-mono font-bold text-amber-300">5501</td>
+                          <td className="p-3 text-slate-400">সেন্ট্রাল হেড অফিস</td>
+                          <td className="p-3 text-right"><span className="text-emerald-400 font-bold">🟢 সক্রিয়</span></td>
+                        </tr>
+                        <tr>
+                          <td className="p-3 font-bold text-white">আব্দুর রাজ্জাক</td>
+                          <td className="p-3"><span className="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 text-[10px] font-bold">কাউন্টার ইনচার্জ</span></td>
+                          <td className="p-3 font-mono">01822-771122</td>
+                          <td className="p-3 font-mono font-bold text-amber-300">4419</td>
+                          <td className="p-3 text-slate-400">জয়দেবপুর বাস টার্মিনাল</td>
+                          <td className="p-3 text-right"><span className="text-emerald-400 font-bold">🟢 সক্রিয়</span></td>
+                        </tr>
+                        <tr>
+                          <td className="p-3 font-bold text-white">মোঃ শফিকুল আলম</td>
+                          <td className="p-3"><span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-bold">বাস সুপারভাইজার</span></td>
+                          <td className="p-3 font-mono">01711-889900</td>
+                          <td className="p-3 font-mono font-bold text-amber-300">8821</td>
+                          <td className="p-3 text-slate-400">হানিফ Hino 1J (অনবোর্ড)</td>
+                          <td className="p-3 text-right"><span className="text-emerald-400 font-bold">🟢 সক্রিয়</span></td>
+                        </tr>
+                        <tr>
+                          <td className="p-3 font-bold text-white">মোঃ আব্দুল কুদ্দুস</td>
+                          <td className="p-3"><span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold">বাস চালক</span></td>
+                          <td className="p-3 font-mono">01712-334455</td>
+                          <td className="p-3 font-mono font-bold text-amber-300">9081</td>
+                          <td className="p-3 text-slate-400">ঢাকা মেট্রো-ব ১৪-৯৯০১</td>
+                          <td className="p-3 text-right"><span className="text-emerald-400 font-bold">🟢 সক্রিয়</span></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Synchronized Message & Action Log Feed for Manager */}
+              <div className="pt-2 border-t border-slate-800 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-300 flex items-center space-x-1.5">
+                    <Radio className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>📢 ফ্লিটব্যাপী আন্তঃসংযুক্ত লাইভ মেসেজ ও অ্যাকশন হিস্টোরি ফিড:</span>
+                  </span>
+                  <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950 px-2 py-0.5 rounded border border-emerald-500/40">
+                    REAL-TIME FLEET SYNC
+                  </span>
+                </div>
+
+                <div className="space-y-1.5 bg-slate-950 p-3 rounded-2xl border border-slate-800 text-xs max-h-48 overflow-y-auto">
+                  {walkieMessages.map(msg => (
+                    <div key={msg.id} className="flex justify-between items-center bg-slate-900/90 p-2.5 rounded-xl border border-slate-800 hover:border-slate-700 transition">
+                      <div className="flex items-start space-x-2">
+                        <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 shrink-0 mt-0.5">
+                          {msg.sender}
+                        </span>
+                        <span className="text-slate-200 text-xs">{msg.text}</span>
+                      </div>
+                      <span className="text-[10px] text-slate-500 font-mono shrink-0 ml-2">{msg.time}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : isVehicleSupervisor ? (
           /* ========================================================================= */
-          /* 👨‍✈️ DRIVER DIGITAL CABIN VIEW                                             */
+          /* 🎫 2. ON-BOARD VEHICLE SUPERVISOR (CONDUCTOR / GUIDE) VIEW                */
           /* ========================================================================= */
-          <div className="space-y-4">
-            
+          <div className="space-y-4 animate-in fade-in">
+            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-2xl space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3 flex-wrap gap-2">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 rounded-2xl bg-amber-600/30 text-amber-300 border border-amber-500/40 flex items-center justify-center text-xl">
+                    🎫
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black text-white">হানিফ এন্টারপ্রাইজ Hino 1J ({assignedBusPlate})</h3>
+                    <span className="text-xs text-amber-300">বাসের ভেতরের সুপারভাইজার • টিকিট ও অনবোর্ড প্যাসেঞ্জার কন্ট্রোল</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <span className="px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-mono font-black text-xs">
+                    ✅ গেটপাস অনুমোদিত (কাউন্টার ক্লিয়ার)
+                  </span>
+                  <a
+                    href="tel:01822771122"
+                    className="py-1.5 px-3 rounded-xl bg-cyan-950/70 hover:bg-cyan-900 border border-cyan-500/50 text-cyan-300 font-bold text-xs flex items-center space-x-1 transition active:scale-95"
+                  >
+                    <Phone className="w-3.5 h-3.5" />
+                    <span>কাউন্টার কল</span>
+                  </a>
+                </div>
+              </div>
+
+              {/* Big Touch Highway Passenger Stepper Card */}
+              <div className="bg-slate-950 border border-slate-800 rounded-2xl p-4 space-y-3">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div>
+                    <span className="text-xs font-bold text-slate-300 block">👥 অনবোর্ড যাত্রী সংখ্যা ও সিট স্ট্যাটাস:</span>
+                    <span className="text-[11px] text-slate-400">হাইওয়েতে যাত্রী ওঠা বা নামার সাথে সাথে বোতামে চাপুন।</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowBoardingLogs(!showBoardingLogs)}
+                    className="text-xs text-amber-400 hover:text-amber-300 font-bold underline"
+                  >
+                    {showBoardingLogs ? 'পিকআপ লগ লুকান' : '📋 বিস্তারিত বোর্ডিং হিস্টোরি'}
+                  </button>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-center justify-between bg-slate-900 p-4 rounded-2xl border border-slate-800 gap-3">
+                  <div className="flex items-center space-x-3">
+                    <span className="text-3xl font-black text-emerald-300 font-mono">{onboardPassengerCount}</span>
+                    <span className="text-xs text-slate-400">/ ৪০ মোট আসন ক্যাপাসিটি</span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                      {40 - onboardPassengerCount} আসন খালি
+                    </span>
+                  </div>
+
+                  {/* Big Touch Stepper Buttons */}
+                  <div className="flex items-center space-x-2 w-full sm:w-auto">
+                    <button
+                      type="button"
+                      onClick={() => updatePassengerOnboard(-1)}
+                      disabled={onboardPassengerCount <= 0}
+                      className="flex-1 sm:flex-none px-4 py-3 rounded-2xl bg-rose-950/80 hover:bg-rose-900 border border-rose-500/50 text-rose-300 font-black text-sm transition active:scale-90 disabled:opacity-30 flex items-center justify-center space-x-1 shadow-md"
+                      title="যাত্রী নামল"
+                    >
+                      <UserMinus className="w-4 h-4" />
+                      <span>➖ ১ জন নামল</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => updatePassengerOnboard(1)}
+                      disabled={onboardPassengerCount >= 40}
+                      className="flex-1 sm:flex-none px-5 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm transition active:scale-90 disabled:opacity-30 flex items-center justify-center space-x-1.5 shadow-lg shadow-emerald-600/30"
+                      title="হাইওয়েতে নতুন যাত্রী উঠল"
+                    >
+                      <UserPlus className="w-4 h-4" />
+                      <span>➕ ১ জন উঠল</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Collapsible Boarding History Log */}
+                {showBoardingLogs && (
+                  <div className="space-y-1.5 pt-2 border-t border-slate-800 text-xs max-h-40 overflow-y-auto animate-in fade-in">
+                    <span className="text-[10.5px] font-bold text-slate-400 block">রুট বোর্ডিং হিস্টোরি (GPS অটো-ট্যাগিং):</span>
+                    {boardingLogs.map(log => (
+                      <div key={log.id} className="flex justify-between items-center bg-slate-900 p-2 rounded-xl border border-slate-800">
+                        <span className="text-slate-200">
+                          {log.location} ({log.delta > 0 ? `+${log.delta}` : log.delta} জন)
+                        </span>
+                        <span className="font-mono text-emerald-400 text-[11px] font-bold">{log.time}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Highway Trip Occurrence Logging by Conductor / Supervisor */}
+              <div className="space-y-2">
+                <span className="text-xs font-bold text-slate-300 block">⚡ হাইওয়ে ট্রিপ ঘটনা ও বিরতি লগ (১-ক্লিক অটো রিপোর্ট):</span>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => logTripEvent('CHECKPOST')}
+                    className="p-3 rounded-2xl bg-slate-950 hover:bg-slate-850 border border-slate-800 hover:border-cyan-500/50 text-xs font-bold text-slate-200 transition active:scale-95 text-left flex items-center justify-between"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <span className="text-base">👮</span>
+                      <span>পুলিশ / বিআরটিএ চেকপোস্ট</span>
+                    </div>
+                    {tripCounters.checkpost > 0 && (
+                      <span className="px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 font-mono text-[10px] font-black">
+                        #{tripCounters.checkpost}
+                      </span>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => logTripEvent('FUEL')}
+                    className="p-3 rounded-2xl bg-slate-950 hover:bg-slate-850 border border-slate-800 hover:border-emerald-500/50 text-xs font-bold text-slate-200 transition active:scale-95 text-left flex items-center justify-between"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <span className="text-base">⛽</span>
+                      <span>ফুয়েল / সিএনজি রিফিল</span>
+                    </div>
+                    {tripCounters.fuelRefill > 0 && (
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono text-[10px] font-black">
+                        #{tripCounters.fuelRefill}
+                      </span>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => logTripEvent('JAM')}
+                    className="p-3 rounded-2xl bg-slate-950 hover:bg-slate-850 border border-slate-800 hover:border-amber-500/50 text-xs font-bold text-slate-200 transition active:scale-95 text-left flex items-center justify-between"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <span className="text-base">🚦</span>
+                      <span>তীব্র যানজট (১০+ মি বিলম্ব)</span>
+                    </div>
+                    {tripCounters.heavyJam > 0 && (
+                      <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-mono text-[10px] font-black">
+                        #{tripCounters.heavyJam}
+                      </span>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => logTripEvent('BREAK')}
+                    className="p-3 rounded-2xl bg-slate-950 hover:bg-slate-850 border border-slate-800 hover:border-purple-500/50 text-xs font-bold text-slate-200 transition active:scale-95 text-left flex items-center justify-between"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <span className="text-base">🍱</span>
+                      <span>হোটেল ও খাবার বিরতি</span>
+                    </div>
+                    {tripCounters.hotelBreak > 0 && (
+                      <span className="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 font-mono text-[10px] font-black">
+                        #{tripCounters.hotelBreak}
+                      </span>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => logTripEvent('TOLL')}
+                    className="p-3 rounded-2xl bg-slate-950 hover:bg-slate-850 border border-slate-800 hover:border-sky-500/50 text-xs font-bold text-slate-200 transition active:scale-95 text-left flex items-center justify-between"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <span className="text-base">🌉</span>
+                      <span>টোল প্লাজা / ফেরি পারাপার</span>
+                    </div>
+                    {tripCounters.tollFerry > 0 && (
+                      <span className="px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 font-mono text-[10px] font-black">
+                        #{tripCounters.tollFerry}
+                      </span>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => logTripEvent('ARRIVED')}
+                    className="p-3 rounded-2xl bg-emerald-950/60 hover:bg-emerald-900 border border-emerald-500/50 text-xs font-black text-emerald-300 transition active:scale-95 text-left flex items-center justify-between"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                      <span>✅ গন্তব্যে সফল আগমন</span>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* Synchronized Message & Action Log Feed */}
+              <div className="pt-2 border-t border-slate-800 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-300 flex items-center space-x-1.5">
+                    <Radio className="w-3.5 h-3.5 text-amber-400" />
+                    <span>📢 আন্তঃসংযুক্ত লাইভ মেসেজ ও অ্যাকশন হিস্টোরি ফিড:</span>
+                  </span>
+                  <span className="text-[10px] font-mono text-amber-300 bg-amber-950 px-2 py-0.5 rounded border border-amber-500/40">
+                    REAL-TIME SYNC ACTIVE
+                  </span>
+                </div>
+
+                <div className="space-y-1.5 bg-slate-950 p-3 rounded-2xl border border-slate-800 text-xs max-h-48 overflow-y-auto">
+                  {walkieMessages.map(msg => (
+                    <div key={msg.id} className="flex justify-between items-center bg-slate-900/90 p-2.5 rounded-xl border border-slate-800 hover:border-slate-700 transition">
+                      <div className="flex items-start space-x-2">
+                        <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 shrink-0 mt-0.5">
+                          {msg.sender}
+                        </span>
+                        <span className="text-slate-200 text-xs">{msg.text}</span>
+                      </div>
+                      <span className="text-[10px] text-slate-500 font-mono shrink-0 ml-2">{msg.time}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : isDriver ? (
+          /* ========================================================================= */
+          /* 👨‍✈️ 3. DRIVER DIGITAL CABIN & COCKPIT VIEW                                */
+          /* ========================================================================= */
+          <div className="space-y-4 animate-in fade-in">
             {/* 1. Live Trip Telematics & Cabin Status Card */}
             <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-2xl space-y-4">
               <div className="flex items-center justify-between border-b border-slate-800 pb-3 flex-wrap gap-2">
                 <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 rounded-2xl bg-blue-600/30 text-blue-300 border border-blue-500/40 flex items-center justify-center text-xl">
+                  <div className="w-10 h-10 rounded-2xl bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 flex items-center justify-center text-xl">
                     🚌
                   </div>
                   <div>
@@ -479,270 +1131,82 @@ export const FleetTransitHubView: React.FC = () => {
                   <span className="font-extrabold text-slate-100 text-xs block mt-0.5">ঢাকা-ময়মনসিংহ হাইওয়ে (টোল প্লাজা)</span>
                 </div>
                 <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800 flex flex-col justify-between">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10.5px] text-slate-400 font-bold">👥 অনবোর্ড যাত্রী:</span>
-                    <button
-                      type="button"
-                      onClick={() => setShowBoardingLogs(!showBoardingLogs)}
-                      className="text-[9.5px] text-cyan-400 hover:text-cyan-300 font-bold underline"
-                    >
-                      {showBoardingLogs ? 'লগ লুকান' : '📋 পিকআপ লগ'}
-                    </button>
-                  </div>
-
-                  <div className="flex items-center justify-between my-1">
-                    <span className="font-black text-emerald-300 text-base">
-                      {onboardPassengerCount} <span className="text-xs text-slate-400 font-normal">/ ৪০ জন</span>
-                    </span>
-
-                    {/* 1-Touch Quick Highway Steppers for Conductor / Driver */}
-                    <div className="flex items-center space-x-1.5">
-                      <button
-                        type="button"
-                        onClick={() => updatePassengerOnboard(-1)}
-                        disabled={onboardPassengerCount <= 0}
-                        className="w-7 h-7 rounded-xl bg-rose-950/70 hover:bg-rose-900 border border-rose-500/50 text-rose-300 font-black text-xs flex items-center justify-center transition active:scale-90 disabled:opacity-30"
-                        title="১ জন যাত্রী নামল"
-                      >
-                        -১
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => updatePassengerOnboard(1)}
-                        disabled={onboardPassengerCount >= 40}
-                        className="px-2.5 h-7 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-[11px] flex items-center justify-center space-x-1 shadow-md shadow-emerald-600/30 transition active:scale-90 disabled:opacity-30"
-                        title="হাইওয়েতে ১ জন নতুন যাত্রী উঠল"
-                      >
-                        <span>➕ ১ জন উঠল</span>
-                      </button>
-                    </div>
-                  </div>
+                  <span className="text-[10.5px] text-slate-400 font-bold">👥 অনবোর্ড যাত্রী (সুপারভাইজার নিয়ন্ত্রিত):</span>
+                  <span className="font-black text-emerald-300 text-base my-0.5">
+                    {onboardPassengerCount} <span className="text-xs text-slate-400 font-normal">/ ৪০ জন</span>
+                  </span>
                 </div>
               </div>
 
-              {/* Collapsible Live Boarding History Stream */}
-              {showBoardingLogs && (
-                <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800 space-y-1.5 text-xs animate-in fade-in">
-                  <span className="text-[10px] font-extrabold text-cyan-300 uppercase block">📋 আজকের ট্রিপের বোর্ডিং হিস্টোরি (জিপিএস অটো-লগ):</span>
-                  {boardingLogs.map(log => (
-                    <div key={log.id} className="flex justify-between items-center bg-slate-900/90 p-2 rounded-xl border border-slate-800/80">
-                      <div>
-                        <span className="text-white font-bold">{log.location}</span>
-                        <span className="text-[10px] text-cyan-400 font-mono block">
-                          {log.delta > 0 ? `+${log.delta} জন বোর্ডিং` : `${log.delta} জন নামল`} • বাসে মোট: {log.count} জন
-                        </span>
-                      </div>
-                      <span className="text-[10px] text-slate-500 font-mono">{log.time}</span>
-                    </div>
-                  ))}
+              {/* ADAS Cabin Beep Alarms */}
+              <div className="p-3.5 rounded-2xl bg-slate-950 border border-purple-500/30 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-purple-300 flex items-center space-x-1.5">
+                    <Volume2 className="w-4 h-4 text-purple-400 animate-pulse" />
+                    <span>ফ্রন্ট AI ড্যাশ-ক্যাম ও কেবিন সংকেত (ADAS Live):</span>
+                  </span>
+                  <span className="text-[9.5px] text-slate-400 font-mono">Real-Time Audio-Visual</span>
                 </div>
-              )}
 
-              {/* Driver Quick Actions */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('map')}
-                  className="py-3 px-3 rounded-2xl bg-cyan-600 hover:bg-cyan-500 text-white font-extrabold text-xs flex items-center justify-center space-x-2 shadow-lg shadow-cyan-600/30 transition active:scale-95"
-                >
-                  <Navigation className="w-4 h-4" />
-                  <span>🗺️ জিপিএস ম্যাপ নেভিগেশন</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => alert('চালান নং #WAY-8801\nরুট: গাবতলী ➔ বগুড়া\nমোট যাত্রী: ৩৮ জন\nডিজেল লোড: ১৮০ লিটার\nস্ট্যাটাস: ইন ট্রানজিট')}
-                  className="py-3 px-3 rounded-2xl bg-slate-800 hover:bg-slate-750 text-slate-200 border border-slate-700 font-bold text-xs flex items-center justify-center space-x-2 transition active:scale-95"
-                >
-                  <FileText className="w-4 h-4 text-emerald-400" />
-                  <span>📋 ডিজিটাল চালান ও ওয়েবিল</span>
-                </button>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => triggerCabinAlarm('🚦 লাল বাতি সিগন্যাল অমান্য সংকেত! গতি কমান ও সিগন্যালে থামুন।')}
+                    className="p-2.5 rounded-xl bg-rose-950/40 hover:bg-rose-950/80 border border-rose-500/40 text-rose-300 font-bold text-left transition active:scale-95 flex items-center space-x-2"
+                  >
+                    <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+                    <span>🚦 লাল বাতি সিগন্যাল বীপ টেস্ট</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => triggerCabinAlarm('⚡ ওভার-স্পিড সতর্কতা! হাইওয়ে স্পিড লিমিট ৮০ কিমি/ঘণ্টা অতিক্রম করেছে।')}
+                    className="p-2.5 rounded-xl bg-amber-950/40 hover:bg-amber-950/80 border border-amber-500/40 text-amber-300 font-bold text-left transition active:scale-95 flex items-center space-x-2"
+                  >
+                    <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span>⚡ ওভার-স্পিড বীপ টেস্ট</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* BRTA Smart Driving License Card */}
+              <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center space-x-2 text-xs">
+                    <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                    <span className="font-bold text-white">BRTA স্মার্ট ড্রাইভিং লাইসেন্স:</span>
+                    <span className="font-mono text-cyan-300 font-bold">{driverLicense.number}</span>
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold text-[9.5px] border border-emerald-500/40">
+                      🟢 বৈধ (মেয়াদ: {driverLicense.expiryDate})
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsLicenseModalOpen(true)}
+                    className="px-3 py-1 rounded-xl bg-slate-850 hover:bg-slate-800 text-slate-200 border border-slate-700 text-xs font-bold transition flex items-center space-x-1"
+                  >
+                    <Camera className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>লাইসেন্স আপডেট</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Driver Emergency SOS & Call */}
+              <div className="pt-2 border-t border-slate-800 grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <button
                   type="button"
                   onClick={() => setIsDriverSosOpen(true)}
-                  className="py-3 px-3 rounded-2xl bg-rose-950/60 hover:bg-rose-900/70 text-rose-300 border border-rose-500/50 font-bold text-xs flex items-center justify-center space-x-2 transition active:scale-95 shadow-md shadow-rose-950/50"
+                  className="py-3 px-3 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-black text-xs flex items-center justify-center space-x-2 shadow-lg shadow-rose-600/30 transition active:scale-95"
                 >
-                  <AlertCircle className="w-4 h-4 text-rose-400" />
-                  <span>🚨 জরুরি এক্সিডেন্ট / SOS</span>
+                  <AlertTriangle className="w-4 h-4 animate-bounce" />
+                  <span>🚨 জরুরি এক্সিডেন্ট এসওএস পাঠান</span>
                 </button>
                 <a
                   href="tel:01711889900"
-                  className="py-3 px-3 rounded-2xl bg-indigo-950/60 hover:bg-indigo-900/70 text-indigo-300 border border-indigo-500/50 font-bold text-xs flex items-center justify-center space-x-2 transition active:scale-95"
+                  className="py-3 px-3 rounded-2xl bg-indigo-950 hover:bg-indigo-900 border border-indigo-500/50 text-indigo-300 font-bold text-xs flex items-center justify-center space-x-2 transition active:scale-95"
                 >
-                  <Phone className="w-4 h-4 text-indigo-400" />
-                  <span>📞 কাউন্টারম্যানকে কল</span>
+                  <Phone className="w-4 h-4" />
+                  <span>📞 বাস সুপারভাইজারকে কল দিন</span>
                 </a>
-              </div>
-            </div>
-
-            {/* 2. Smart Driving License Vault Card */}
-            <div className="bg-gradient-to-r from-slate-900 via-indigo-950/30 to-slate-900 border border-indigo-500/40 rounded-3xl p-5 shadow-2xl space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2.5">
-                  <ShieldCheck className="w-5 h-5 text-indigo-400" />
-                  <h4 className="text-sm font-black text-white">📄 স্মার্ট ড্রাইভিং লাইসেন্স ভল্ট (BRTA ভেরিফাইড)</h4>
-                </div>
-                <span className="px-3 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-bold text-xs">
-                  🟢 লাইসেন্স বৈধ (Valid)
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs pt-1">
-                <div className="bg-slate-950 p-2.5 rounded-2xl border border-slate-800">
-                  <span className="text-[10px] text-slate-400 block">লাইসেন্স নম্বর:</span>
-                  <span className="font-mono font-black text-cyan-300 text-sm">{driverLicense.number}</span>
-                </div>
-                <div className="bg-slate-950 p-2.5 rounded-2xl border border-slate-800">
-                  <span className="text-[10px] text-slate-400 block">মেয়াদ উত্তীর্ণের তারিখ:</span>
-                  <span className="font-mono font-black text-amber-300 text-sm">{driverLicense.expiryDate}</span>
-                </div>
-                <div className="bg-slate-950 p-2.5 rounded-2xl border border-slate-800">
-                  <span className="text-[10px] text-slate-400 block">অনুমোদিত ক্যাটাগরি:</span>
-                  <span className="font-bold text-white text-xs">{driverLicense.category}</span>
-                </div>
-              </div>
-
-              <div className="flex justify-end pt-1">
-                <button
-                  type="button"
-                  onClick={() => setIsLicenseModalOpen(true)}
-                  className="py-2 px-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs flex items-center space-x-1.5 shadow-md shadow-indigo-600/30 transition active:scale-95"
-                >
-                  <Upload className="w-4 h-4" />
-                  <span>📷 লাইসেন্স ছবি ও তথ্য আপডেট করুন</span>
-                </button>
-              </div>
-            </div>
-
-            {/* 3. Front AI ADAS Camera & Cabin Signal Simulator */}
-            <div className="bg-slate-900 border border-purple-500/30 rounded-3xl p-5 shadow-2xl space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Video className="w-5 h-5 text-purple-400" />
-                  <h4 className="text-sm font-black text-white">📹 ফ্রন্ট এআই ড্যাশ-ক্যাম ও কেবিন সংকেত (ADAS Live)</h4>
-                </div>
-                <span className="text-[10.5px] font-mono text-purple-300 bg-purple-950/70 px-2.5 py-0.5 rounded-full border border-purple-500/40 font-bold">
-                  WATERMARK ACTIVE
-                </span>
-              </div>
-              <p className="text-xs text-slate-300">
-                গাড়ির এআই ক্যামেরা ট্রাফিক সিগন্যাল ও গতি নিরীক্ষণ করছে। নিয়ম ভাঙলে কেবিনে সতর্কবার্তা বাজবে এবং মালিকের কাছে ওয়াটারমার্কযুক্ত ভিডিও সংরক্ষিত হবে।
-              </p>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
-                <button
-                  type="button"
-                  onClick={() => triggerCabinSignal('RED_LIGHT')}
-                  className="py-2.5 px-3 rounded-2xl bg-rose-950/50 hover:bg-rose-900/60 border border-rose-500/40 text-rose-300 font-bold text-xs flex items-center justify-center space-x-2 transition active:scale-95"
-                >
-                  <span>🚦 লাল বাতি সিগন্যাল অমান্য (টেস্ট বীপ)</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => triggerCabinSignal('OVERSPEED')}
-                  className="py-2.5 px-3 rounded-2xl bg-amber-950/50 hover:bg-amber-900/60 border border-amber-500/40 text-amber-300 font-bold text-xs flex items-center justify-center space-x-2 transition active:scale-95"
-                >
-                  <span>⚡ ওভার-স্পিড অতিক্রম (টেস্ট বীপ)</span>
-                </button>
-              </div>
-            </div>
-
-            {/* 4. 1-Tap Inter-Connected Walkie-Talkie Dispatcher */}
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-2xl space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Radio className="w-5 h-5 text-cyan-400" />
-                  <h4 className="text-sm font-black text-white">📢 ১-ট্যাপ ওয়াকিটকি ডিসপ্যাচ ও হাইওয়ে ট্রিপ লগ</h4>
-                </div>
-                <span className="text-[10px] font-mono text-cyan-300 bg-cyan-950 px-2 py-0.5 rounded border border-cyan-500/40">
-                  INSTANT DISPATCH
-                </span>
-              </div>
-
-              {/* Dynamic Real-World Trip Event Buttons */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                <button
-                  type="button"
-                  onClick={() => logTripEvent('CHECKPOST')}
-                  className="p-2.5 rounded-2xl bg-slate-950 hover:bg-slate-850 border border-slate-800 hover:border-cyan-500/50 text-left text-xs font-bold text-slate-200 transition active:scale-95 flex items-center justify-between"
-                >
-                  <span>👮 পুলিশ / বিআরটিএ চেকপোস্ট</span>
-                  {tripCounters.checkpost > 0 && (
-                    <span className="px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 text-[10px] font-mono font-black">
-                      {tripCounters.checkpost} বার
-                    </span>
-                  )}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => logTripEvent('FUEL')}
-                  className="p-2.5 rounded-2xl bg-slate-950 hover:bg-slate-850 border border-slate-800 hover:border-amber-500/50 text-left text-xs font-bold text-slate-200 transition active:scale-95 flex items-center justify-between"
-                >
-                  <span>⛽ ফুয়েল / সিএনজি রিফিল</span>
-                  {tripCounters.fuelRefill > 0 && (
-                    <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-mono font-black">
-                      {tripCounters.fuelRefill} বার
-                    </span>
-                  )}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => logTripEvent('JAM')}
-                  className="p-2.5 rounded-2xl bg-slate-950 hover:bg-slate-850 border border-slate-800 hover:border-rose-500/50 text-left text-xs font-bold text-slate-200 transition active:scale-95 flex items-center justify-between"
-                >
-                  <span>🚦 তীব্র যানজট (&gt; ১০ মি বিলম্ব)</span>
-                  {tripCounters.heavyJam > 0 && (
-                    <span className="px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 text-[10px] font-mono font-black">
-                      {tripCounters.heavyJam} বার
-                    </span>
-                  )}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => logTripEvent('BREAK')}
-                  className="p-2.5 rounded-2xl bg-slate-950 hover:bg-slate-850 border border-slate-800 hover:border-emerald-500/50 text-left text-xs font-bold text-slate-200 transition active:scale-95 flex items-center justify-between"
-                >
-                  <span>🍱 হোটেল ও খাবার বিরতি</span>
-                  {tripCounters.hotelBreak > 0 && (
-                    <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-mono font-black">
-                      {tripCounters.hotelBreak} বার
-                    </span>
-                  )}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => logTripEvent('TOLL')}
-                  className="p-2.5 rounded-2xl bg-slate-950 hover:bg-slate-850 border border-slate-800 hover:border-indigo-500/50 text-left text-xs font-bold text-slate-200 transition active:scale-95 flex items-center justify-between"
-                >
-                  <span>🌉 টোল প্লাজা / ফেরি পারাপার</span>
-                  {tripCounters.tollFerry > 0 && (
-                    <span className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 text-[10px] font-mono font-black">
-                      {tripCounters.tollFerry} বার
-                    </span>
-                  )}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => logTripEvent('PASSENGER')}
-                  className="p-2.5 rounded-2xl bg-slate-950 hover:bg-slate-850 border border-slate-800 hover:border-purple-500/50 text-left text-xs font-bold text-slate-200 transition active:scale-95"
-                >
-                  <span>👥 যাত্রী ও সিট স্ট্যাটাস</span>
-                </button>
-              </div>
-
-              <div className="pt-1">
-                <button
-                  type="button"
-                  onClick={() => logTripEvent('ARRIVED')}
-                  className="w-full py-2.5 px-3 rounded-2xl bg-emerald-950/40 hover:bg-emerald-900/50 border border-emerald-500/50 text-emerald-300 font-extrabold text-xs flex items-center justify-center space-x-2 transition active:scale-95"
-                >
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                  <span>✅ গন্তব্যে নিরাপদে পৌঁছেছি • আজকের ট্রিপ সফলভাবে সমাপ্ত</span>
-                </button>
               </div>
 
               {/* Synchronized Message & Action Log Feed */}
@@ -756,34 +1220,25 @@ export const FleetTransitHubView: React.FC = () => {
                     LIVE SYNC
                   </span>
                 </div>
-                {walkieMessages.map(msg => {
-                  const isSenderDriver = msg.sender.includes('চালক') || msg.roleType === 'driver';
-                  const isSenderLineman = msg.sender.includes('লাইনম্যান') || msg.roleType === 'lineman';
-
-                  return (
-                    <div key={msg.id} className="flex justify-between items-center bg-slate-900/90 p-2.5 rounded-xl border border-slate-800/80">
-                      <div className="flex items-start space-x-2">
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold border shrink-0 mt-0.5 ${
-                          isSenderDriver ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' :
-                          isSenderLineman ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' :
-                          'bg-cyan-500/20 text-cyan-300 border-cyan-500/40'
-                        }`}>
-                          {msg.sender}
-                        </span>
-                        <span className="text-slate-200 text-xs">{msg.text}</span>
-                      </div>
-                      <span className="text-[10px] text-slate-500 font-mono shrink-0 ml-2">{msg.time}</span>
+                {walkieMessages.map(msg => (
+                  <div key={msg.id} className="flex justify-between items-center bg-slate-900/90 p-2.5 rounded-xl border border-slate-800/80">
+                    <div className="flex items-start space-x-2">
+                      <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shrink-0 mt-0.5">
+                        {msg.sender}
+                      </span>
+                      <span className="text-slate-200 text-xs">{msg.text}</span>
                     </div>
-                  );
-                })}
+                    <span className="text-[10px] text-slate-500 font-mono shrink-0 ml-2">{msg.time}</span>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
         ) : (
           /* ========================================================================= */
-          /* 👨‍💼 SUPERVISOR / LINEMAN VIEW                                             */
+          /* 🏢 4. COUNTER INCHARGE & DEPARTURE GATEPASS PORTAL                        */
           /* ========================================================================= */
-          <div className="space-y-4">
+          <div className="space-y-4 animate-in fade-in">
             <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-2xl space-y-4">
               <div className="flex items-center justify-between border-b border-slate-800 pb-3 flex-wrap gap-2">
                 <div className="flex items-center space-x-3">
@@ -792,7 +1247,7 @@ export const FleetTransitHubView: React.FC = () => {
                   </div>
                   <div>
                     <h3 className="text-sm font-black text-white">{staffTerminalOrBus}</h3>
-                    <span className="text-xs text-slate-400">টার্মিনাল লাইনম্যান ও বাস ডিপার্চার গেটপাস কন্ট্রোল</span>
+                    <span className="text-xs text-slate-400">টার্মিনাল টিকিট ইনচার্জ ও বাস ডিপার্চার গেটপাস কন্ট্রোল</span>
                   </div>
                 </div>
                 
@@ -804,17 +1259,15 @@ export const FleetTransitHubView: React.FC = () => {
                   >
                     <span>🔄 এভেইলেবল চালক ও গাড়ি অ্যাসাইন</span>
                   </button>
-                  {!isLineman && (
-                    <button
-                      type="button"
-                      onClick={() => setIsCrashAlertModalOpen(true)}
-                      className="py-1.5 px-3 rounded-xl bg-rose-950/70 hover:bg-rose-900/80 border border-rose-500/50 text-rose-300 font-bold text-xs flex items-center space-x-1 transition shadow-sm"
-                      title="জরুরি দুর্ঘটনার ভিডিও অডিট"
-                    >
-                      <AlertCircle className="w-3.5 h-3.5 text-rose-400" />
-                      <span>🚨 এক্সসিডেন্ট এলার্ট ভিউয়ার</span>
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => setIsCrashAlertModalOpen(true)}
+                    className="py-1.5 px-3 rounded-xl bg-rose-950/70 hover:bg-rose-900/80 border border-rose-500/50 text-rose-300 font-bold text-xs flex items-center space-x-1 transition shadow-sm"
+                    title="জরুরি দুর্ঘটনার ভিডিও অডিট"
+                  >
+                    <AlertCircle className="w-3.5 h-3.5 text-rose-400" />
+                    <span>🚨 এক্সসিডেন্ট এলার্ট ভিউয়ার</span>
+                  </button>
                 </div>
               </div>
 
@@ -833,6 +1286,7 @@ export const FleetTransitHubView: React.FC = () => {
                       <span>রুট: <strong>গাবতলী ➔ বগুড়া</strong></span>
                       <span>সময়: <strong>১০:৩০ AM</strong></span>
                       <span>নিয়োজিত চালক: <strong className="text-cyan-300">{assignedDriverName} ({assignedDriverPhone})</strong></span>
+                      <span>সুপারভাইজার: <strong className="text-amber-300">মোঃ শফিকুল আলম (01711-889900)</strong></span>
                       <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono font-black border border-emerald-500/40 text-[11px]">
                         👥 অনবোর্ড যাত্রী: {onboardPassengerCount} / ৪০ জন
                       </span>

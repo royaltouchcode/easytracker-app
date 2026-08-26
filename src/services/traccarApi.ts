@@ -79,8 +79,9 @@ class TraccarApiService {
     const lowerUser = emailOrUser.toLowerCase().trim();
     const cleanPhone = emailOrUser.replace(/[^0-9]/g, '');
     const STAFF_PIN_USERS: Record<string, { pin: string; name: string; role: string; assigned: string }> = {
-      '01711889900': { pin: '8821', name: 'মোঃ শফিকুল আলম (লাইনম্যান)', role: 'supervisor', assigned: 'গাবতলী সেন্ট্রাল বাস টার্মিনাল' },
-      '01822771122': { pin: '4419', name: 'আব্দুর রাজ্জাক (কাউন্টার ইনচার্জ)', role: 'supervisor', assigned: 'জয়দেবপুর বাস টার্মিনাল' },
+      '01710001122': { pin: '5501', name: 'মোঃ শামীম ওসমান (কোম্পানি ম্যানেজার)', role: 'manager', assigned: 'হানিফ এন্টারপ্রাইজ সেন্ট্রাল হেড অফিস' },
+      '01822771122': { pin: '4419', name: 'আব্দুর রাজ্জাক (কাউন্টার ইনচার্জ)', role: 'counter_incharge', assigned: 'জয়দেবপুর বাস টার্মিনাল' },
+      '01711889900': { pin: '8821', name: 'মোঃ শফিকুল আলম (বাস সুপারভাইজার)', role: 'vehicle_supervisor', assigned: 'হানিফ এন্টারপ্রাইজ Hino 1J (ঢাকা মেট্রো-ব ১৪-৯৯০১)' },
       '01712334455': { pin: '9081', name: 'মোঃ আব্দুল কুদ্দুস (বাস চালক)', role: 'driver', assigned: 'হানিফ এন্টারপ্রাইজ Hino 1J (ঢাকা মেট্রো-ব ১৪-৯৯০১)' },
     };
 

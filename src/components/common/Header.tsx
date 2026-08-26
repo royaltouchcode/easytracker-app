@@ -269,15 +269,23 @@ export const Header: React.FC = () => {
           {(() => {
             const isStaffUser = Boolean(
               user?.email?.includes('fleetstaff') || 
+              user?.role === 'manager' ||
+              user?.role === 'counter_incharge' ||
+              user?.role === 'vehicle_supervisor' ||
               user?.role === 'supervisor' || 
               user?.role === 'driver' || 
               user?.role === 'lineman' ||
               (user as any)?.assigned ||
               /^[0-9\-\+]+@/.test(user?.email || '')
             );
-            const isDriver = isStaffUser && (user?.role === 'driver' || user?.name?.includes('কুদ্দুস') || (user as any)?.assigned?.includes('ঢাকা মেট্রো-ব'));
-            const isLineman = isStaffUser && !isDriver && (user?.role === 'lineman' || user?.name?.includes('লাইনম্যান') || user?.name?.includes('শফিকুল'));
-            const staffRoleTitle = isDriver ? 'বাস চালক' : isLineman ? 'টার্মিনাল লাইনম্যান' : 'কাউন্টার ইনচার্জ';
+            const isManager = isStaffUser && (user?.role === 'manager' || user?.name?.includes('ম্যানেজার') || user?.name?.includes('ওসমান'));
+            const isDriver = isStaffUser && !isManager && (user?.role === 'driver' || user?.name?.includes('কুদ্দুস') || (user as any)?.assigned?.includes('ঢাকা মেট্রো-ব'));
+            const isVehicleSupervisor = isStaffUser && !isManager && !isDriver && (user?.role === 'vehicle_supervisor' || user?.name?.includes('সুপারভাইজার') || user?.name?.includes('শফিকুল'));
+            const isCounterIncharge = isStaffUser && !isManager && !isDriver && !isVehicleSupervisor;
+            
+            const staffRoleTitle = isManager ? 'কোম্পানি ম্যানেজার' :
+              isDriver ? 'বাস চালক' :
+              isVehicleSupervisor ? 'বাস সুপারভাইজার' : 'কাউন্টার ইনচার্জ';
 
             return (
               <button
@@ -289,7 +297,12 @@ export const Header: React.FC = () => {
                 className={`px-2 py-1 rounded-xl border flex items-center space-x-1 font-bold text-[10px] sm:text-[11px] transition active:scale-95 shadow-sm ${
                   hasMultipleRoles && !isStaffUser ? 'cursor-pointer hover:ring-1 hover:ring-white/30' : 'cursor-default'
                 } ${
-                  isStaffUser ? (isDriver ? 'bg-emerald-600/30 border-emerald-500/60 text-emerald-300' : 'bg-cyan-600/30 border-cyan-500/60 text-cyan-300') :
+                  isStaffUser ? (
+                    isManager ? 'bg-indigo-600/30 border-indigo-500/60 text-indigo-300' :
+                    isDriver ? 'bg-emerald-600/30 border-emerald-500/60 text-emerald-300' :
+                    isVehicleSupervisor ? 'bg-amber-600/30 border-amber-500/60 text-amber-300' :
+                    'bg-cyan-600/30 border-cyan-500/60 text-cyan-300'
+                  ) :
                   currentRole === 'super_admin' ? 'bg-amber-600/30 border-amber-500/60 text-amber-300' :
                   currentRole === 'sales' ? 'bg-emerald-600/30 border-emerald-500/60 text-emerald-300' :
                   currentRole === 'technician' ? 'bg-purple-600/30 border-purple-500/60 text-purple-300' :
@@ -300,7 +313,10 @@ export const Header: React.FC = () => {
                 title={hasMultipleRoles && !isStaffUser ? 'আপনার অনুমোদিত পোর্টাল সুইচ করুন' : 'আপনার বর্তমান অ্যাক্টিভ রোল'}
               >
                 {isStaffUser ? (
-                  isDriver ? <Bus className="w-3 h-3 text-emerald-400 shrink-0" /> : <Building2 className="w-3 h-3 text-cyan-400 shrink-0" />
+                  isManager ? <Building2 className="w-3 h-3 text-indigo-400 shrink-0" /> :
+                  isDriver ? <Bus className="w-3 h-3 text-emerald-400 shrink-0" /> :
+                  isVehicleSupervisor ? <Users className="w-3 h-3 text-amber-400 shrink-0" /> :
+                  <Building2 className="w-3 h-3 text-cyan-400 shrink-0" />
                 ) : currentRole === 'super_admin' ? (
                   <Crown className="w-3 h-3 text-amber-400 shrink-0" />
                 ) : currentRole === 'sales' ? (

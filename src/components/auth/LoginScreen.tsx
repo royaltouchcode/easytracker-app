@@ -211,23 +211,25 @@ export const LoginScreen: React.FC = () => {
                 </div>
 
                 <div className="grid grid-cols-1 gap-1.5 text-xs">
+                  {/* 1. Company Operations Manager */}
                   <button
                     type="button"
                     onClick={() => {
-                      setEmailOrUser('01711-889900');
-                      setPassword('8821');
+                      setEmailOrUser('01710-001122');
+                      setPassword('5501');
                     }}
                     className={`p-2 rounded-xl border text-left flex items-center justify-between transition ${
-                      emailOrUser === '01711-889900' ? 'bg-cyan-950/80 border-cyan-500 text-white' : 'bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700'
+                      emailOrUser === '01710-001122' ? 'bg-cyan-950/80 border-cyan-500 text-white' : 'bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700'
                     }`}
                   >
                     <div>
-                      <span className="font-bold block text-xs">👨‍💼 মোঃ শফিকুল আলম (লাইনম্যান)</span>
-                      <span className="text-[10px] text-slate-400">গাবতলী বাস টার্মিনাল • 01711-889900</span>
+                      <span className="font-bold block text-xs">🏢 মোঃ শামীম ওসমান (কোম্পানি ম্যানেজার)</span>
+                      <span className="text-[10px] text-slate-400">সেন্ট্রাল হেড অফিস • ফ্লিট ও রুট সেটআপ কন্ট্রোল</span>
                     </div>
-                    <span className="font-mono font-black text-amber-300 text-xs bg-slate-950 px-2 py-0.5 rounded border border-slate-800">PIN: 8821</span>
+                    <span className="font-mono font-black text-amber-300 text-xs bg-slate-950 px-2 py-0.5 rounded border border-slate-800">PIN: 5501</span>
                   </button>
 
+                  {/* 2. Station Counter Incharge */}
                   <button
                     type="button"
                     onClick={() => {
@@ -239,12 +241,31 @@ export const LoginScreen: React.FC = () => {
                     }`}
                   >
                     <div>
-                      <span className="font-bold block text-xs">👨‍💼 আব্দুর রাজ্জাক (কাউন্টার ইনচার্জ)</span>
-                      <span className="text-[10px] text-slate-400">জয়দেবপুর বাস টার্মিনাল • 01822-771122</span>
+                      <span className="font-bold block text-xs">🏢 আব্দুর রাজ্জাক (কাউন্টার ইনচার্জ)</span>
+                      <span className="text-[10px] text-slate-400">জয়দেবপুর বাস টার্মিনাল • ডিপার্চার গেটপাস</span>
                     </div>
                     <span className="font-mono font-black text-amber-300 text-xs bg-slate-950 px-2 py-0.5 rounded border border-slate-800">PIN: 4419</span>
                   </button>
 
+                  {/* 3. On-Board Vehicle Supervisor */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEmailOrUser('01711-889900');
+                      setPassword('8821');
+                    }}
+                    className={`p-2 rounded-xl border text-left flex items-center justify-between transition ${
+                      emailOrUser === '01711-889900' ? 'bg-cyan-950/80 border-cyan-500 text-white' : 'bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700'
+                    }`}
+                  >
+                    <div>
+                      <span className="font-bold block text-xs">🎫 মোঃ শফিকুল আলম (বাস সুপারভাইজার)</span>
+                      <span className="text-[10px] text-slate-400">হানিফ Hino 1J • বাসের ভেতরের গাইড ও টিকিট চেকিং</span>
+                    </div>
+                    <span className="font-mono font-black text-amber-300 text-xs bg-slate-950 px-2 py-0.5 rounded border border-slate-800">PIN: 8821</span>
+                  </button>
+
+                  {/* 4. Bus Driver */}
                   <button
                     type="button"
                     onClick={() => {
@@ -257,7 +278,7 @@ export const LoginScreen: React.FC = () => {
                   >
                     <div>
                       <span className="font-bold block text-xs">👨‍✈️ মোঃ আব্দুল কুদ্দুস (বাস চালক)</span>
-                      <span className="text-[10px] text-slate-400">ঢাকা মেট্রো-ব ১৪-৯৯০১ • 01712-334455</span>
+                      <span className="text-[10px] text-slate-400">ঢাকা মেট্রো-ব ১৪-৯৯০১ • লাইসেন্স ভেরিফাইড চালক</span>
                     </div>
                     <span className="font-mono font-black text-amber-300 text-xs bg-slate-950 px-2 py-0.5 rounded border border-slate-800">PIN: 9081</span>
                   </button>
