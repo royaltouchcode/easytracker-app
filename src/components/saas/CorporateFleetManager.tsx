@@ -23,9 +23,17 @@ import {
   PhoneCall,
   Activity,
   Edit3,
-  Trash2
+  Trash2,
+  Lock,
+  Unlock,
+  Zap,
+  Mic,
+  Volume2,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { DeviceSimBundlerModal } from './DeviceSimBundlerModal';
 
 export interface CorporateFleetCompany {
   id: string;
@@ -291,6 +299,8 @@ export const CorporateFleetManager: React.FC = () => {
 
   // Modal States
   const [isAddCompanyModalOpen, setIsAddCompanyModalOpen] = useState(false);
+  const [isBundlerModalOpen, setIsBundlerModalOpen] = useState(false);
+  const [isOwnerAccessUnlocked, setIsOwnerAccessUnlocked] = useState(true); // Super Admin / Enterprise Owner Full Visibility
 
   // New Company Form State
   const [newCompanyName, setNewCompanyName] = useState('');
@@ -390,7 +400,16 @@ export const CorporateFleetManager: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center space-x-2 w-full sm:w-auto">
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            <button
+              type="button"
+              onClick={() => setIsBundlerModalOpen(true)}
+              className="flex-1 sm:flex-initial px-4 py-2 rounded-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-emerald-600 hover:from-indigo-500 hover:to-emerald-500 text-white font-extrabold text-xs shadow-lg shadow-indigo-600/30 flex items-center justify-center space-x-1.5 transition active:scale-95"
+            >
+              <Zap className="w-4 h-4 text-amber-300" />
+              <span>⚡ ১-ক্লিক ডিভাইস ও M2M সিম বরাদ্দ</span>
+            </button>
+
             <button
               type="button"
               onClick={() => setIsAddCompanyModalOpen(true)}
@@ -592,14 +611,34 @@ export const CorporateFleetManager: React.FC = () => {
       {/* 4. TAB 2: FLEET VEHICLES & DRIVER VAULT */}
       {activeSubTab === 'vehicles' && (
         <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl space-y-3">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-slate-800 pb-2.5">
             <h4 className="font-extrabold text-sm text-white flex items-center space-x-2">
               <Truck className="w-4 h-4 text-emerald-400" />
               <span>কর্পোরেট ফ্লিট যানবাহন, চালক লাইসেন্স ও লাইভ ট্র্যাকিং ভল্ট</span>
             </h4>
-            <span className="text-[10px] font-mono text-slate-400">
-              {filteredVehicles.length} টি যানবাহন ফিল্টার্ড
-            </span>
+            
+            <div className="flex items-center space-x-2">
+              <button
+                type="button"
+                onClick={() => setIsOwnerAccessUnlocked(!isOwnerAccessUnlocked)}
+                className={`px-3 py-1 rounded-xl text-xs font-extrabold flex items-center space-x-1.5 transition border ${
+                  isOwnerAccessUnlocked
+                    ? 'bg-emerald-950/80 border-emerald-500/50 text-emerald-300 shadow-sm'
+                    : 'bg-amber-950/80 border-amber-500/50 text-amber-300 shadow-sm'
+                }`}
+                title="এন্টারপ্রাইজ ওনার পারমিশন ভিউ টগল"
+              >
+                {isOwnerAccessUnlocked ? <Unlock className="w-3.5 h-3.5 text-emerald-400" /> : <Lock className="w-3.5 h-3.5 text-amber-400" />}
+                <span>
+                  {isOwnerAccessUnlocked 
+                    ? '🔓 এন্টারপ্রাইজ ওনার মোড (সিম ও IMEI উন্মুক্ত)' 
+                    : '🔒 স্টাফ/ড্রাইভার মোড (সিম ও IMEI সুরক্ষিত)'}
+                </span>
+              </button>
+              <span className="text-[10px] font-mono text-slate-400">
+                {filteredVehicles.length} টি যানবাহন ফিল্টার্ড
+              </span>
+            </div>
           </div>
 
           <div className="overflow-x-auto">
@@ -629,8 +668,37 @@ export const CorporateFleetManager: React.FC = () => {
                     </td>
 
                     <td className="py-2.5 px-3 font-mono text-[10.5px]">
-                      <div className="text-emerald-400 font-bold">{v.simNumber} ({v.operator})</div>
-                      <div className="text-slate-400 text-[10px]">{v.imei}</div>
+                      {isOwnerAccessUnlocked ? (
+                        <div>
+                          <div className="text-emerald-400 font-bold flex items-center space-x-1">
+                            <span>{v.simNumber}</span>
+                            <span className="text-[9.5px] text-slate-400">({v.operator})</span>
+                            <a
+                              href={`tel:${v.simNumber.replace(/[^0-9+]/g, '')}`}
+                              className="p-1 rounded-md bg-purple-600/30 hover:bg-purple-600 text-purple-300 hover:text-white transition"
+                              title="🎙️ কেবিন অডিও / স্পাই কল"
+                            >
+                              <Mic className="w-3 h-3 text-amber-300" />
+                            </a>
+                          </div>
+                          <div className="text-slate-400 text-[10px] flex items-center space-x-1 mt-0.5">
+                            <Cpu className="w-3 h-3 text-indigo-400" />
+                            <span>IMEI: {v.imei}</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div>
+                          <div className="text-slate-300 font-bold flex items-center space-x-1">
+                            <span>{v.simNumber.slice(0, 6)}***{v.simNumber.slice(-3)}</span>
+                            <span className="text-[9px] bg-amber-500/20 text-amber-300 px-1.5 py-0.2 rounded font-bold">
+                              🔒 ওনার অনলি
+                            </span>
+                          </div>
+                          <div className="text-slate-500 text-[9.5px] mt-0.5">
+                            IMEI: {v.imei.slice(0, 6)}******{v.imei.slice(-3)}
+                          </div>
+                        </div>
+                      )}
                     </td>
 
                     <td className="py-2.5 px-3">
@@ -921,6 +989,14 @@ export const CorporateFleetManager: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* ⚡ 1-CLICK DEVICE & M2M SIM BUNDLER MODAL */}
+      <DeviceSimBundlerModal
+        isOpen={isBundlerModalOpen}
+        onClose={() => setIsBundlerModalOpen(false)}
+        initialTargetTier="fleet_company"
+        initialCompanyName="হানিফ এন্টারপ্রাইজ বাস ফ্লিট"
+      />
 
     </div>
   );

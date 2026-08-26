@@ -53,6 +53,7 @@ import {
   ReturnOwnership,
   ReturnItemType
 } from '../../types/traccar';
+import { DeviceSimBundlerModal } from './DeviceSimBundlerModal';
 
 interface EnterpriseInventoryManagerProps {
   partnerIdFilter?: string;
@@ -105,6 +106,7 @@ export const EnterpriseInventoryManager: React.FC<EnterpriseInventoryManagerProp
   const [selectedDeviceDetail, setSelectedDeviceDetail] = useState<DeviceInventoryItem | null>(null);
   const [selectedSimDetail, setSelectedSimDetail] = useState<SimInventoryItem | null>(null);
   const [selectedCertItem, setSelectedCertItem] = useState<{ device: DeviceInventoryItem; sim?: SimInventoryItem } | null>(null);
+  const [isBundlerModalOpen, setIsBundlerModalOpen] = useState(false);
 
   // Scanner Simulator Modal
   const [isScanning, setIsScanning] = useState(false);
@@ -336,6 +338,35 @@ export const EnterpriseInventoryManager: React.FC<EnterpriseInventoryManagerProp
 
   return (
     <div className="space-y-4">
+
+      {/* ⚡ 1-CLICK DEVICE + VOICE/DATA M2M SIM BUNDLER ACTION BANNER */}
+      <div className="bg-gradient-to-r from-indigo-950 via-purple-950 to-slate-900 border border-indigo-500/50 p-4 rounded-3xl shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="flex items-center space-x-3">
+          <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-white shadow-lg shrink-0">
+            <Sparkles className="w-6 h-6 text-amber-300" />
+          </div>
+          <div>
+            <h3 className="font-extrabold text-sm text-white flex items-center space-x-2">
+              <span>SaaS সেন্ট্রাল ডিভাইস ও M2M সিম বান্ডলিং হাব</span>
+              <span className="text-[9.5px] bg-purple-500/30 text-purple-200 font-bold px-2 py-0.5 rounded-full border border-purple-500/40">
+                Voice & Data M2M
+              </span>
+            </h3>
+            <p className="text-[11px] text-slate-300">
+              আমাদের সেন্ট্রাল স্টক থেকে ট্র্যাকার ডিভাইস এবং ভয়েস/নন-ভয়েস M2M সিম ১-ক্লিকে পেয়ার করে B2B পার্টনার, কর্পোরেট ফ্লিট বা রিটেইল কাস্টমারে বরাদ্দ করুন
+            </p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setIsBundlerModalOpen(true)}
+          className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-emerald-600 hover:from-indigo-500 hover:to-emerald-500 text-white font-extrabold text-xs shadow-lg shadow-indigo-600/30 flex items-center space-x-2 transition active:scale-95 shrink-0"
+        >
+          <Zap className="w-4 h-4 text-amber-300" />
+          <span>⚡ ১-ক্লিক ডিভাইস ও M2M সিম বরাদ্দ</span>
+        </button>
+      </div>
       
       {/* ========================================================================= */}
       {/* 1. TARGETED INWARD SLOTS (SEPARATED FOR DEVICE / SIM / SALES)             */}
@@ -2268,6 +2299,14 @@ export const EnterpriseInventoryManager: React.FC<EnterpriseInventoryManagerProp
           </div>
         </div>
       )}
+
+      {/* ⚡ 1-CLICK DEVICE & M2M SIM BUNDLER MODAL */}
+      <DeviceSimBundlerModal
+        isOpen={isBundlerModalOpen}
+        onClose={() => setIsBundlerModalOpen(false)}
+        initialTargetTier={isPartnerPortal ? 'b2b_partner' : 'fleet_company'}
+        initialCompanyName={partnerIdFilter || ''}
+      />
 
     </div>
   );

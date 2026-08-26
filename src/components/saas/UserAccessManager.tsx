@@ -61,6 +61,7 @@ export interface DetailedUserPermissions {
   canExportData: boolean;
   canAccessGovTech: boolean;
   canPurgeDemo: boolean;
+  canViewDeviceSimDetails: boolean;
 }
 
 export interface EnterpriseUser {
@@ -129,7 +130,8 @@ const DEFAULT_USERS: EnterpriseUser[] = [
       canAuditRescueClaims: true,
       canExportData: true,
       canAccessGovTech: true,
-      canPurgeDemo: true
+      canPurgeDemo: true,
+      canViewDeviceSimDetails: true
     },
     lastLogin: 'এখন সক্রিয় (Active Now)',
     createdAt: '01 Jan 2026'
@@ -167,7 +169,8 @@ const DEFAULT_USERS: EnterpriseUser[] = [
       canAuditRescueClaims: true,
       canExportData: true,
       canAccessGovTech: false,
-      canPurgeDemo: false
+      canPurgeDemo: false,
+      canViewDeviceSimDetails: true
     },
     lastLogin: 'আজ দুপুর ২:১৫',
     createdAt: '15 Jan 2026'
@@ -206,7 +209,8 @@ const DEFAULT_USERS: EnterpriseUser[] = [
       canAuditRescueClaims: false,
       canExportData: true,
       canAccessGovTech: true,
-      canPurgeDemo: false
+      canPurgeDemo: false,
+      canViewDeviceSimDetails: true
     },
     lastLogin: 'আজ দুপুর ১২:১০',
     createdAt: '05 Feb 2026'
@@ -1422,6 +1426,24 @@ export const UserAccessManager: React.FC = () => {
                         checked={editPermissions.canPurgeDemo}
                         onChange={() => handleTogglePermission('canPurgeDemo')}
                         className="w-4 h-4 rounded text-rose-600 mt-1 cursor-pointer"
+                      />
+                    </label>
+
+                    <label className="flex items-start justify-between p-2 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 cursor-pointer">
+                      <div>
+                        <span className="font-extrabold text-slate-200 block text-xs flex items-center space-x-1.5">
+                          <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+                          <span>এন্টারপ্রাইজ ডিভাইস ও M2M সিম ডিটেইলস দৃশ্যমানতা (View SIM & IMEI Details)</span>
+                        </span>
+                        <span className="text-[10px] text-slate-400 block mt-0.5">
+                          অনুমোদিত ওনার ও ফ্লিট ম্যানেজাররা সম্পূর্ণ সিম নম্বর, আইএমইআই ও স্পাই কল অডিও দেখতে পাবেন (সাধারণ ড্রাইভারদের জন্য মাস্কড থাকবে)।
+                        </span>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={editPermissions.canViewDeviceSimDetails}
+                        onChange={() => handleTogglePermission('canViewDeviceSimDetails')}
+                        className="w-4 h-4 rounded text-amber-600 mt-1 cursor-pointer"
                       />
                     </label>
                   </div>
