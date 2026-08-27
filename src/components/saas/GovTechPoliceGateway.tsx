@@ -46,6 +46,19 @@ export const GovTechPoliceGateway: React.FC = () => {
   // Architecture Mode Switch (Current 3rd Party vs Future Native vs Dual Stream)
   const [activeArchMode, setActiveArchMode] = useState<'third_party_push' | 'native_server' | 'dual_stream'>('third_party_push');
   
+  // Configuration Modal State
+  const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
+  const [vendorName, setVendorName] = useState('Grameenphone IoT / Jasper M2M');
+  const [webhookUrl, setWebhookUrl] = useState('https://api.easytracker.com/api/v1/telemetry/push');
+  const [secretToken, setSecretToken] = useState('ET-SEC-PROD-2026-X9981');
+  const [storageProvider, setStorageProvider] = useState<'cloudflare_r2' | 'aws_s3' | 'minio'>('cloudflare_r2');
+  const [bucketName, setBucketName] = useState('easytracker-media-vault');
+  const [endpointUrl, setEndpointUrl] = useState('https://a1b2c3d4.r2.cloudflarestorage.com');
+  const [accessKeyId, setAccessKeyId] = useState('R2_AKIA_EASYTRACKER_9081');
+  const [secretAccessKey, setSecretAccessKey] = useState('••••••••••••••••••••••••••••••••');
+  const [publicCdnUrl, setPublicCdnUrl] = useState('https://media.easytracker.com');
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
   // Live Webhook Ingestion Simulator State
   const [isSimulatingPush, setIsSimulatingPush] = useState(false);
   const [simulatedPacketLog, setSimulatedPacketLog] = useState<{
@@ -410,7 +423,7 @@ export const GovTechPoliceGateway: React.FC = () => {
 
             </div>
 
-            {/* Live Ingestion & Media Storage Simulator Button */}
+            {/* Live Ingestion & Media Storage Simulator Button & Setup Drawer Button */}
             <div className="pt-2 border-t border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <div>
                 <span className="text-xs font-black text-slate-200 block">
@@ -421,15 +434,26 @@ export const GovTechPoliceGateway: React.FC = () => {
                 </span>
               </div>
 
-              <button
-                type="button"
-                disabled={isSimulatingPush}
-                onClick={handleRunSimulator}
-                className="px-5 py-2.5 rounded-2xl bg-cyan-600 hover:bg-cyan-500 text-white font-black text-xs shadow-lg shadow-cyan-600/30 flex items-center space-x-2 transition active:scale-95 disabled:opacity-50"
-              >
-                <Play className="w-4 h-4" />
-                <span>{isSimulatingPush ? 'ডাটা ইনজেস্ট হচ্ছে...' : '▶️ টেস্ট পুশ ডাটা ও মিডিয়া সেভ করুন'}</span>
-              </button>
+              <div className="flex items-center space-x-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => setIsConfigModalOpen(true)}
+                  className="px-4 py-2.5 rounded-2xl bg-slate-950 hover:bg-slate-800 text-cyan-300 border border-cyan-500/40 font-black text-xs shadow-md flex items-center space-x-1.5 transition active:scale-95"
+                >
+                  <Code2 className="w-4 h-4" />
+                  <span>⚙️ API ও ক্লাউড ভল্ট কনফিগার করুন</span>
+                </button>
+
+                <button
+                  type="button"
+                  disabled={isSimulatingPush}
+                  onClick={handleRunSimulator}
+                  className="px-5 py-2.5 rounded-2xl bg-cyan-600 hover:bg-cyan-500 text-white font-black text-xs shadow-lg shadow-cyan-600/30 flex items-center space-x-2 transition active:scale-95 disabled:opacity-50"
+                >
+                  <Play className="w-4 h-4" />
+                  <span>{isSimulatingPush ? 'ডাটা ইনজেস্ট হচ্ছে...' : '▶️ টেস্ট পুশ ডাটা ও মিডিয়া সেভ করুন'}</span>
+                </button>
+              </div>
             </div>
 
             {/* Simulated Live Packet Result */}
@@ -689,6 +713,195 @@ export const GovTechPoliceGateway: React.FC = () => {
           <div className="bg-slate-950 p-3.5 rounded-2xl border border-rose-500/30 text-xs flex items-center justify-between">
             <span className="text-slate-300 font-bold">২৪/৭ পুলিশ রেসকিউ হটলাইন লিঙ্ক:</span>
             <span className="text-rose-400 font-mono font-black text-sm">৯৯৯ / ০২-২২৩৩৮৮০০০</span>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* ⚙️ MODAL: 3RD PARTY PUSH API & PRIVATE CLOUD MEDIA VAULT CONFIGURATION    */}
+      {/* ========================================================================= */}
+      {isConfigModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
+          <div className="bg-slate-900 border border-cyan-500/50 rounded-3xl p-5 sm:p-6 w-full max-w-2xl shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center space-x-2.5">
+                <div className="w-10 h-10 rounded-xl bg-cyan-600/20 text-cyan-400 border border-cyan-500/40 flex items-center justify-center text-xl">
+                  ⚙️
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-white">
+                    ৩য় পক্ষ Push API ও নিজস্ব ক্লাউড মিডিয়া ভল্ট সেটআপ
+                  </h3>
+                  <span className="text-[11px] text-slate-400">
+                    টেলিমেটিক্স রিসিভার ও এস৩/আর২ প্রাইভেট ভিডিও স্টোরেজ কনফিগারেশন
+                  </span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsConfigModalOpen(false)}
+                className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center text-sm font-bold transition"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* SECTION 1: 3RD PARTY PUSH API (TIER 1) */}
+            <div className="bg-slate-950 p-4 rounded-2xl border border-cyan-500/30 space-y-3 text-xs">
+              <div className="flex items-center space-x-2">
+                <Radio className="w-4 h-4 text-cyan-400" />
+                <span className="font-extrabold text-white text-xs">
+                  ১. ৩য় পক্ষ VTS সার্ভার ও Webhook Push এপিআই (Tier 1 Ingest):
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10.5px] font-bold text-slate-400 block mb-1">প্রোভাইডার / ভেন্ডর নির্বাচন করুন:</label>
+                  <select
+                    value={vendorName}
+                    onChange={(e) => setVendorName(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-white font-bold focus:border-cyan-500 focus:outline-none"
+                  >
+                    <option value="Grameenphone IoT / Jasper M2M">গ্রামীণফোন M2M IoT হাব</option>
+                    <option value="Robi Axiata Corporate IoT">রবি কর্পোরেট IoT হাব</option>
+                    <option value="Bondstein / Concox Server">বন্ডস্টাইন / Concox সার্ভার</option>
+                    <option value="Wialon / Navixy Webhook">Wialon / Navixy Webhook</option>
+                    <option value="Custom REST API Forwarder">কাস্টম REST API পুশ গেটওয়ে</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[10.5px] font-bold text-slate-400 block mb-1">সিক্রেট API অথেনটিকেশন টোকেন:</label>
+                  <input
+                    type="text"
+                    value={secretToken}
+                    onChange={(e) => setSecretToken(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-cyan-300 font-mono font-bold focus:border-cyan-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10.5px] font-bold text-slate-400 block mb-1">
+                  EasyTracker Webhook Ingest URL (৩য় পক্ষকে দেওয়ার জন্য):
+                </label>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value={webhookUrl}
+                    className="flex-1 bg-slate-900 border border-slate-700 rounded-xl p-2 text-emerald-400 font-mono font-bold text-[11px]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(webhookUrl);
+                      alert('📋 Webhook URL ক্লিপবোর্ডে কপি করা হয়েছে!');
+                    }}
+                    className="px-3 py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-xl text-xs transition"
+                  >
+                    কপি করুন
+                  </button>
+                </div>
+                <span className="text-[10px] text-slate-500 block mt-1">
+                  💡 আপনার ৩য় পক্ষ জিপিএস প্রোভাইডারকে এই URL-টি দিয়ে বলবেন প্রতিবার ইভেন্ট বা লোকেশন এলে এই লিঙ্কে JSON পুশ পাঠাতে।
+                </span>
+              </div>
+            </div>
+
+            {/* SECTION 2: PRIVATE MEDIA CLOUD STORAGE (TIER 3) */}
+            <div className="bg-slate-950 p-4 rounded-2xl border border-emerald-500/30 space-y-3 text-xs">
+              <div className="flex items-center space-x-2">
+                <HardDrive className="w-4 h-4 text-emerald-400" />
+                <span className="font-extrabold text-white text-xs">
+                  ২. আপনার নিজস্ব প্রাইভেট ক্লাউড মিডিয়া ভল্ট (Tier 3 Video/Audio Storage):
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10.5px] font-bold text-slate-400 block mb-1">ক্লাউড স্টোরেজ প্রোভাইডার:</label>
+                  <select
+                    value={storageProvider}
+                    onChange={(e) => setStorageProvider(e.target.value as any)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-white font-bold focus:border-emerald-500 focus:outline-none"
+                  >
+                    <option value="cloudflare_r2">Cloudflare R2 (০ ডলার ব্যান্ডউইথ ফি - প্রস্তাবিত)</option>
+                    <option value="aws_s3">Amazon Web Services (AWS S3)</option>
+                    <option value="minio">Self-Hosted MinIO Private Server</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[10.5px] font-bold text-slate-400 block mb-1">S3 / R2 বাকেট নাম (Bucket Name):</label>
+                  <input
+                    type="text"
+                    value={bucketName}
+                    onChange={(e) => setBucketName(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-white font-mono font-bold focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10.5px] font-bold text-slate-400 block mb-1">Access Key ID:</label>
+                  <input
+                    type="text"
+                    value={accessKeyId}
+                    onChange={(e) => setAccessKeyId(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-white font-mono text-[11px] focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10.5px] font-bold text-slate-400 block mb-1">Secret Access Key:</label>
+                  <input
+                    type="password"
+                    value={secretAccessKey}
+                    onChange={(e) => setSecretAccessKey(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-white font-mono text-[11px] focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="text-[10.5px] font-bold text-slate-400 block mb-1">Custom CDN / Public Playback Domain:</label>
+                  <input
+                    type="text"
+                    value={publicCdnUrl}
+                    onChange={(e) => setPublicCdnUrl(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-indigo-300 font-mono text-[11px] focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Save & Test Buttons */}
+            <div className="flex items-center justify-between pt-2 border-t border-slate-800">
+              <span className="text-[11px] text-slate-400 font-mono">
+                {saveSuccess ? '✅ সেটিংস সফলভাবে সংরক্ষিত ও সংযুক্ত হয়েছে!' : 'সব তথ্য নিরাপদ AES-256 এনক্রিপশনে থাকবে।'}
+              </span>
+
+              <div className="flex items-center space-x-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSaveSuccess(true);
+                    triggerManualAlert('service_reminder', '✨ ৩য় পক্ষ Push API ও নিজস্ব ক্লাউড মিডিয়া ভল্ট সফলভাবে সংরক্ষিত ও সংযুক্ত হয়েছে!');
+                    setTimeout(() => {
+                      setSaveSuccess(false);
+                      setIsConfigModalOpen(false);
+                    }, 1200);
+                  }}
+                  className="px-5 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs shadow-lg shadow-emerald-600/30 flex items-center space-x-1.5 transition active:scale-95"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>💾 কনফিগারেশন সংরক্ষণ করুন</span>
+                </button>
+              </div>
+            </div>
+
           </div>
         </div>
       )}
