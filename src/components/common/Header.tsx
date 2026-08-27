@@ -280,13 +280,30 @@ export const Header: React.FC = () => {
               /^[0-9\-\+]+@/.test(user?.email || '')
             );
             const isManager = isStaffUser && (user?.role === 'manager' || user?.name?.includes('ম্যানেজার') || user?.name?.includes('ওসমান'));
-            const isDriver = isStaffUser && !isManager && (user?.role === 'driver' || user?.name?.includes('কুদ্দুস') || (user as any)?.assigned?.includes('ঢাকা মেট্রো-ব'));
-            const isVehicleSupervisor = isStaffUser && !isManager && !isDriver && (user?.role === 'vehicle_supervisor' || user?.name?.includes('সুপারভাইজার') || user?.name?.includes('শফিকুল'));
+            
+            // 1. Check Vehicle Supervisor first by explicit role, email or name
+            const isVehicleSupervisor = isStaffUser && !isManager && (
+              user?.role === 'vehicle_supervisor' || 
+              user?.role === 'supervisor' || 
+              user?.name?.includes('সুপারভাইজার') || 
+              user?.name?.includes('শফিকুল') ||
+              user?.email?.includes('supervisor')
+            );
+
+            // 2. Check Driver only if not supervisor
+            const isDriver = isStaffUser && !isManager && !isVehicleSupervisor && (
+              user?.role === 'driver' || 
+              user?.name?.includes('চালক') || 
+              user?.name?.includes('কুদ্দুস') ||
+              user?.email?.includes('driver') ||
+              ((user as any)?.assigned?.includes('ঢাকা মেট্রো-ব') && !user?.name?.includes('সুপারভাইজার') && user?.role !== 'vehicle_supervisor' && user?.role !== 'supervisor')
+            );
+
             const isCounterIncharge = isStaffUser && !isManager && !isDriver && !isVehicleSupervisor;
             
             const staffRoleTitle = isManager ? 'কোম্পানি ম্যানেজার' :
-              isDriver ? 'বাস চালক' :
-              isVehicleSupervisor ? 'বাস সুপারভাইজার' : 'কাউন্টার ইনচার্জ';
+              isVehicleSupervisor ? 'বাস সুপারভাইজার' :
+              isDriver ? 'বাস চালক' : 'কাউন্টার ইনচার্জ';
 
             const isFleetOwner = !isStaffUser && currentRole === 'customer' && isCommercialFleet;
 
