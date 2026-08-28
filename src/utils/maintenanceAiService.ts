@@ -59,7 +59,6 @@ export const BUILTIN_SPECS: Record<string, VehicleMaintenanceSpec> = {
   'yamaha_fzs': {
     modelName: 'Yamaha FZ-S / FZ-X (150cc)',
     category: 'motorcycle',
-    category: 'motorcycle',
     engineOilGrade: '10W-40 (JASO MA2 Semi-Synthetic)',
     engineOilCapacityMl: 1000,
     oilChangeIntervalKm: 2200,
